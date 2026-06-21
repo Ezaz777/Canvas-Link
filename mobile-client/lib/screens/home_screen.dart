@@ -1,0 +1,601 @@
+import 'package:flutter/material.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../services/api_service.dart';
+import '../services/auth_service.dart';
+import '../services/wallpaper_service.dart';
+import '../workers/wallpaper_worker.dart';
+import 'login_screen.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late Razorpay _razorpay;
+  bool _isSyncing = false;
+  bool _isLoadingPreview = true;
+  String? _currentImageUrl;
+  String? _currentPinId;
+  String? _currentDate;
+  String? _errorMessage;
+  int? _totalPins;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..forward();
+    _loadCurrentWallpaper();
+
+    // Initialize Razorpay
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    _razorpay.clear();
+    super.dispose();
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('✅ Payment successful! Subscription activated.'),
+        backgroundColor: const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+    // Reload to reflect active subscription
+    _loadCurrentWallpaper();
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('❌ Payment failed: ${response.message ?? "Unknown error"}'),
+        backgroundColor: const Color(0xFFEF4444),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('External wallet selected: ${response.walletName}'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  Future<void> _loadCurrentWallpaper() async {
+    setState(() {
+      _isLoadingPreview = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final token = await AuthService.getToken();
+      if (token == null) return;
+
+      final api = ApiService(token);
+      final data = await api.getWallpaper();
+
+      setState(() {
+        _currentImageUrl = data['image_url'];
+        _currentPinId = data['pin_id'];
+        _currentDate = data['date'];
+        _totalPins = data['total_pins'];
+        _isLoadingPreview = false;
+      });
+    } on PaymentRequiredException {
+      setState(() {
+        _errorMessage = 'subscription_required';
+        _isLoadingPreview = false;
+      });
+    } on UnauthorizedException {
+      setState(() {
+        _errorMessage = 'auth_expired';
+        _isLoadingPreview = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load wallpaper preview.';
+        _isLoadingPreview = false;
+      });
+    }
+  }
+
+  Future<void> _syncNow() async {
+    setState(() => _isSyncing = true);
+
+    try {
+      await WallpaperWorker.runOnce();
+      final success = await WallpaperService.syncWallpaper();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? '✅ Wallpaper synced successfully!'
+                : '❌ Sync failed. Check your connection.',
+          ),
+          backgroundColor:
+              success ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+
+      if (success) {
+        await _loadCurrentWallpaper();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+
+    setState(() => _isSyncing = false);
+  }
+
+  Future<void> _openCheckout() async {
+    try {
+      final token = await AuthService.getToken();
+      if (token == null) return;
+
+      final api = ApiService(token);
+      final checkoutUrl = await api.createCheckout();
+
+      // Open Razorpay's hosted checkout page
+      final url = Uri.parse(checkoutUrl);
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to open checkout: $e'),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _logout() async {
+    await AuthService.clearAll();
+    await WallpaperWorker.cancelAll();
+
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0F0C29),
+              Color(0xFF302B63),
+              Color(0xFF24243E),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: FadeTransition(
+            opacity: CurvedAnimation(
+              parent: _animController,
+              curve: Curves.easeOut,
+            ),
+            child: Column(
+              children: [
+                // App Bar
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF7C3AED), Color(0xFFA78BFA)],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.wallpaper_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'WallpaperSync',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            'Daily Pinterest Magic',
+                            style: TextStyle(
+                              color: Color(0xFFA78BFA),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: _logout,
+                        icon: Icon(
+                          Icons.logout_rounded,
+                          color: Colors.white.withOpacity(0.6),
+                        ),
+                        tooltip: 'Logout',
+                      ),
+                    ],
+                  ),
+                ),
+
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 8),
+
+                        // Wallpaper Preview Card
+                        _buildPreviewCard(),
+                        const SizedBox(height: 20),
+
+                        // Subscription Banner (if needed)
+                        if (_errorMessage == 'subscription_required')
+                          _buildSubscriptionBanner(),
+
+                        // Sync Button
+                        if (_errorMessage != 'subscription_required')
+                          _buildSyncButton(),
+
+                        const SizedBox(height: 20),
+
+                        // Stats Card
+                        if (_totalPins != null) _buildStatsCard(),
+
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreviewCard() {
+    return Container(
+      width: double.infinity,
+      height: 380,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: _isLoadingPreview
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFFA78BFA),
+                  strokeWidth: 2.5,
+                ),
+              )
+            : _currentImageUrl != null
+                ? Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.network(
+                        _currentImageUrl!,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (ctx, child, progress) {
+                          if (progress == null) return child;
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFFA78BFA),
+                              strokeWidth: 2.5,
+                            ),
+                          );
+                        },
+                        errorBuilder: (ctx, err, stack) => Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.broken_image_rounded,
+                                  color: Colors.white.withOpacity(0.3),
+                                  size: 48),
+                              const SizedBox(height: 12),
+                              Text('Failed to load preview',
+                                  style: TextStyle(
+                                      color: Colors.white.withOpacity(0.4))),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Date overlay
+                      Positioned(
+                        bottom: 16,
+                        left: 16,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.calendar_today_rounded,
+                                  color: Color(0xFFA78BFA), size: 14),
+                              const SizedBox(width: 8),
+                              Text(
+                                _currentDate ?? 'Today',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _errorMessage == 'subscription_required'
+                              ? Icons.lock_rounded
+                              : Icons.image_not_supported_rounded,
+                          color: Colors.white.withOpacity(0.2),
+                          size: 56,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _errorMessage == 'subscription_required'
+                              ? 'Premium Required'
+                              : 'No wallpaper yet',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.4),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF7C3AED).withOpacity(0.2),
+            const Color(0xFFA78BFA).withOpacity(0.1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF7C3AED).withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.stars_rounded, color: Color(0xFFA78BFA), size: 36),
+          const SizedBox(height: 12),
+          const Text(
+            'Unlock Premium',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Subscribe to sync your Pinterest wallpapers daily across all your devices.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.6),
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _openCheckout,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C3AED),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Subscribe Now',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSyncButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 60,
+      child: ElevatedButton(
+        onPressed: _isSyncing ? null : _syncNow,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF7C3AED),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          elevation: 0,
+        ),
+        child: _isSyncing
+            ? const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                  SizedBox(width: 14),
+                  Text(
+                    'Syncing...',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.sync_rounded, size: 22),
+                  SizedBox(width: 12),
+                  Text(
+                    'Sync Now',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildStatsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStat('Board Pins', '$_totalPins', Icons.grid_view_rounded),
+          Container(
+            width: 1,
+            height: 40,
+            color: Colors.white.withOpacity(0.08),
+          ),
+          _buildStat('Status', 'Active', Icons.check_circle_rounded),
+          Container(
+            width: 1,
+            height: 40,
+            color: Colors.white.withOpacity(0.08),
+          ),
+          _buildStat('Next Sync', '24h', Icons.schedule_rounded),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStat(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, color: const Color(0xFFA78BFA), size: 20),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.4),
+            fontSize: 11,
+          ),
+        ),
+      ],
+    );
+  }
+}

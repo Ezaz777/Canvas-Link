@@ -1,0 +1,35 @@
+name = "wallpaper-sync-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# =============================================================================
+# D1 DATABASE
+# =============================================================================
+# Run: npx wrangler d1 create wallpaper-sync-db
+# Then paste the database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "wallpaper-sync-db"
+database_id = "ed246863-3a80-4080-9bf3-0816275ae1d8"
+
+# =============================================================================
+# SECRETS (set via: wrangler secret put <SECRET_NAME>)
+# =============================================================================
+# Do NOT put secret values here. Use `wrangler secret put` for each:
+#
+#   wrangler secret put PINTEREST_APP_ID
+#   wrangler secret put PINTEREST_APP_SECRET
+#   wrangler secret put RAZORPAY_KEY_ID
+#   wrangler secret put RAZORPAY_KEY_SECRET
+#   wrangler secret put RAZORPAY_WEBHOOK_SECRET
+#   wrangler secret put JWT_SECRET
+#   wrangler secret put ENCRYPTION_KEY
+#
+# =============================================================================
+
+# Environment variables (non-secret)
+[vars]
+PINTEREST_REDIRECT_URI = "https://wallpaper-sync-api.canvaslink.workers.dev/auth/callback"
+FRONTEND_URL = "https://your-app-domain.com"
+RAZORPAY_PLAN_ID = "plan_YOUR_RAZORPAY_PLAN_ID"

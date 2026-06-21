@@ -1,0 +1,38 @@
+# ==============================================================================
+# General
+# ==============================================================================
+.env
+.DS_Store
+
+# ==============================================================================
+# Backend (Cloudflare Workers / TypeScript)
+# ==============================================================================
+backend/node_modules/
+backend/.wrangler/
+backend/dist/
+backend/*.log
+
+# ==============================================================================
+# PC Client (Python)
+# ==============================================================================
+pc-client/__pycache__/
+pc-client/build/
+pc-client/dist/
+pc-client/*.spec
+pc-client/venv/
+pc-client/env/
+
+# ==============================================================================
+# Mobile Client (Flutter)
+# ==============================================================================
+mobile-client/.dart_tool/
+mobile-client/build/
+mobile-client/.pub-cache/
+mobile-client/.pub/
+mobile-client/android/.gradle/
+mobile-client/android/local.properties
+mobile-client/ios/Pods/
+mobile-client/ios/.symlinks/
+mobile-client/ios/Flutter/Flutter.framework/
+mobile-client/ios/Flutter/Flutter.podspec
+mobile-client/*.log
