@@ -13,7 +13,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   http: ^1.2.2
   flutter_secure_storage: ^9.2.2
-  workmanager: ^0.5.2
+  workmanager: ^0.9.0+3
   wallpaper_manager_plus: ^2.0.2
   image: ^4.2.0
   path_provider: ^2.1.4
