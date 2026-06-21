@@ -31,6 +31,14 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Recreate Android Project
+        run: |
+          mkdir -p /tmp/backup
+          cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml
+          rm -rf android
+          flutter create --platforms=android .
+          cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+
       - name: Build APK
         run: flutter build apk --release
 
