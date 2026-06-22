@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import PrivacyPolicy from './PrivacyPolicy';
 import { motion } from 'framer-motion';
 import { 
   Download, 
@@ -12,6 +13,8 @@ import {
 } from 'lucide-react';
 
 function App() {
+  const [currentView, setCurrentView] = useState('home');
+
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
     animate: { opacity: 1, y: 0 },
@@ -44,7 +47,11 @@ function App() {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {currentView === 'privacy' ? (
+        <PrivacyPolicy onBack={() => setCurrentView('home')} />
+      ) : (
+        <>
+          {/* Hero Section */}
       <section className="hero">
         <div className="hero-bg-blob-1"></div>
         <div className="hero-bg-blob-2"></div>
@@ -159,13 +166,25 @@ function App() {
             <p>© {new Date().getFullYear()} Canvas-Link. All rights reserved.</p>
           </div>
           
-          <div style={{ display: 'flex', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+            <button 
+              onClick={() => {
+                setCurrentView('privacy');
+                window.scrollTo(0, 0);
+              }}
+              className="feature-desc" 
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1rem' }}
+            >
+              Privacy Policy
+            </button>
             <a href="https://github.com/Ezaz777/Canvas-Link" className="feature-desc" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Code size={16} /> GitHub
             </a>
           </div>
         </div>
       </footer>
+        </>
+      )}
     </>
   );
 }
