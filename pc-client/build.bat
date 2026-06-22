@@ -28,6 +28,7 @@ echo.
 pyinstaller ^
     --onefile ^
     --noconsole ^
+    --icon=icon.ico ^
     --name WallpaperSync ^
     --add-data "config.py;." ^
     main.py
@@ -51,4 +52,3 @@ echo   dist\WallpaperSync.exe --install    Install daily task
 echo   dist\WallpaperSync.exe --uninstall  Remove daily task
 echo.
 
-pause
