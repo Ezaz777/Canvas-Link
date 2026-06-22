@@ -37,7 +37,7 @@ jobs:
           mkdir -p /tmp/backup
           cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml
           rm -rf android
-          flutter create --platforms=android .
+          flutter create --project-name wallpaper_sync --platforms=android .
           cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
 
       - name: Build APK
