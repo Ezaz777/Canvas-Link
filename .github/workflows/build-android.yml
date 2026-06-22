@@ -41,6 +41,8 @@ jobs:
           sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.24"/' android/settings.gradle
           sed -i 's/id "com.android.application" version "[^"]*"/id "com.android.application" version "8.1.4"/' android/settings.gradle
           sed -i 's/gradle-[0-9\.]*-all\.zip/gradle-8.4-all.zip/' android/gradle/wrapper/gradle-wrapper.properties
+          sed -i 's/VERSION_1_8/VERSION_17/g' android/app/build.gradle
+          sed -i "s/jvmTarget = '1.8'/jvmTarget = '17'/g" android/app/build.gradle
           cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
 
       - name: Build APK
