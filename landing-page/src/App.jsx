@@ -137,7 +137,7 @@ function Home() {
         <div className="container footer-content">
           <div>
             <div className="nav-brand" style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
-              <RefreshCw size={16} className="text-gradient" />
+              <img src="/logo.png" alt="Logo" style={{ width: 24, height: 24, borderRadius: '6px' }} />
               <span>Canvas-Link</span>
             </div>
             <p>© {new Date().getFullYear()} Canvas-Link. All rights reserved.</p>
@@ -169,7 +169,7 @@ function App() {
       <nav className="navbar">
         <div className="container">
           <div className="nav-brand">
-            <RefreshCw className="text-gradient" />
+            <img src="/logo.png" alt="Logo" style={{ width: 32, height: 32, borderRadius: '8px', boxShadow: '0 0 10px rgba(139, 92, 246, 0.5)' }} />
             <Link to="/" style={{ color: 'inherit' }}>Canvas-Link</Link>
           </div>
           <div>
