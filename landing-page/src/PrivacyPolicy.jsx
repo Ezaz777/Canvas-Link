@@ -2,7 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 
-function PrivacyPolicy({ onBack }) {
+import { Link } from 'react-router-dom';
+
+function PrivacyPolicy() {
   return (
     <motion.div 
       className="container section"
@@ -11,14 +13,15 @@ function PrivacyPolicy({ onBack }) {
       exit={{ opacity: 0 }}
       style={{ paddingTop: '8rem', minHeight: '100vh' }}
     >
-      <button 
-        onClick={onBack} 
+      <Link 
+        to="/" 
         className="btn btn-secondary" 
-        style={{ marginBottom: '2rem' }}
+        style={{ marginBottom: '2rem', display: 'inline-flex' }}
+        onClick={() => window.scrollTo(0, 0)}
       >
         <ArrowLeft size={18} />
         Back to Home
-      </button>
+      </Link>
 
       <div className="glass-panel" style={{ padding: '3rem' }}>
         <h1 style={{ marginBottom: '2rem', fontSize: '2.5rem' }}>Privacy Policy</h1>

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import PrivacyPolicy from './PrivacyPolicy';
+import React from 'react';
 import { motion } from 'framer-motion';
+import { Routes, Route, Link } from 'react-router-dom';
+import PrivacyPolicy from './PrivacyPolicy';
 import { 
-  Download, 
   Monitor, 
   Smartphone, 
   RefreshCw, 
@@ -12,9 +12,7 @@ import {
   Heart
 } from 'lucide-react';
 
-function App() {
-  const [currentView, setCurrentView] = useState('home');
-
+function Home() {
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
     animate: { opacity: 1, y: 0 },
@@ -31,27 +29,7 @@ function App() {
 
   return (
     <>
-      {/* Navbar */}
-      <nav className="navbar">
-        <div className="container">
-          <div className="nav-brand">
-            <RefreshCw className="text-gradient" />
-            <span>Canvas-Link</span>
-          </div>
-          <div>
-            <a href="https://github.com/Ezaz777/Canvas-Link" target="_blank" rel="noreferrer" className="btn btn-secondary">
-              <Code size={18} />
-              <span>GitHub</span>
-            </a>
-          </div>
-        </div>
-      </nav>
-
-      {currentView === 'privacy' ? (
-        <PrivacyPolicy onBack={() => setCurrentView('home')} />
-      ) : (
-        <>
-          {/* Hero Section */}
+      {/* Hero Section */}
       <section className="hero">
         <div className="hero-bg-blob-1"></div>
         <div className="hero-bg-blob-2"></div>
@@ -145,7 +123,6 @@ function App() {
           </div>
           
           <div className="why-image-placeholder glass-panel">
-            {/* You can replace this with an actual screenshot of the app */}
             <div style={{ textAlign: 'center' }}>
               <Monitor size={64} style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '1rem' }} />
               <Smartphone size={48} style={{ color: 'rgba(255,255,255,0.3)' }} />
@@ -167,24 +144,47 @@ function App() {
           </div>
           
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-            <button 
-              onClick={() => {
-                setCurrentView('privacy');
-                window.scrollTo(0, 0);
-              }}
+            <Link 
+              to="/privacy"
               className="feature-desc" 
               style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1rem' }}
+              onClick={() => window.scrollTo(0, 0)}
             >
               Privacy Policy
-            </button>
+            </Link>
             <a href="https://github.com/Ezaz777/Canvas-Link" className="feature-desc" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Code size={16} /> GitHub
             </a>
           </div>
         </div>
       </footer>
-        </>
-      )}
+    </>
+  );
+}
+
+function App() {
+  return (
+    <>
+      {/* Navbar */}
+      <nav className="navbar">
+        <div className="container">
+          <div className="nav-brand">
+            <RefreshCw className="text-gradient" />
+            <Link to="/" style={{ color: 'inherit' }}>Canvas-Link</Link>
+          </div>
+          <div>
+            <a href="https://github.com/Ezaz777/Canvas-Link" target="_blank" rel="noreferrer" className="btn btn-secondary">
+              <Code size={18} />
+              <span>GitHub</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+      </Routes>
     </>
   );
 }
