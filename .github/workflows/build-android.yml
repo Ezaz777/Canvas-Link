@@ -40,6 +40,7 @@ jobs:
           flutter create --project-name wallpaper_sync --platforms=android .
           sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.24"/' android/settings.gradle
           sed -i 's/id "com.android.application" version "[^"]*"/id "com.android.application" version "8.1.4"/' android/settings.gradle
+          sed -i 's/gradle-[0-9\.]*-all\.zip/gradle-8.4-all.zip/' android/gradle/wrapper/gradle-wrapper.properties
           cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
 
       - name: Build APK
