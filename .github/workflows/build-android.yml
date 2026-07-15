@@ -35,7 +35,6 @@ jobs:
           cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml
           rm -rf android
           flutter create --project-name wallpaper_sync --platforms=android .
-          sed -i "s/ext.kotlin_version = '[^']*'/ext.kotlin_version = '1.9.24'/g" android/build.gradle
           cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
 
       - name: Install dependencies
