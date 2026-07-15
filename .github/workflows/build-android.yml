@@ -35,6 +35,9 @@ jobs:
           cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml
           rm -rf android
           flutter create --project-name wallpaper_sync --platforms=android .
+          sed -i "s/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g" android/app/build.gradle
+          sed -i "s/minSdkVersion 16/minSdkVersion 21/g" android/app/build.gradle
+          sed -i "s/minSdkVersion 19/minSdkVersion 21/g" android/app/build.gradle
           cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
 
       - name: Install dependencies
