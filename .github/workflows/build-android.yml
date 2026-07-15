@@ -36,6 +36,26 @@ jobs:
           rm -rf android
           flutter create --project-name wallpaper_sync --platforms=android .
           
+          # Add ProGuard rules for razorpay_flutter and okhttp3
+          cat << 'EOF' > android/app/proguard-rules.pro
+          -keepclassmembers class * {
+              @android.webkit.JavascriptInterface <methods>;
+          }
+          -keepattributes JavascriptInterface
+          -keepattributes *Annotation*
+          -dontwarn com.razorpay.**
+          -keep class com.razorpay.** {*;}
+          -optimizations !method/inlining/
+          -keepclasseswithmembers class * {
+            public void onPayment*(...);
+          }
+          -dontwarn org.conscrypt.**
+          -dontwarn okhttp3.**
+          EOF
+          
+          # Link proguard rules in build.gradle
+          sed -i 's|// TODO: Add your own proguard rules lines if you need.|proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"|g' android/app/build.gradle
+          
           sed -i "s/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g" android/app/build.gradle
           sed -i "s/minSdkVersion 16/minSdkVersion 21/g" android/app/build.gradle
           sed -i "s/minSdkVersion 19/minSdkVersion 21/g" android/app/build.gradle
