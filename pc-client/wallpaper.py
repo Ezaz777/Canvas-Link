@@ -99,6 +99,16 @@ def center_crop(image: Image.Image, target_width: int, target_height: int) -> Im
     and fills the screen perfectly.
     """
     img_width, img_height = image.size
+    
+    is_source_landscape = img_width > img_height
+    is_target_landscape = target_width > target_height
+    
+    # Auto-rotate if orientations don't match (e.g. portrait image on landscape screen)
+    if is_source_landscape != is_target_landscape:
+        logger.info("Orientation mismatch: Rotating image 90 degrees to fit screen better.")
+        image = image.rotate(90, expand=True)
+        img_width, img_height = image.size
+
     target_ratio = target_width / target_height
     img_ratio = img_width / img_height
 

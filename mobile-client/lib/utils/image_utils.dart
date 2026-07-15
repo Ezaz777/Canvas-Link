@@ -30,8 +30,22 @@ class ImageUtils {
       throw Exception('Failed to decode image: $imagePath');
     }
 
-    final imgWidth = image.width;
-    final imgHeight = image.height;
+    int imgWidth = image.width;
+    int imgHeight = image.height;
+    
+    bool isSourceLandscape = imgWidth > imgHeight;
+    bool isTargetLandscape = screenWidth > screenHeight;
+    
+    img.Image currentImage = image;
+    
+    // Auto-rotate if orientations don't match (e.g. landscape image on portrait phone)
+    if (isSourceLandscape != isTargetLandscape) {
+      print('ImageUtils: Orientation mismatch. Rotating image 90 degrees.');
+      currentImage = img.copyRotate(currentImage, angle: 90);
+      imgWidth = currentImage.width;
+      imgHeight = currentImage.height;
+    }
+
     final targetRatio = screenWidth / screenHeight;
     final imgRatio = imgWidth / imgHeight;
 
@@ -53,7 +67,7 @@ class ImageUtils {
 
     // Perform the center crop
     final cropped = img.copyCrop(
-      image,
+      currentImage,
       x: cropX,
       y: cropY,
       width: cropWidth,
