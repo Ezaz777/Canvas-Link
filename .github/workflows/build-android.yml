@@ -20,12 +20,12 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '11'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.3'
+          flutter-version: '3.19.6'
           channel: 'stable'
           cache: true
 
@@ -38,11 +38,7 @@ jobs:
           cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml
           rm -rf android
           flutter create --project-name wallpaper_sync --platforms=android .
-          sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.24"/' android/settings.gradle
-          sed -i 's/id "com.android.application" version "[^"]*"/id "com.android.application" version "8.1.4"/' android/settings.gradle
-          sed -i 's/gradle-[0-9\.]*-all\.zip/gradle-8.4-all.zip/' android/gradle/wrapper/gradle-wrapper.properties
-          sed -i 's/VERSION_1_8/VERSION_17/g' android/app/build.gradle
-          sed -i "s/jvmTarget = '1.8'/jvmTarget = '17'/g" android/app/build.gradle
+          sed -i "s/ext.kotlin_version = '[^']*'/ext.kotlin_version = '1.9.24'/g" android/build.gradle
           cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
 
       - name: Build APK
