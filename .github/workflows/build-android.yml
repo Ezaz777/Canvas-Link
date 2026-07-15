@@ -44,6 +44,30 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Patch old plugins for AGP 8
+        run: |
+          cat << 'EOF' > patch_namespace.dart
+          import 'dart:io';
+          import 'dart:convert';
+          void main() {
+            final config = jsonDecode(File('.dart_tool/package_config.json').readAsStringSync());
+            for (final pkg in config['packages']) {
+              if (pkg['name'] == 'async_wallpaper') {
+                final uri = pkg['rootUri'].toString().replaceFirst('file://', '');
+                final gradleFile = File('$uri/android/build.gradle');
+                if (gradleFile.existsSync()) {
+                  final content = gradleFile.readAsStringSync();
+                  if (!content.contains('namespace ')) {
+                    gradleFile.writeAsStringSync(content.replaceFirst(RegExp(r'android\s*\{'), 'android {\n    namespace "com.codenameakshay.async_wallpaper"'));
+                    print('Patched namespace for async_wallpaper');
+                  }
+                }
+              }
+            }
+          }
+          EOF
+          dart run patch_namespace.dart
+
       - name: Build APK
         run: flutter build apk --release
 
