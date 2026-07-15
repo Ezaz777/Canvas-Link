@@ -4,7 +4,7 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'package:wallpaper_manager_plus/wallpaper_manager_plus.dart';
+import 'package:async_wallpaper/async_wallpaper.dart';
 import '../utils/image_utils.dart';
 import 'api_service.dart';
 import 'auth_service.dart';
@@ -57,10 +57,19 @@ class WallpaperService {
       print('WallpaperSync: Image cropped to ${screenRes['width']}x${screenRes['height']}');
 
       // 5. Set as wallpaper (both Home and Lock screen)
-      await WallpaperManagerPlus().setWallpaper(
-        File(croppedPath),
-        WallpaperManagerPlus.bothScreens,
+      final WallpaperResult result = await AsyncWallpaper.setWallpaper(
+        WallpaperRequest(
+          target: WallpaperTarget.both,
+          sourceType: WallpaperSourceType.file,
+          source: croppedPath,
+          goToHome: false,
+        ),
       );
+      
+      if (!result.isSuccess) {
+        print('WallpaperSync: Failed to set wallpaper - ${result.error?.message}');
+        return false;
+      }
 
       print('WallpaperSync: Wallpaper applied successfully!');
       return true;
