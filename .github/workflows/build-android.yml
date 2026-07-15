@@ -29,12 +29,16 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Remove Android SDK 35 to fix AAPT2 bug
+        run: sudo rm -rf $ANDROID_HOME/platforms/android-35
+
       - name: Recreate Android Project
         run: |
           mkdir -p /tmp/backup
           cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml
           rm -rf android
           flutter create --project-name wallpaper_sync --platforms=android .
+          sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.24"/' android/settings.gradle
           sed -i "s/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g" android/app/build.gradle
           sed -i "s/minSdkVersion 16/minSdkVersion 21/g" android/app/build.gradle
           sed -i "s/minSdkVersion 19/minSdkVersion 21/g" android/app/build.gradle
