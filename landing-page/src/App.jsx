@@ -103,9 +103,9 @@ function Home() {
       <section className="section why-section">
         <div className="container why-grid">
           <div>
-            <h2 style={{ fontSize: '2.5rem', marginBottom: '1.5rem' }}>Why choose <br/><span className="text-gradient">Canvas-Link?</span></h2>
+            <h2 style={{ fontSize: '2.5rem', marginBottom: '1.5rem' }}>Why choose <br/><span className="text-gradient">Canvas Link?</span></h2>
             <p className="feature-desc" style={{ fontSize: '1.125rem', marginBottom: '2rem' }}>
-              Unlike other wallpaper apps that bombard you with ads or drain your device resources, Canvas-Link is entirely open-source, lightweight, and focused purely on bringing you joy.
+              Unlike other wallpaper apps that bombard you with ads or drain your device resources, Canvas Link is entirely open-source, lightweight, and focused purely on bringing you joy.
             </p>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <li style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -139,9 +139,9 @@ function Home() {
           <div>
             <div className="nav-brand" style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
               <img src="/logo.png" alt="Logo" style={{ width: 24, height: 24, borderRadius: '6px' }} />
-              <span>Canvas-Link</span>
+              <span>Canvas Link</span>
             </div>
-            <p>© {new Date().getFullYear()} Canvas-Link. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Canvas Link. All rights reserved.</p>
           </div>
           
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
@@ -171,7 +171,7 @@ function App() {
         <div className="container">
           <div className="nav-brand">
             <img src="/logo.png" alt="Logo" style={{ width: 32, height: 32, borderRadius: '8px', boxShadow: '0 0 10px rgba(139, 92, 246, 0.5)' }} />
-            <Link to="/" style={{ color: 'inherit' }}>Canvas-Link</Link>
+            <Link to="/" style={{ color: 'inherit' }}>Canvas Link</Link>
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <Link to="/dashboard" className="btn" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>

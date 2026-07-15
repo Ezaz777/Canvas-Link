@@ -31,12 +31,12 @@ function PrivacyPolicy() {
           
           <section>
             <h2 style={{ color: 'var(--color-text)', marginBottom: '0.5rem' }}>1. Introduction</h2>
-            <p>Welcome to Canvas-Link ("we", "our", or "us"). We are committed to protecting your personal information and your right to privacy. If you have any questions or concerns about this privacy notice, or our practices with regards to your personal information, please contact us.</p>
+            <p>Welcome to Canvas Link ("we", "our", or "us"). We are committed to protecting your personal information and your right to privacy. If you have any questions or concerns about this privacy notice, or our practices with regards to your personal information, please contact us.</p>
           </section>
 
           <section>
             <h2 style={{ color: 'var(--color-text)', marginBottom: '0.5rem' }}>2. Information We Collect</h2>
-            <p>We only collect the minimum amount of data necessary to provide you with the Canvas-Link synchronization service. We do not store your Pinterest password or any sensitive credentials. We use standard OAuth tokens securely encrypted and stored locally on your device to fetch your wallpapers.</p>
+            <p>We only collect the minimum amount of data necessary to provide you with the Canvas Link synchronization service. We do not store your Pinterest password or any sensitive credentials. We use standard OAuth tokens securely encrypted and stored locally on your device to fetch your wallpapers.</p>
           </section>
 
           <section>
@@ -56,7 +56,7 @@ function PrivacyPolicy() {
 
           <section>
             <h2 style={{ color: 'var(--color-text)', marginBottom: '0.5rem' }}>5. Open Source</h2>
-            <p>Canvas-Link is an open-source project. You can inspect all our code on GitHub to verify our data handling practices yourself!</p>
+            <p>Canvas Link is an open-source project. You can inspect all our code on GitHub to verify our data handling practices yourself!</p>
           </section>
         </div>
       </div>

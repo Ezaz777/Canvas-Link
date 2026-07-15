@@ -89,7 +89,7 @@ export default function Dashboard() {
           >
             <h2 style={{ marginBottom: '1.5rem', fontSize: '2rem' }}>Welcome Back</h2>
             <p className="feature-desc" style={{ marginBottom: '2rem' }}>
-              Paste your JWT token to access your Canvas-Link dashboard and manage your Pinterest boards.
+              Paste your JWT token to access your Canvas Link dashboard and manage your Pinterest boards.
             </p>
             <form onSubmit={handleLogin}>
               <input
