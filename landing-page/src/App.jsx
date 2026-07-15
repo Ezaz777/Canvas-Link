@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Routes, Route, Link } from 'react-router-dom';
 import PrivacyPolicy from './PrivacyPolicy';
@@ -10,7 +10,9 @@ import {
   ShieldCheck, 
   Battery, 
   Code,
-  Heart
+  Heart,
+  Menu,
+  X
 } from 'lucide-react';
 
 function Home() {
@@ -164,6 +166,8 @@ function Home() {
 }
 
 function App() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <>
       {/* Navbar */}
@@ -173,7 +177,8 @@ function App() {
             <img src="/logo.png" alt="Logo" style={{ width: 32, height: 32, borderRadius: '8px', boxShadow: '0 0 10px rgba(139, 92, 246, 0.5)' }} />
             <Link to="/" style={{ color: 'inherit' }}>Canvas Link</Link>
           </div>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          
+          <div className="desktop-nav-links">
             <Link to="/dashboard" className="btn" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>
               Dashboard
             </Link>
@@ -182,6 +187,25 @@ function App() {
               <span>GitHub</span>
             </a>
           </div>
+
+          <button 
+            className="mobile-menu-btn" 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+
+          {isMobileMenuOpen && (
+            <div className="mobile-menu">
+              <Link to="/dashboard" className="btn" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', justifyContent: 'center' }} onClick={() => setIsMobileMenuOpen(false)}>
+                Dashboard
+              </Link>
+              <a href="https://github.com/Ezaz777/Canvas-Link" target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ justifyContent: 'center' }} onClick={() => setIsMobileMenuOpen(false)}>
+                <Code size={18} />
+                <span>GitHub</span>
+              </a>
+            </div>
+          )}
         </div>
       </nav>
 
