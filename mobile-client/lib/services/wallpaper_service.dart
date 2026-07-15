@@ -57,17 +57,14 @@ class WallpaperService {
       print('WallpaperSync: Image cropped to ${screenRes['width']}x${screenRes['height']}');
 
       // 5. Set as wallpaper (both Home and Lock screen)
-      final WallpaperResult result = await AsyncWallpaper.setWallpaper(
-        WallpaperRequest(
-          target: WallpaperTarget.both,
-          sourceType: WallpaperSourceType.file,
-          source: croppedPath,
-          goToHome: false,
-        ),
-      );
+      final bool result = await AsyncWallpaper.setWallpaperFromFile(
+        filePath: croppedPath,
+        wallpaperLocation: AsyncWallpaper.BOTH_SCREENS,
+        goToHome: false,
+      ) ?? false;
       
-      if (!result.isSuccess) {
-        print('WallpaperSync: Failed to set wallpaper - ${result.error?.message}');
+      if (!result) {
+        print('WallpaperSync: Failed to set wallpaper');
         return false;
       }
 
