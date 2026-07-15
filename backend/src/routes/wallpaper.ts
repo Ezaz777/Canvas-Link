@@ -17,6 +17,8 @@ interface UserRow {
   id: string;
   encrypted_refresh_token: string;
   board_id: string | null;
+  mobile_board_id: string | null;
+  desktop_board_id: string | null;
   subscription_status: string;
 }
 
@@ -48,7 +50,7 @@ export function registerWallpaperRoutes(router: any) {
 
     // 2. Fetch user and validate subscription
     const user = await env.DB.prepare(
-      'SELECT id, encrypted_refresh_token, board_id, subscription_status FROM users WHERE id = ?'
+      'SELECT id, encrypted_refresh_token, board_id, mobile_board_id, desktop_board_id, subscription_status FROM users WHERE id = ?'
     ).bind(userId).first<UserRow>();
 
     if (!user) {
@@ -66,7 +68,15 @@ export function registerWallpaperRoutes(router: any) {
       );
     }
 
-    if (!user.board_id) {
+    const deviceType = new URL(request.url).searchParams.get('device_type');
+    let targetBoardId = user.board_id;
+    if (deviceType === 'mobile' && user.mobile_board_id) {
+      targetBoardId = user.mobile_board_id;
+    } else if (deviceType === 'desktop' && user.desktop_board_id) {
+      targetBoardId = user.desktop_board_id;
+    }
+
+    if (!targetBoardId) {
       return Response.json(
         {
           error: 'No board selected',
@@ -95,7 +105,7 @@ export function registerWallpaperRoutes(router: any) {
       }
 
       // 4. Fetch all image pins from the user's board
-      const pins = await getBoardPins(tokenData.access_token, user.board_id);
+      const pins = await getBoardPins(tokenData.access_token, targetBoardId);
 
       if (pins.length === 0) {
         return Response.json(
@@ -158,16 +168,26 @@ export function registerWallpaperRoutes(router: any) {
       return Response.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    const body = await (request as unknown as Request).json() as { board_id?: string };
+    const body = await (request as unknown as Request).json() as { board_id?: string, device_type?: string };
     if (!body.board_id) {
       return Response.json({ error: 'board_id is required' }, { status: 400 });
     }
 
-    await env.DB.prepare(
-      'UPDATE users SET board_id = ?, updated_at = datetime(\'now\') WHERE id = ?'
-    ).bind(body.board_id, userId).run();
+    if (body.device_type === 'mobile') {
+      await env.DB.prepare(
+        'UPDATE users SET mobile_board_id = ?, updated_at = datetime(\'now\') WHERE id = ?'
+      ).bind(body.board_id, userId).run();
+    } else if (body.device_type === 'desktop') {
+      await env.DB.prepare(
+        'UPDATE users SET desktop_board_id = ?, updated_at = datetime(\'now\') WHERE id = ?'
+      ).bind(body.board_id, userId).run();
+    } else {
+      await env.DB.prepare(
+        'UPDATE users SET board_id = ?, updated_at = datetime(\'now\') WHERE id = ?'
+      ).bind(body.board_id, userId).run();
+    }
 
-    return Response.json({ success: true, board_id: body.board_id });
+    return Response.json({ success: true, board_id: body.board_id, device_type: body.device_type });
   });
 
   /**

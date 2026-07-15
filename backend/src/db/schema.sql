@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
     pinterest_username TEXT,
     encrypted_refresh_token TEXT NOT NULL,
     board_id TEXT,
+    mobile_board_id TEXT,
+    desktop_board_id TEXT,
     stripe_customer_id TEXT UNIQUE,
     subscription_status TEXT NOT NULL DEFAULT 'inactive',
     created_at TEXT NOT NULL DEFAULT (datetime('now')),

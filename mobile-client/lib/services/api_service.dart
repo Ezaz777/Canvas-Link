@@ -23,7 +23,7 @@ class ApiService {
   /// Throws [UnauthorizedException] if token is invalid/expired.
   Future<Map<String, dynamic>> getWallpaper() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/api/get-wallpaper'),
+      Uri.parse('$baseUrl/api/get-wallpaper?device_type=mobile'),
       headers: _headers,
     );
 
@@ -77,7 +77,7 @@ class ApiService {
     final response = await http.post(
       Uri.parse('$baseUrl/api/set-board'),
       headers: _headers,
-      body: jsonEncode({'board_id': boardId}),
+      body: jsonEncode({'board_id': boardId, 'device_type': 'mobile'}),
     );
 
     if (response.statusCode != 200) {

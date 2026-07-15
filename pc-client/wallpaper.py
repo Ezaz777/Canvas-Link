@@ -31,7 +31,7 @@ def fetch_wallpaper_url(token: str) -> dict | None:
     """
     try:
         response = requests.get(
-            f"{API_BASE_URL}/api/get-wallpaper",
+            f"{API_BASE_URL}/api/get-wallpaper?device_type=desktop",
             headers={"Authorization": f"Bearer {token}"},
             timeout=30,
         )
