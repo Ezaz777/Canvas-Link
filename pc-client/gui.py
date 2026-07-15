@@ -12,7 +12,7 @@ from scheduler import install_scheduled_task, is_task_installed, uninstall_sched
 class WallpaperSyncGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("WallpaperSync Settings")
+        self.root.title("Canvas Link Settings")
         self.root.geometry("380x250")
         self.root.resizable(False, False)
         

@@ -64,6 +64,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Generate Launcher Icons
+        run: flutter pub run flutter_launcher_icons
+
       - name: Patch old plugins for AGP 8
         run: |
           cat << 'EOF' > patch_namespace.dart
@@ -94,5 +97,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: WallpaperSync-APK
+          name: CanvasLink-APK
           path: mobile-client/build/app/outputs/flutter-apk/app-release.apk

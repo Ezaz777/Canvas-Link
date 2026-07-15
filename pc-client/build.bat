@@ -22,14 +22,14 @@ if exist "dist" rmdir /s /q dist
 if exist "build" rmdir /s /q build
 if exist "WallpaperSync.spec" del WallpaperSync.spec
 
-echo Building WallpaperSync.exe...
+echo Building "Canvas Link.exe"...
 echo.
 
 pyinstaller ^
     --onefile ^
     --noconsole ^
     --icon=icon.ico ^
-    --name WallpaperSync ^
+    --name "Canvas Link" ^
     --add-data "config.py;." ^
     main.py
 
@@ -42,13 +42,13 @@ if errorlevel 1 (
 echo.
 echo ========================================
 echo ✅ Build successful!
-echo    Output: dist\WallpaperSync.exe
+echo    Output: dist\Canvas Link.exe
 echo ========================================
 echo.
 echo To run:
-echo   dist\WallpaperSync.exe              Interactive setup
-echo   dist\WallpaperSync.exe --sync       Silent wallpaper sync
-echo   dist\WallpaperSync.exe --install    Install daily task
-echo   dist\WallpaperSync.exe --uninstall  Remove daily task
+echo   dist\Canvas Link.exe              Interactive setup
+echo   dist\Canvas Link.exe --sync       Silent wallpaper sync
+echo   dist\Canvas Link.exe --install    Install daily task
+echo   dist\Canvas Link.exe --uninstall  Remove daily task
 echo.
 

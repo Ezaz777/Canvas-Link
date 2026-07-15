@@ -13,11 +13,11 @@ API_BASE_URL = "https://wallpaper-sync-api.canvaslink.workers.dev"
 # =============================================================================
 # LOCAL PATHS
 # =============================================================================
-APP_DATA_DIR = os.path.join(os.getenv("APPDATA", ""), "WallpaperSync")
+APP_DATA_DIR = os.path.join(os.getenv("APPDATA", ""), "Canvas Link")
 TOKEN_FILE = os.path.join(APP_DATA_DIR, "token.json")
 SETTINGS_FILE = os.path.join(APP_DATA_DIR, "settings.json")
 WALLPAPER_DIR = os.path.join(APP_DATA_DIR, "wallpapers")
-LOG_FILE = os.path.join(APP_DATA_DIR, "wallpaper_sync.log")
+LOG_FILE = os.path.join(APP_DATA_DIR, "canvas_link.log")
 
 # =============================================================================
 # AUTH
@@ -28,7 +28,7 @@ LOCAL_AUTH_HOST = "127.0.0.1"
 # =============================================================================
 # TASK SCHEDULER
 # =============================================================================
-TASK_NAME = "WallpaperSync_DailyUpdate"
+TASK_NAME = "CanvasLink_DailyUpdate"
 TASK_TIME = "09:00"  # Daily execution time (24h format)
 
 # Ensure directories exist
