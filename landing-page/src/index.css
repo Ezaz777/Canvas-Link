@@ -287,4 +287,26 @@ a {
     flex-direction: column;
     gap: 1rem;
   }
+  
+  .navbar {
+    padding: 1rem 0;
+  }
+  
+  .navbar .container {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .hero {
+    padding-top: 8rem;
+  }
+  
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .hero-actions .btn {
+    width: 100%;
+  }
 }
