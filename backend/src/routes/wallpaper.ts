@@ -124,7 +124,13 @@ export function registerWallpaperRoutes(router: any) {
 
       // 6. Extract the best resolution URL
       const images = selectedPin.media?.images || {};
-      const originalUrl = (images.orig || images['1200x'] || images['600x'])?.url;
+      let originalUrl = (images.orig || images['1200x'] || images['600x'])?.url;
+
+      // FREE ENHANCEMENT HACK: Force Pinterest to return the original uncompressed image
+      // by replacing the CDN resolution folder (like /1200x/) with /originals/
+      if (originalUrl) {
+        originalUrl = originalUrl.replace(/\/\d+x\//, '/originals/');
+      }
 
       if (!originalUrl) {
         return Response.json(
@@ -209,8 +215,8 @@ export function registerWallpaperRoutes(router: any) {
     }
 
     const user = await env.DB.prepare(
-      'SELECT encrypted_refresh_token FROM users WHERE id = ?'
-    ).bind(userId).first<{ encrypted_refresh_token: string }>();
+      'SELECT encrypted_refresh_token, board_id, mobile_board_id, desktop_board_id FROM users WHERE id = ?'
+    ).bind(userId).first<{ encrypted_refresh_token: string, board_id: string, mobile_board_id: string, desktop_board_id: string }>();
 
     if (!user) {
       return Response.json({ error: 'User not found' }, { status: 404 });
@@ -229,6 +235,14 @@ export function registerWallpaperRoutes(router: any) {
       }
 
       const data = await response.json();
+      
+      // Inject user's selected boards into the response
+      data.selected_boards = {
+        mobile: user.mobile_board_id,
+        desktop: user.desktop_board_id,
+        fallback: user.board_id
+      };
+      
       return Response.json(data);
     } catch (err: any) {
       console.error('Failed to get boards:', err);
