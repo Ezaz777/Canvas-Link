@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Routes, Route, Link } from 'react-router-dom';
 import PrivacyPolicy from './PrivacyPolicy';
+import Dashboard from './Dashboard';
 import { 
   Monitor, 
   Smartphone, 
@@ -172,7 +173,10 @@ function App() {
             <img src="/logo.png" alt="Logo" style={{ width: 32, height: 32, borderRadius: '8px', boxShadow: '0 0 10px rgba(139, 92, 246, 0.5)' }} />
             <Link to="/" style={{ color: 'inherit' }}>Canvas-Link</Link>
           </div>
-          <div>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <Link to="/dashboard" className="btn" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>
+              Dashboard
+            </Link>
             <a href="https://github.com/Ezaz777/Canvas-Link" target="_blank" rel="noreferrer" className="btn btn-secondary">
               <Code size={18} />
               <span>GitHub</span>
@@ -184,6 +188,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </>
   );
