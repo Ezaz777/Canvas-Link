@@ -38,13 +38,10 @@ def fetch_wallpaper_url(token: str) -> dict | None:
 
         if response.status_code == 402:
             logger.warning("Subscription not active. Payment required.")
-            print("⚠️  Your premium subscription is not active.")
-            print("   Please subscribe at your WallpaperSync dashboard.")
             return None
 
         if response.status_code == 401:
             logger.warning("Authentication token expired or invalid.")
-            print("⚠️  Your login session has expired. Please log in again.")
             return None
 
         response.raise_for_status()
@@ -122,19 +119,19 @@ def center_crop(image: Image.Image, target_width: int, target_height: int) -> Im
     resized = cropped.resize((target_width, target_height), Image.Resampling.LANCZOS)
 
     logger.info(
-        f"Center-cropped: {img_width}x{img_height} → "
-        f"crop({crop_box}) → {target_width}x{target_height}"
+        f"Center-cropped: {img_width}x{img_height} -> "
+        f"crop({crop_box}) -> {target_width}x{target_height}"
     )
     return resized
 
 
-def save_as_bmp(image: Image.Image, filename: str = None) -> str:
+def save_as_jpg(image: Image.Image, filename: str = None) -> str:
     """
-    Save the image as a BMP file in the wallpaper directory.
-    Windows SystemParametersInfoW is most reliable with BMP format.
+    Save the image as a JPG file in the wallpaper directory.
+    Modern Windows handles JPGs perfectly and they take up much less space.
     """
     if filename is None:
-        filename = f"wallpaper_{date.today().isoformat()}.bmp"
+        filename = f"wallpaper_{date.today().isoformat()}.jpg"
 
     filepath = os.path.join(WALLPAPER_DIR, filename)
 
@@ -142,21 +139,57 @@ def save_as_bmp(image: Image.Image, filename: str = None) -> str:
     if image.mode != "RGB":
         image = image.convert("RGB")
 
-    image.save(filepath, "BMP")
+    image.save(filepath, "JPEG", quality=95)
     logger.info(f"Saved wallpaper to: {filepath}")
     return filepath
 
 
-def apply_wallpaper(bmp_path: str) -> bool:
+def apply_wallpaper(image_path: str) -> bool:
     """
-    Apply a BMP image as the Windows desktop wallpaper using ctypes.
+    Apply an image as the Windows desktop wallpaper.
+    Uses the modern IDesktopWallpaper COM interface (required for Windows 11),
+    with a fallback to the legacy SystemParametersInfoW API.
     """
-    if not os.path.exists(bmp_path):
-        logger.error(f"Wallpaper file not found: {bmp_path}")
+    if not os.path.exists(image_path):
+        logger.error(f"Wallpaper file not found: {image_path}")
         return False
 
-    abs_path = os.path.abspath(bmp_path)
+    abs_path = os.path.abspath(image_path)
 
+    # Try the modern COM interface first (Windows 8+/11)
+    try:
+        import comtypes
+        from comtypes import GUID, HRESULT, COMMETHOD
+        from ctypes import wintypes
+
+        CLSID_DesktopWallpaper = GUID('{C2CF3110-460E-4fc1-B9D0-8A1C0C9CC4BD}')
+        IID_IDesktopWallpaper = GUID('{B92B56A9-8B55-4E14-9A89-0199BBB6F93B}')
+
+        class IDesktopWallpaper(comtypes.IUnknown):
+            _iid_ = IID_IDesktopWallpaper
+            _methods_ = [
+                COMMETHOD([], HRESULT, 'SetWallpaper',
+                          (['in'], wintypes.LPCWSTR, 'monitorID'),
+                          (['in'], wintypes.LPCWSTR, 'wallpaper')),
+                COMMETHOD([], HRESULT, 'GetWallpaper',
+                          (['in'], wintypes.LPCWSTR, 'monitorID'),
+                          (['out'], ctypes.POINTER(wintypes.LPWSTR), 'wallpaper')),
+            ]
+
+        comtypes.CoInitialize()
+        desktop_wallpaper = comtypes.CoCreateInstance(
+            CLSID_DesktopWallpaper, interface=IDesktopWallpaper
+        )
+        desktop_wallpaper.SetWallpaper(None, abs_path)
+        comtypes.CoUninitialize()
+
+        logger.info(f"Wallpaper applied successfully (COM): {abs_path}")
+        return True
+
+    except Exception as e:
+        logger.warning(f"COM wallpaper method failed: {e}. Trying legacy method...")
+
+    # Fallback: legacy SystemParametersInfoW (older Windows)
     try:
         result = ctypes.windll.user32.SystemParametersInfoW(
             SPI_SETDESKWALLPAPER,
@@ -166,7 +199,7 @@ def apply_wallpaper(bmp_path: str) -> bool:
         )
 
         if result:
-            logger.info(f"Wallpaper applied successfully: {abs_path}")
+            logger.info(f"Wallpaper applied successfully (legacy): {abs_path}")
             return True
         else:
             logger.error("SystemParametersInfoW returned False")
@@ -183,7 +216,7 @@ def cleanup_old_wallpapers(keep_days: int = 7):
         for filename in os.listdir(WALLPAPER_DIR):
             filepath = os.path.join(WALLPAPER_DIR, filename)
             if os.path.isfile(filepath):
-                file_date_str = filename.replace("wallpaper_", "").replace(".bmp", "")
+                file_date_str = filename.replace("wallpaper_", "").replace(".jpg", "").replace(".bmp", "")
                 try:
                     file_date = date.fromisoformat(file_date_str)
                     if (today - file_date).days > keep_days:
@@ -206,7 +239,7 @@ def sync_wallpaper(token: str) -> bool:
     6. Apply as Windows desktop background
     7. Clean up old wallpapers
     """
-    print("🔄 Syncing wallpaper...")
+    logger.info("Syncing wallpaper...")
 
     # 1. Fetch URL
     data = fetch_wallpaper_url(token)
@@ -229,18 +262,18 @@ def sync_wallpaper(token: str) -> bool:
     # 4. Center-crop
     cropped = center_crop(image, screen_width, screen_height)
 
-    # 5. Save as BMP
-    bmp_path = save_as_bmp(cropped)
+    # 5. Save as JPG
+    img_path = save_as_jpg(cropped)
 
     # 6. Apply
-    success = apply_wallpaper(bmp_path)
+    success = apply_wallpaper(img_path)
 
     # 7. Cleanup
     cleanup_old_wallpapers()
 
     if success:
-        print(f"✅ Wallpaper updated! (Pin: {data.get('pin_id', 'unknown')})")
+        logger.info(f"Wallpaper updated! (Pin: {data.get('pin_id', 'unknown')})")
     else:
-        print("❌ Failed to apply wallpaper.")
+        logger.error("Failed to apply wallpaper.")
 
     return success

@@ -151,7 +151,7 @@ export async function getBoardPins(
 
     // Filter for image pins only (exclude videos, etc.)
     const imagePins = data.items.filter(
-      (pin) => pin.media?.media_type === 'image' && pin.media?.images?.orig
+      (pin) => pin.media?.media_type === 'image' && (pin.media?.images?.orig || pin.media?.images?.['1200x'] || pin.media?.images?.['600x'])
     );
     allPins.push(...imagePins);
 
@@ -169,7 +169,7 @@ export function buildAuthorizationUrl(appId: string, redirectUri: string, state:
     client_id: appId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'pins:read,boards:read',
+    scope: 'pins:read,boards:read,user_accounts:read',
     state,
   });
   return `https://www.pinterest.com/oauth/?${params.toString()}`;

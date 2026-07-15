@@ -22,6 +22,7 @@ from config import LOG_FILE, APP_DATA_DIR
 from auth import login, load_token, clear_token, is_logged_in
 from wallpaper import sync_wallpaper
 from scheduler import install_scheduled_task, uninstall_scheduled_task, is_task_installed
+from gui import run_gui
 
 
 def setup_logging():
@@ -78,41 +79,11 @@ def main():
         return
 
     # =========================================================================
-    # INTERACTIVE MODE (first-time setup)
+    # INTERACTIVE MODE (Graphical User Interface)
     # =========================================================================
-    print()
-    print("╔══════════════════════════════════════════╗")
-    print("║       🖼️  WallpaperSync for Windows       ║")
-    print("║     Daily Pinterest Wallpaper Magic      ║")
-    print("╚══════════════════════════════════════════╝")
-    print()
-
-    # Step 1: Authentication
-    if args.login or not is_logged_in():
-        print("📋 Step 1: Log in with your Pinterest account\n")
-        token = login()
-        if not token:
-            print("\n❌ Login failed. Please try again.")
-            sys.exit(1)
-    else:
-        token = load_token()
-        print("✅ Already logged in.\n")
-
-    # Step 2: Sync wallpaper now
-    print("📋 Step 2: Syncing today's wallpaper...\n")
-    sync_wallpaper(token)
-
-    # Step 3: Install scheduled task
-    if not is_task_installed():
-        print("\n📋 Step 3: Setting up daily automatic sync...\n")
-        install_scheduled_task()
-    else:
-        print("\n✅ Daily sync is already configured.\n")
-
-    print("\n🎉 Setup complete! Your wallpaper will update automatically every day.")
-    print(f"   Wallpapers saved to: {os.path.abspath(APP_DATA_DIR)}")
-    print(f"   Logs: {LOG_FILE}")
-    print()
+    # If no flags are provided, launch the GUI
+    if not any([args.sync, args.login, args.logout, args.install, args.uninstall]):
+        run_gui()
 
 
 if __name__ == "__main__":

@@ -112,8 +112,9 @@ export function registerWallpaperRoutes(router: any) {
       const selectedIndex = getSeededIndex(today, userId, pins.length);
       const selectedPin = pins[selectedIndex];
 
-      // 6. Extract the original resolution URL
-      const originalUrl = selectedPin.media?.images?.orig?.url;
+      // 6. Extract the best resolution URL
+      const images = selectedPin.media?.images || {};
+      const originalUrl = (images.orig || images['1200x'] || images['600x'])?.url;
 
       if (!originalUrl) {
         return Response.json(
@@ -167,5 +168,61 @@ export function registerWallpaperRoutes(router: any) {
     ).bind(body.board_id, userId).run();
 
     return Response.json({ success: true, board_id: body.board_id });
+  });
+
+  /**
+   * GET /api/boards
+   * Returns a list of the user's Pinterest boards.
+   */
+  router.get('/api/boards', async (request: IRequest, env: Env) => {
+    const token = extractBearerToken(request as unknown as Request);
+    if (!token) {
+      return Response.json({ error: 'Missing authorization token' }, { status: 401 });
+    }
+
+    let userId: string;
+    try {
+      const auth = await verifyToken(token, env.JWT_SECRET);
+      userId = auth.userId;
+    } catch {
+      return Response.json({ error: 'Invalid or expired token' }, { status: 401 });
+    }
+
+    const user = await env.DB.prepare(
+      'SELECT encrypted_refresh_token FROM users WHERE id = ?'
+    ).bind(userId).first<{ encrypted_refresh_token: string }>();
+
+    if (!user) {
+      return Response.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    try {
+      const refreshToken = await decrypt(user.encrypted_refresh_token, env.ENCRYPTION_KEY);
+      const tokenData = await refreshAccessToken(refreshToken, env.PINTEREST_APP_ID, env.PINTEREST_APP_SECRET);
+
+      const response = await fetch('https://api.pinterest.com/v5/boards', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch boards: ${await response.text()}`);
+      }
+
+      const data = await response.json();
+      return Response.json(data);
+    } catch (err: any) {
+      console.error('Failed to get boards:', err);
+      return Response.json({ error: 'Failed to fetch boards', details: err.message }, { status: 500 });
+    }
+  });
+
+  router.get('/api/debug-pins', async (request: IRequest, env: Env) => {
+    const token = extractBearerToken(request as unknown as Request);
+    const auth = await verifyToken(token!, env.JWT_SECRET);
+    const user = await env.DB.prepare('SELECT encrypted_refresh_token, board_id FROM users WHERE id = ?').bind(auth.userId).first<UserRow>();
+    const refreshToken = await decrypt(user!.encrypted_refresh_token, env.ENCRYPTION_KEY);
+    const tokenData = await refreshAccessToken(refreshToken, env.PINTEREST_APP_ID, env.PINTEREST_APP_SECRET);
+    const response = await fetch(`https://api.pinterest.com/v5/boards/${user!.board_id}/pins`, { headers: { Authorization: `Bearer ${tokenData.access_token}` } });
+    return Response.json(await response.json());
   });
 }

@@ -15,6 +15,7 @@ API_BASE_URL = "https://wallpaper-sync-api.canvaslink.workers.dev"
 # =============================================================================
 APP_DATA_DIR = os.path.join(os.getenv("APPDATA", ""), "WallpaperSync")
 TOKEN_FILE = os.path.join(APP_DATA_DIR, "token.json")
+SETTINGS_FILE = os.path.join(APP_DATA_DIR, "settings.json")
 WALLPAPER_DIR = os.path.join(APP_DATA_DIR, "wallpapers")
 LOG_FILE = os.path.join(APP_DATA_DIR, "wallpaper_sync.log")
 

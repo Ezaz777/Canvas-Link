@@ -85,8 +85,7 @@ def login():
 
     # Open browser to start OAuth flow
     auth_url = f"{API_BASE_URL}/auth/pinterest"
-    print(f"\n🔗 Opening browser for Pinterest login...")
-    print(f"   If the browser doesn't open, visit:\n   {auth_url}\n")
+    logger.info(f"Opening browser for Pinterest login: {auth_url}")
     webbrowser.open(auth_url)
 
     # Wait for the callback (timeout after 120 seconds)
@@ -95,10 +94,10 @@ def login():
 
     if _received_token:
         save_token(_received_token)
-        print("✅ Login successful! Token saved.")
+        logger.info("Login successful! Token saved.")
         return _received_token
     else:
-        print("❌ Login timed out. Please try again.")
+        logger.error("Login timed out.")
         return None
 
 

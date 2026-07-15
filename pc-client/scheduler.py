@@ -7,10 +7,40 @@ import logging
 import os
 import subprocess
 import sys
+import json
 
-from config import TASK_NAME, TASK_TIME
+from config import TASK_NAME, TASK_TIME, SETTINGS_FILE
 
 logger = logging.getLogger("WallpaperSync")
+
+
+def get_sync_time() -> str:
+    """Read the sync time from settings or return the default."""
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r") as f:
+                data = json.load(f)
+                return data.get("sync_time", TASK_TIME)
+        except Exception:
+            pass
+    return TASK_TIME
+
+
+def set_sync_time(time_str: str):
+    """Save the sync time to settings."""
+    data = {}
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r") as f:
+                data = json.load(f)
+        except Exception:
+            pass
+    data["sync_time"] = time_str
+    try:
+        with open(SETTINGS_FILE, "w") as f:
+            json.dump(data, f)
+    except Exception as e:
+        logger.error(f"Failed to save settings: {e}")
 
 
 def get_executable_path() -> str:
@@ -19,6 +49,10 @@ def get_executable_path() -> str:
         # Running as a compiled .exe (PyInstaller)
         return sys.executable
     else:
+        # Check if compiled exe exists
+        dist_exe = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist", "WallpaperSync.exe")
+        if os.path.exists(dist_exe):
+            return dist_exe
         # Running as a Python script (development)
         return os.path.abspath(sys.argv[0])
 
@@ -30,8 +64,9 @@ def install_scheduled_task() -> bool:
     2. Runs at user logon
     """
     exe_path = get_executable_path()
+    sync_time = get_sync_time()
     logger.info(f"Installing scheduled task: {TASK_NAME}")
-    logger.info(f"Executable: {exe_path}")
+    logger.info(f"Executable: {exe_path} at {sync_time}")
 
     try:
         # Delete existing task if present (ignore errors)
@@ -49,8 +84,7 @@ def install_scheduled_task() -> bool:
                 "/TN", TASK_NAME,
                 "/TR", f'"{exe_path}" --sync',
                 "/SC", "DAILY",
-                "/ST", TASK_TIME,
-                "/RL", "HIGHEST",
+                "/ST", sync_time,
                 "/F",
             ],
             capture_output=True,
@@ -59,17 +93,43 @@ def install_scheduled_task() -> bool:
         )
 
         if result.returncode == 0:
+            # Enable "Run task as soon as possible after a scheduled start is missed"
+            try:
+                import tempfile
+                query_res = subprocess.run(
+                    ["schtasks", "/Query", "/TN", TASK_NAME, "/XML"],
+                    capture_output=True,
+                    text=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                )
+                xml = query_res.stdout
+                if "<StartWhenAvailable>false</StartWhenAvailable>" in xml:
+                    xml = xml.replace("<StartWhenAvailable>false</StartWhenAvailable>", "<StartWhenAvailable>true</StartWhenAvailable>")
+                else:
+                    xml = xml.replace("</Settings>", "  <StartWhenAvailable>true</StartWhenAvailable>\n  </Settings>")
+                
+                xml_path = os.path.join(tempfile.gettempdir(), f"{TASK_NAME}_temp.xml")
+                with open(xml_path, "w", encoding="utf-16") as f:
+                    f.write(xml)
+                
+                subprocess.run(
+                    ["schtasks", "/Create", "/TN", TASK_NAME, "/XML", xml_path, "/F"],
+                    capture_output=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                )
+                if os.path.exists(xml_path):
+                    os.remove(xml_path)
+            except Exception as e:
+                logger.error(f"Failed to modify scheduled task XML to run on missed schedule: {e}")
+
             logger.info("Daily scheduled task created successfully.")
-            print(f"✅ Scheduled task installed: runs daily at {TASK_TIME}")
             return True
         else:
             logger.error(f"Failed to create scheduled task: {result.stderr}")
-            print(f"❌ Failed to install scheduled task: {result.stderr.strip()}")
             return False
 
     except Exception as e:
         logger.error(f"Task scheduler error: {e}")
-        print(f"❌ Error installing scheduled task: {e}")
         return False
 
 
@@ -84,7 +144,6 @@ def uninstall_scheduled_task() -> bool:
         )
         if result.returncode == 0:
             logger.info("Scheduled task removed successfully.")
-            print("✅ Scheduled task removed.")
             return True
         else:
             logger.error(f"Failed to remove scheduled task: {result.stderr}")
