@@ -70,7 +70,8 @@ class ImageUtils {
 
     // Save the cropped image
     final tempDir = await getTemporaryDirectory();
-    final outputPath = '${tempDir.path}/wallpaper_cropped.jpg';
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final outputPath = '${tempDir.path}/wallpaper_cropped_$timestamp.jpg';
     final outputFile = File(outputPath);
     await outputFile.writeAsBytes(img.encodeJpg(resized, quality: 95));
 

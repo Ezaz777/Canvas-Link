@@ -91,7 +91,19 @@ class WallpaperService {
       }
 
       final tempDir = await getTemporaryDirectory();
-      final filePath = '${tempDir.path}/wallpaper_download.jpg';
+      
+      // Clean up old cached wallpapers to save space
+      try {
+        final files = tempDir.listSync();
+        for (var file in files) {
+          if (file.path.contains('wallpaper_')) {
+            file.deleteSync();
+          }
+        }
+      } catch (_) {}
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filePath = '${tempDir.path}/wallpaper_download_$timestamp.jpg';
       final file = File(filePath);
       await file.writeAsBytes(response.bodyBytes);
       return filePath;
