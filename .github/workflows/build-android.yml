@@ -29,9 +29,6 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install dependencies
-        run: flutter pub get
-
       - name: Recreate Android Project
         run: |
           mkdir -p /tmp/backup
@@ -40,6 +37,9 @@ jobs:
           flutter create --project-name wallpaper_sync --platforms=android .
           sed -i "s/ext.kotlin_version = '[^']*'/ext.kotlin_version = '1.9.24'/g" android/build.gradle
           cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+
+      - name: Install dependencies
+        run: flutter pub get
 
       - name: Build APK
         run: flutter build apk --release
