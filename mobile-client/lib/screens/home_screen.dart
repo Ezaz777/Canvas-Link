@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/wallpaper_service.dart';
 import '../workers/wallpaper_worker.dart';
+import '../utils/settings.dart';
 import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -25,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen>
   String? _currentDate;
   String? _errorMessage;
   int? _totalPins;
+  int _syncFrequency = 24;
 
   @override
   void initState() {
@@ -34,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen>
       duration: const Duration(milliseconds: 800),
     )..forward();
     _loadCurrentWallpaper();
+    _loadSettings();
 
     // Initialize Razorpay
     _razorpay = Razorpay();
@@ -47,6 +50,15 @@ class _HomeScreenState extends State<HomeScreen>
     _animController.dispose();
     _razorpay.clear();
     super.dispose();
+  }
+
+  Future<void> _loadSettings() async {
+    final freq = await Settings.getSyncFrequency();
+    if (mounted) {
+      setState(() {
+        _syncFrequency = freq;
+      });
+    }
   }
 
   void _handlePaymentSuccess(PaymentSuccessResponse response) {
@@ -267,6 +279,14 @@ class _HomeScreenState extends State<HomeScreen>
                         ],
                       ),
                       const Spacer(),
+                      IconButton(
+                        onPressed: _showSettingsModal,
+                        icon: Icon(
+                          Icons.settings_rounded,
+                          color: Colors.white.withOpacity(0.6),
+                        ),
+                        tooltip: 'Settings',
+                      ),
                       IconButton(
                         onPressed: _logout,
                         icon: Icon(
@@ -568,7 +588,7 @@ class _HomeScreenState extends State<HomeScreen>
             height: 40,
             color: Colors.white.withOpacity(0.08),
           ),
-          _buildStat('Next Sync', '24h', Icons.schedule_rounded),
+          _buildStat('Next Sync', Settings.getFrequencyDisplayString(_syncFrequency), Icons.schedule_rounded),
         ],
       ),
     );
@@ -596,6 +616,67 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ],
+    );
+  }
+
+  void _showSettingsModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF24243E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Auto-Sync Frequency',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ...Settings.availableFrequencies.map((freq) {
+                    final isSelected = freq == _syncFrequency;
+                    return ListTile(
+                      title: Text(
+                        Settings.getFrequencyDisplayString(freq),
+                        style: TextStyle(
+                          color: isSelected ? const Color(0xFFA78BFA) : Colors.white,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? const Icon(Icons.check_circle_rounded, color: Color(0xFFA78BFA))
+                          : null,
+                      onTap: () async {
+                        await Settings.setSyncFrequency(freq);
+                        await WallpaperWorker.registerPeriodicSync();
+                        if (mounted) {
+                          setState(() {
+                            _syncFrequency = freq;
+                          });
+                        }
+                        setModalState(() {});
+                        Navigator.pop(context);
+                      },
+                    );
+                  }).toList(),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

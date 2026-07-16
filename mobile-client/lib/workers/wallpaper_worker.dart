@@ -3,6 +3,7 @@
 
 import 'package:workmanager/workmanager.dart';
 import '../services/wallpaper_service.dart';
+import '../utils/settings.dart';
 
 /// Unique task name for WorkManager registration.
 const String wallpaperSyncTaskName = 'com.wallpapersync.dailySync';
@@ -37,13 +38,25 @@ class WallpaperWorker {
     );
   }
 
-  /// Register a periodic background task that runs every 24 hours.
+  /// Register a periodic background task based on the user's saved settings.
   /// Requires network connectivity.
   static Future<void> registerPeriodicSync() async {
+    final hours = await Settings.getSyncFrequency();
+    
+    if (hours == 0) {
+      await cancelAll();
+      print('WallpaperSync: Sync frequency is Off. Task cancelled.');
+      return;
+    }
+
+    // Cancel old tasks to replace them cleanly. WorkManager's replace policy 
+    // sometimes behaves unexpectedly if the frequency changes significantly.
+    await cancelAll();
+
     await Workmanager().registerPeriodicTask(
       wallpaperSyncTaskTag,
       wallpaperSyncTaskName,
-      frequency: const Duration(hours: 24),
+      frequency: Duration(hours: hours),
       constraints: Constraints(
         networkType: NetworkType.connected,
         requiresBatteryNotLow: true,
@@ -52,7 +65,7 @@ class WallpaperWorker {
       backoffPolicy: BackoffPolicy.exponential,
       backoffPolicyDelay: const Duration(minutes: 15),
     );
-    print('WallpaperSync: Periodic sync task registered (every 24h).');
+    print('WallpaperSync: Periodic sync task registered (every ${hours}h).');
   }
 
   /// Run the sync task once immediately.
