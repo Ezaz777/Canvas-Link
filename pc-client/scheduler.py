@@ -103,10 +103,21 @@ def install_scheduled_task() -> bool:
                     creationflags=subprocess.CREATE_NO_WINDOW,
                 )
                 xml = query_res.stdout
+                
+                # Ensure it runs on missed schedule
                 if "<StartWhenAvailable>false</StartWhenAvailable>" in xml:
                     xml = xml.replace("<StartWhenAvailable>false</StartWhenAvailable>", "<StartWhenAvailable>true</StartWhenAvailable>")
-                else:
+                elif "<StartWhenAvailable>" not in xml:
                     xml = xml.replace("</Settings>", "  <StartWhenAvailable>true</StartWhenAvailable>\n  </Settings>")
+                
+                # Allow running on battery
+                xml = xml.replace("<DisallowStartIfOnBatteries>true</DisallowStartIfOnBatteries>", "<DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>")
+                xml = xml.replace("<StopIfGoingOnBatteries>true</StopIfGoingOnBatteries>", "<StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>")
+                
+                # Add Logon trigger
+                if "<LogonTrigger>" not in xml:
+                    logon_trigger = "\n    <LogonTrigger>\n      <Enabled>true</Enabled>\n      <Delay>PT30S</Delay>\n    </LogonTrigger>\n  </Triggers>"
+                    xml = xml.replace("</Triggers>", logon_trigger)
                 
                 xml_path = os.path.join(tempfile.gettempdir(), f"{TASK_NAME}_temp.xml")
                 with open(xml_path, "w", encoding="utf-16") as f:

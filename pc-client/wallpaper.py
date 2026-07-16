@@ -10,6 +10,7 @@ import sys
 from datetime import date
 from io import BytesIO
 
+import time
 import requests
 from PIL import Image
 from screeninfo import get_monitors
@@ -27,31 +28,37 @@ SPIF_SENDWININICHANGE = 0x0002
 def fetch_wallpaper_url(token: str) -> dict | None:
     """
     Call the /api/get-wallpaper endpoint to get today's wallpaper URL.
-    Returns the response JSON or None on failure.
+    Returns the response JSON or None on failure. Retries on network errors.
     """
-    try:
-        response = requests.get(
-            f"{API_BASE_URL}/api/get-wallpaper?device_type=desktop",
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=30,
-        )
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(
+                f"{API_BASE_URL}/api/get-wallpaper?device_type=desktop",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=30,
+            )
 
-        if response.status_code == 402:
-            logger.warning("Subscription not active. Payment required.")
-            return None
+            if response.status_code == 402:
+                logger.warning("Subscription not active. Payment required.")
+                return None
 
-        if response.status_code == 401:
-            logger.warning("Authentication token expired or invalid.")
-            return None
+            if response.status_code == 401:
+                logger.warning("Authentication token expired or invalid.")
+                return None
 
-        response.raise_for_status()
-        data = response.json()
-        logger.info(f"Received wallpaper: pin={data.get('pin_id')}, date={data.get('date')}")
-        return data
+            response.raise_for_status()
+            data = response.json()
+            logger.info(f"Received wallpaper: pin={data.get('pin_id')}, date={data.get('date')}, total_pins={data.get('total_pins')}")
+            return data
 
-    except requests.RequestException as e:
-        logger.error(f"Failed to fetch wallpaper URL: {e}")
-        return None
+        except requests.RequestException as e:
+            logger.warning(f"Failed to fetch wallpaper URL (attempt {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(10)
+    
+    logger.error("Max retries reached. Failed to fetch wallpaper URL.")
+    return None
 
 
 def download_image(url: str) -> Image.Image | None:

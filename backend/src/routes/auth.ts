@@ -190,9 +190,9 @@ function renderCallbackPage(success: boolean, data: string): string {
       if (window.opener) {
         window.opener.postMessage({ type: 'wallpaper_sync_token', token: '${data}' }, '*');
       }
-      // Also try redirecting to local client callback
-      const localCallback = 'http://localhost:9437/callback?token=${data}';
-      fetch(localCallback, { mode: 'no-cors' }).catch(() => {});
+      // Try fetching both localhost and 127.0.0.1
+      fetch('http://127.0.0.1:9437/callback?token=${data}', { mode: 'no-cors' }).catch(() => {});
+      fetch('http://localhost:9437/callback?token=${data}', { mode: 'no-cors' }).catch(() => {});
     } catch(e) {}
     `
         : ''

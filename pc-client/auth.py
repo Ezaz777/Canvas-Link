@@ -62,6 +62,13 @@ class CallbackHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Private-Network", "true")
+        self.end_headers()
+
     def log_message(self, format, *args):
         """Suppress default HTTP server logs."""
         pass
@@ -80,7 +87,15 @@ def login():
 
     # Start local callback server
     server = HTTPServer((LOCAL_AUTH_HOST, LOCAL_AUTH_PORT), CallbackHandler)
-    server_thread = threading.Thread(target=server.handle_request, daemon=True)
+    server.timeout = 1  # 1 second timeout for handle_request
+
+    def serve_until_token():
+        import time
+        start_time = time.time()
+        while _received_token is None and (time.time() - start_time) < 120:
+            server.handle_request()
+
+    server_thread = threading.Thread(target=serve_until_token, daemon=True)
     server_thread.start()
 
     # Open browser to start OAuth flow
@@ -88,8 +103,8 @@ def login():
     logger.info(f"Opening browser for Pinterest login: {auth_url}")
     webbrowser.open(auth_url)
 
-    # Wait for the callback (timeout after 120 seconds)
-    server_thread.join(timeout=120)
+    # Wait for the callback
+    server_thread.join(timeout=125)
     server.server_close()
 
     if _received_token:

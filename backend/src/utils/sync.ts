@@ -40,7 +40,8 @@ export function getSeededIndex(dateStr: string, userId: string, totalPins: numbe
   if (totalPins <= 0) return 0;
   const seed = hashString(`${dateStr}:${userId}`);
   const rng = mulberry32(seed);
-  // Call once to get our deterministic value
+  // Warm up PRNG to avoid correlated seeds producing correlated outputs
+  rng(); rng(); rng();
   const value = rng();
   return Math.floor(value * totalPins);
 }
