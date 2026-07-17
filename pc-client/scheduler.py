@@ -43,18 +43,18 @@ def set_sync_time(time_str: str):
         logger.error(f"Failed to save settings: {e}")
 
 
-def get_executable_path() -> str:
-    """Get the path to the current executable (or script in dev mode)."""
+def get_executable_path() -> tuple[str, str]:
+    """Get the path to the current executable (or script in dev mode) and the arguments."""
     if getattr(sys, "frozen", False):
         # Running as a compiled .exe (PyInstaller)
-        return sys.executable
+        return sys.executable, ""
     else:
         # Check if compiled exe exists
-        dist_exe = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist", "WallpaperSync.exe")
+        dist_exe = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist", "Canvas Link.exe")
         if os.path.exists(dist_exe):
-            return dist_exe
+            return dist_exe, ""
         # Running as a Python script (development)
-        return os.path.abspath(sys.argv[0])
+        return sys.executable, f'"{os.path.abspath(sys.argv[0])}"'
 
 
 def install_scheduled_task() -> bool:
@@ -63,10 +63,10 @@ def install_scheduled_task() -> bool:
     1. Runs daily at the configured time
     2. Runs at user logon
     """
-    exe_path = get_executable_path()
+    exe_path, extra_args = get_executable_path()
     sync_time = get_sync_time()
     logger.info(f"Installing scheduled task: {TASK_NAME}")
-    logger.info(f"Executable: {exe_path} at {sync_time}")
+    logger.info(f"Executable: {exe_path} {extra_args} at {sync_time}")
 
     try:
         # Delete existing task if present (ignore errors)
@@ -77,12 +77,14 @@ def install_scheduled_task() -> bool:
         )
 
         # Create daily scheduled task
+        task_cmd = f'"{exe_path}" {extra_args} --sync' if extra_args else f'"{exe_path}" --sync'
+        
         result = subprocess.run(
             [
                 "schtasks",
                 "/Create",
                 "/TN", TASK_NAME,
-                "/TR", f'"{exe_path}" --sync',
+                "/TR", task_cmd,
                 "/SC", "DAILY",
                 "/ST", sync_time,
                 "/F",
@@ -114,22 +116,22 @@ def install_scheduled_task() -> bool:
                 xml = xml.replace("<DisallowStartIfOnBatteries>true</DisallowStartIfOnBatteries>", "<DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>")
                 xml = xml.replace("<StopIfGoingOnBatteries>true</StopIfGoingOnBatteries>", "<StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>")
                 
-                # Add Logon trigger
-                if "<LogonTrigger>" not in xml:
-                    logon_trigger = "\n    <LogonTrigger>\n      <Enabled>true</Enabled>\n      <Delay>PT30S</Delay>\n    </LogonTrigger>\n  </Triggers>"
-                    xml = xml.replace("</Triggers>", logon_trigger)
-                
                 xml_path = os.path.join(tempfile.gettempdir(), f"{TASK_NAME}_temp.xml")
                 with open(xml_path, "w", encoding="utf-16") as f:
                     f.write(xml)
                 
-                subprocess.run(
+                xml_result = subprocess.run(
                     ["schtasks", "/Create", "/TN", TASK_NAME, "/XML", xml_path, "/F"],
                     capture_output=True,
+                    text=True,
                     creationflags=subprocess.CREATE_NO_WINDOW,
                 )
                 if os.path.exists(xml_path):
                     os.remove(xml_path)
+                    
+                if xml_result.returncode != 0:
+                    logger.error(f"Failed to modify scheduled task XML: {xml_result.stderr}")
+                    return False
             except Exception as e:
                 logger.error(f"Failed to modify scheduled task XML to run on missed schedule: {e}")
 
