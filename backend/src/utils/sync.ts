@@ -29,7 +29,28 @@ function hashString(str: string): number {
 }
 
 /**
+ * Generates a deterministically shuffled array of indices [0, ..., length - 1].
+ */
+function getDeterministicShuffle(seed: number, length: number): number[] {
+  const rng = mulberry32(seed);
+  rng(); rng(); rng(); // warm up
+  
+  const arr = Array.from({ length }, (_, i) => i);
+  
+  // Fisher-Yates shuffle using deterministic RNG
+  for (let i = length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    const temp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = temp;
+  }
+  
+  return arr;
+}
+
+/**
  * Returns a deterministic index [0, totalPins) for a given date + userId.
+ * Uses a cycle-based shuffle to ensure no repeats until all pins are used.
  *
  * @param dateStr - Current date as "YYYY-MM-DD"
  * @param userId  - The user's unique ID
@@ -38,12 +59,32 @@ function hashString(str: string): number {
  */
 export function getSeededIndex(dateStr: string, userId: string, totalPins: number): number {
   if (totalPins <= 0) return 0;
-  const seed = hashString(`${dateStr}:${userId}`);
-  const rng = mulberry32(seed);
-  // Warm up PRNG to avoid correlated seeds producing correlated outputs
-  rng(); rng(); rng();
-  const value = rng();
-  return Math.floor(value * totalPins);
+  
+  // Calculate days since a fixed epoch (Jan 1, 2026)
+  const epoch = new Date('2026-01-01T00:00:00Z').getTime();
+  const current = new Date(`${dateStr}T00:00:00Z`).getTime();
+  const daysSinceEpoch = Math.floor((current - epoch) / 86400000);
+  
+  // If date is before epoch (fallback to old method)
+  if (daysSinceEpoch < 0) {
+    const seed = hashString(`${dateStr}:${userId}`);
+    const rng = mulberry32(seed);
+    rng(); rng(); rng();
+    return Math.floor(rng() * totalPins);
+  }
+  
+  // Calculate current cycle and position within the cycle
+  const cycleIndex = Math.floor(daysSinceEpoch / totalPins);
+  const positionInCycle = daysSinceEpoch % totalPins;
+  
+  // The seed remains constant for the entire duration of the cycle!
+  const seed = hashString(`${userId}:cycle:${cycleIndex}:pins:${totalPins}`);
+  
+  // Get the fully shuffled array for this specific cycle
+  const shuffledIndices = getDeterministicShuffle(seed, totalPins);
+  
+  // Pick the pin for today's position
+  return shuffledIndices[positionInCycle];
 }
 
 /**
