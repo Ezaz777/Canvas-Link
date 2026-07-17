@@ -103,8 +103,37 @@ function Home() {
         </div>
       </section>
 
+      {/* How It Works Section */}
+      <section className="section" style={{ background: 'var(--color-bg-secondary)' }}>
+        <div className="container">
+          <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+            <h2>How It Works in <span className="text-gradient">3 Simple Steps</span></h2>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', textAlign: 'center' }}>
+            <div className="glass-panel" style={{ padding: '2rem' }}>
+              <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'rgba(139, 92, 246, 0.5)', marginBottom: '1rem' }}>1</div>
+              <h3 style={{ marginBottom: '1rem' }}>Connect Pinterest</h3>
+              <p className="feature-desc">Log in securely and select the board you want to sync your wallpapers from.</p>
+            </div>
+            
+            <div className="glass-panel" style={{ padding: '2rem' }}>
+              <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'rgba(139, 92, 246, 0.5)', marginBottom: '1rem' }}>2</div>
+              <h3 style={{ marginBottom: '1rem' }}>Set Schedule</h3>
+              <p className="feature-desc">Choose what time of day your PC and mobile devices should fetch the next image.</p>
+            </div>
+            
+            <div className="glass-panel" style={{ padding: '2rem' }}>
+              <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'rgba(139, 92, 246, 0.5)', marginBottom: '1rem' }}>3</div>
+              <h3 style={{ marginBottom: '1rem' }}>Enjoy</h3>
+              <p className="feature-desc">Sit back and relax. Your devices will silently and seamlessly update your background every day.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Why Us Section */}
-      <section className="section why-section">
+      <section className="section why-section" style={{ background: 'var(--color-bg)' }}>
         <div className="container why-grid">
           <div>
             <h2 style={{ fontSize: '2.5rem', marginBottom: '1.5rem' }}>Why choose <br/><span className="text-gradient">Canvas Link?</span></h2>
@@ -132,6 +161,32 @@ function Home() {
               <Monitor size={64} style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '1rem' }} />
               <Smartphone size={48} style={{ color: 'rgba(255,255,255,0.3)' }} />
               <p style={{ marginTop: '1rem', color: 'rgba(255,255,255,0.7)', fontWeight: '600' }}>Cross-Platform Synergy</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="section" style={{ background: 'var(--color-bg-secondary)' }}>
+        <div className="container" style={{ maxWidth: '800px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+            <h2>Frequently Asked <span className="text-gradient">Questions</span></h2>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="glass-panel" style={{ padding: '2rem' }}>
+              <h3 style={{ marginBottom: '0.5rem' }}>Does this drain my battery?</h3>
+              <p className="feature-desc">Not at all! We use native OS APIs (Android WorkManager and Windows Task Scheduler) which are highly optimized to run in the background without hogging resources.</p>
+            </div>
+            
+            <div className="glass-panel" style={{ padding: '2rem' }}>
+              <h3 style={{ marginBottom: '0.5rem' }}>What if I don't like today's wallpaper?</h3>
+              <p className="feature-desc">You can use the "Skip Wallpaper" button on the dashboard. It instantly fast-forwards your cycle to the next image and syncs that choice across your devices.</p>
+            </div>
+            
+            <div className="glass-panel" style={{ padding: '2rem' }}>
+              <h3 style={{ marginBottom: '0.5rem' }}>Is Canvas Link really free?</h3>
+              <p className="feature-desc">Yes! It is 100% free and open-source. However, if you'd like to support the developer and server costs, there is a built-in Razorpay donation option in the dashboard!</p>
             </div>
           </div>
         </div>
@@ -190,26 +245,14 @@ function App() {
     <>
       {/* Navbar */}
       <nav className="navbar">
-        <div className="container">
+        <div className="container" style={{ position: 'relative' }}>
           <div className="nav-brand">
             <img src="/logo.png" alt="Logo" style={{ width: 32, height: 32, borderRadius: '8px', boxShadow: '0 0 10px rgba(139, 92, 246, 0.5)' }} />
             <Link to="/" style={{ color: 'inherit' }}>Canvas Link</Link>
           </div>
           
           <div className="desktop-nav-links">
-            <Link to="/features" className="btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>
-              Features
-            </Link>
-            <Link to="/installation" className="btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>
-              Installation
-            </Link>
-            <Link to="/dashboard" className="btn" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>
-              Dashboard
-            </Link>
-            <a href="https://github.com/Ezaz777/Canvas-Link" target="_blank" rel="noreferrer" className="btn btn-secondary">
-              <Code size={18} />
-              <span>GitHub</span>
-            </a>
+            {/* Desktop nav links removed as requested - mobile menu used globally */}
           </div>
 
           <button 
@@ -220,7 +263,7 @@ function App() {
           </button>
 
           {isMobileMenuOpen && (
-            <div className="mobile-menu">
+            <div className="mobile-menu open">
               <Link to="/features" className="btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', justifyContent: 'center' }} onClick={() => setIsMobileMenuOpen(false)}>
                 Features
               </Link>
