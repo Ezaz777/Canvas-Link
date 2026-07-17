@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
@@ -259,15 +260,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0F0C29),
-              Color(0xFF302B63),
-              Color(0xFF24243E),
-            ],
-          ),
+          color: Color(0xFF0F172A),
         ),
         child: SafeArea(
           child: FadeTransition(
@@ -288,7 +281,9 @@ class _HomeScreenState extends State<HomeScreen>
                         height: 44,
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFF7C3AED), Color(0xFFA78BFA)],
+                            colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -303,8 +298,8 @@ class _HomeScreenState extends State<HomeScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'WallpaperSync',
-                            style: TextStyle(
+                            'Canvas Link',
+                            style: GoogleFonts.outfit(
                               color: Colors.white,
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -313,7 +308,7 @@ class _HomeScreenState extends State<HomeScreen>
                           Text(
                             'Daily Pinterest Magic',
                             style: TextStyle(
-                              color: Color(0xFFA78BFA),
+                              color: Color(0xFF94A3B8),
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -383,9 +378,9 @@ class _HomeScreenState extends State<HomeScreen>
       width: double.infinity,
       height: 380,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
+        color: const Color(0xB31E293B),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
@@ -399,7 +394,7 @@ class _HomeScreenState extends State<HomeScreen>
         child: _isLoadingPreview
             ? const Center(
                 child: CircularProgressIndicator(
-                  color: Color(0xFFA78BFA),
+                  color: Color(0xFF8B5CF6),
                   strokeWidth: 2.5,
                 ),
               )
@@ -414,7 +409,7 @@ class _HomeScreenState extends State<HomeScreen>
                           if (progress == null) return child;
                           return const Center(
                             child: CircularProgressIndicator(
-                              color: Color(0xFFA78BFA),
+                              color: Color(0xFF8B5CF6),
                               strokeWidth: 2.5,
                             ),
                           );
@@ -449,7 +444,7 @@ class _HomeScreenState extends State<HomeScreen>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const Icon(Icons.calendar_today_rounded,
-                                  color: Color(0xFFA78BFA), size: 14),
+                                  color: Color(0xFF8B5CF6), size: 14),
                               const SizedBox(width: 8),
                               Text(
                                 _currentDate ?? 'Today',
@@ -501,16 +496,16 @@ class _HomeScreenState extends State<HomeScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF7C3AED).withOpacity(0.2),
-            const Color(0xFFA78BFA).withOpacity(0.1),
+            const Color(0xFF8B5CF6).withOpacity(0.2),
+            const Color(0xFF3B82F6).withOpacity(0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF7C3AED).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
       ),
       child: Column(
         children: [
-          const Icon(Icons.stars_rounded, color: Color(0xFFA78BFA), size: 36),
+          const Icon(Icons.stars_rounded, color: Color(0xFF8B5CF6), size: 36),
           const SizedBox(height: 12),
           const Text(
             'Unlock Premium',
@@ -534,21 +529,30 @@ class _HomeScreenState extends State<HomeScreen>
           SizedBox(
             width: double.infinity,
             height: 52,
-            child: ElevatedButton(
-              onPressed: _openCheckout,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C3AED),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
                 ),
-                elevation: 0,
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                'Subscribe Now',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+              child: ElevatedButton(
+                onPressed: _openCheckout,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Subscribe Now',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -567,7 +571,7 @@ class _HomeScreenState extends State<HomeScreen>
             child: ElevatedButton(
               onPressed: _isSyncing ? null : _skipNow,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white.withOpacity(0.06),
+                backgroundColor: const Color(0xB31E293B),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18),
@@ -594,41 +598,50 @@ class _HomeScreenState extends State<HomeScreen>
           flex: 2,
           child: SizedBox(
             height: 60,
-            child: ElevatedButton(
-              onPressed: _isSyncing ? null : _syncNow,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C3AED),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
                 ),
-                elevation: 0,
+                borderRadius: BorderRadius.circular(18),
               ),
-              child: _isSyncing
-                  ? const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.5,
+              child: ElevatedButton(
+                onPressed: _isSyncing ? null : _syncNow,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  elevation: 0,
+                ),
+                child: _isSyncing
+                    ? const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
                           ),
-                        ),
-                      ],
-                    )
-                  : const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.sync_rounded, size: 22),
-                        SizedBox(width: 12),
-                        Text(
-                          'Sync Now',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
+                        ],
+                      )
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.sync_rounded, size: 22),
+                          SizedBox(width: 12),
+                          Text(
+                            'Sync Now',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+              ),
             ),
           ),
         ),
@@ -641,9 +654,9 @@ class _HomeScreenState extends State<HomeScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
+        color: const Color(0xB31E293B),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -669,7 +682,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildStat(String label, String value, IconData icon) {
     return Column(
       children: [
-        Icon(icon, color: const Color(0xFFA78BFA), size: 20),
+        Icon(icon, color: const Color(0xFF8B5CF6), size: 20),
         const SizedBox(height: 8),
         Text(
           value,
@@ -722,12 +735,12 @@ class _HomeScreenState extends State<HomeScreen>
                       title: Text(
                         Settings.getFrequencyDisplayString(freq),
                         style: TextStyle(
-                          color: isSelected ? const Color(0xFFA78BFA) : Colors.white,
+                          color: isSelected ? const Color(0xFF8B5CF6) : Colors.white,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                       trailing: isSelected
-                          ? const Icon(Icons.check_circle_rounded, color: Color(0xFFA78BFA))
+                          ? const Icon(Icons.check_circle_rounded, color: Color(0xFF8B5CF6))
                           : null,
                       onTap: () async {
                         await Settings.setSyncFrequency(freq);

@@ -2,6 +2,7 @@
 /// A premium-styled login screen with gradient background and glassmorphism.
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
@@ -107,15 +108,7 @@ class _LoginScreenState extends State<LoginScreen>
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0F0C29),
-              Color(0xFF302B63),
-              Color(0xFF24243E),
-            ],
-          ),
+          color: Color(0xFF0F172A),
         ),
         child: SafeArea(
           child: Center(
@@ -134,12 +127,14 @@ class _LoginScreenState extends State<LoginScreen>
                         height: 96,
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFF7C3AED), Color(0xFFA78BFA)],
+                            colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF7C3AED).withOpacity(0.4),
+                              color: const Color(0xFF8B5CF6).withOpacity(0.4),
                               blurRadius: 30,
                               offset: const Offset(0, 10),
                             ),
@@ -154,9 +149,9 @@ class _LoginScreenState extends State<LoginScreen>
                       const SizedBox(height: 32),
 
                       // Title
-                      const Text(
-                        'WallpaperSync',
-                        style: TextStyle(
+                      Text(
+                        'Canvas Link',
+                        style: GoogleFonts.outfit(
                           fontSize: 32,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
@@ -168,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen>
                         'Your Pinterest boards, on every screen.',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.white.withOpacity(0.6),
+                          color: const Color(0xFF94A3B8),
                           fontWeight: FontWeight.w400,
                         ),
                       ),
@@ -178,7 +173,7 @@ class _LoginScreenState extends State<LoginScreen>
                       Container(
                         padding: const EdgeInsets.all(28),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.06),
+                          color: const Color(0xB31E293B),
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
                             color: Colors.white.withOpacity(0.1),
@@ -289,16 +284,30 @@ class _LoginScreenState extends State<LoginScreen>
                             const SizedBox(height: 20),
 
                             // Submit Button
-                            SizedBox(
+                            Container(
                               width: double.infinity,
                               height: 52,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF8B5CF6).withOpacity(0.4),
+                                    blurRadius: 14,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
                               child: ElevatedButton(
                                 onPressed: _isLoading ? null : _submitToken,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF7C3AED),
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
                                   foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                   elevation: 0,
                                 ),

@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'services/auth_service.dart';
 import 'workers/wallpaper_worker.dart';
 import 'screens/login_screen.dart';
@@ -16,7 +17,7 @@ void main() async {
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Color(0xFF0F0C29),
+      systemNavigationBarColor: Color(0xFF0F172A),
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
@@ -43,14 +44,14 @@ class WallpaperSyncApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'WallpaperSync',
+      title: 'Canvas Link',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        colorSchemeSeed: const Color(0xFF7C3AED),
-        scaffoldBackgroundColor: const Color(0xFF0F0C29),
-        fontFamily: 'Roboto',
+        colorSchemeSeed: const Color(0xFF8B5CF6),
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
+        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -60,7 +61,7 @@ class WallpaperSyncApp extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         ),
