@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/wallpaper_service.dart';
 import '../workers/wallpaper_worker.dart';
 import '../utils/settings.dart';
+import 'board_screen.dart';
 import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -359,6 +360,48 @@ class _HomeScreenState extends State<HomeScreen>
 
                         // Stats Card
                         if (_totalPins != null) _buildStatsCard(),
+
+                        const SizedBox(height: 20),
+
+                        // View Board Gallery Button
+                        if (_totalPins != null)
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const BoardScreen(),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xB31E293B),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(
+                                      color: Colors.white.withOpacity(0.1)),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.photo_library_rounded, size: 22),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'View Board Gallery',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
 
                         const SizedBox(height: 32),
                       ],

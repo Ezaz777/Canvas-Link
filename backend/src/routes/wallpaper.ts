@@ -281,13 +281,68 @@ export function registerWallpaperRoutes(router: any) {
     }
   });
 
-  router.get('/api/debug-pins', async (request: IRequest, env: Env) => {
+  /**
+   * GET /api/board-pins
+   * Returns all image pins from the user's selected board.
+   */
+  router.get('/api/board-pins', async (request: IRequest, env: Env) => {
     const token = extractBearerToken(request as unknown as Request);
-    const auth = await verifyToken(token!, env.JWT_SECRET);
-    const user = await env.DB.prepare('SELECT encrypted_refresh_token, board_id FROM users WHERE id = ?').bind(auth.userId).first<UserRow>();
-    const refreshToken = await decrypt(user!.encrypted_refresh_token, env.ENCRYPTION_KEY);
-    const tokenData = await refreshAccessToken(refreshToken, env.PINTEREST_APP_ID, env.PINTEREST_APP_SECRET);
-    const response = await fetch(`https://api.pinterest.com/v5/boards/${user!.board_id}/pins`, { headers: { Authorization: `Bearer ${tokenData.access_token}` } });
-    return Response.json(await response.json());
+    if (!token) {
+      return Response.json({ error: 'Missing authorization token' }, { status: 401 });
+    }
+
+    let userId: string;
+    try {
+      const auth = await verifyToken(token, env.JWT_SECRET);
+      userId = auth.userId;
+    } catch {
+      return Response.json({ error: 'Invalid or expired token' }, { status: 401 });
+    }
+
+    const user = await env.DB.prepare(
+      'SELECT encrypted_refresh_token, board_id, mobile_board_id, desktop_board_id FROM users WHERE id = ?'
+    ).bind(userId).first<UserRow>();
+
+    if (!user) {
+      return Response.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const deviceType = new URL(request.url).searchParams.get('device_type');
+    let targetBoardId = user.board_id;
+    if (deviceType === 'mobile' && user.mobile_board_id) {
+      targetBoardId = user.mobile_board_id;
+    } else if (deviceType === 'desktop' && user.desktop_board_id) {
+      targetBoardId = user.desktop_board_id;
+    }
+
+    if (!targetBoardId) {
+      return Response.json({ error: 'No board selected' }, { status: 400 });
+    }
+
+    try {
+      const refreshToken = await decrypt(user.encrypted_refresh_token, env.ENCRYPTION_KEY);
+      const tokenData = await refreshAccessToken(refreshToken, env.PINTEREST_APP_ID, env.PINTEREST_APP_SECRET);
+
+      const pins = await getBoardPins(tokenData.access_token, targetBoardId);
+
+      // Map pins to simpler format and force original resolution URL if possible
+      const formattedPins = pins.map(pin => {
+        const images = pin.media?.images || {};
+        let url = (images.orig || images['1200x'] || images['600x'])?.url;
+        if (url) {
+          url = url.replace(/\/\d+x\//, '/originals/');
+        }
+        return {
+          id: pin.id,
+          title: pin.title,
+          image_url: url
+        };
+      }).filter(pin => pin.image_url);
+
+      return Response.json({ pins: formattedPins });
+    } catch (err: any) {
+      console.error('Failed to get board pins:', err);
+      return Response.json({ error: 'Failed to fetch board pins', details: err.message }, { status: 500 });
+    }
   });
 }

@@ -109,6 +109,29 @@ class ApiService {
     }
   }
 
+  /// Get all pins from the user's selected board.
+  Future<List<Map<String, dynamic>>> getBoardPins() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/board-pins?device_type=mobile'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 401) {
+      throw UnauthorizedException('Session expired. Please log in again.');
+    }
+
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+      throw ApiException(
+        body['error'] ?? 'Failed to fetch board pins',
+        response.statusCode,
+      );
+    }
+
+    final data = jsonDecode(response.body);
+    return List<Map<String, dynamic>>.from(data['pins'] ?? []);
+  }
+
   /// Get the Pinterest OAuth URL for login.
   static String getAuthUrl() => '$baseUrl/auth/pinterest';
 }
