@@ -294,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ),
                       const SizedBox(width: 14),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
@@ -305,7 +305,7 @@ class _HomeScreenState extends State<HomeScreen>
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          Text(
+                          const Text(
                             'Daily Pinterest Magic',
                             style: TextStyle(
                               color: Color(0xFF94A3B8),
