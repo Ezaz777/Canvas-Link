@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { Routes, Route, Link } from 'react-router-dom';
 import PrivacyPolicy from './PrivacyPolicy';
 import Dashboard from './Dashboard';
-import Guide from './Guide';
+import Features from './Features';
+import Installation from './Installation';
 import { 
   Monitor, 
   Smartphone, 
@@ -149,12 +150,20 @@ function Home() {
           
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
             <Link 
-              to="/guide"
+              to="/features"
               className="feature-desc" 
               style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1rem' }}
               onClick={() => window.scrollTo(0, 0)}
             >
-              User Guide
+              Features
+            </Link>
+            <Link 
+              to="/installation"
+              className="feature-desc" 
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1rem' }}
+              onClick={() => window.scrollTo(0, 0)}
+            >
+              Installation
             </Link>
             <Link 
               to="/privacy"
@@ -188,8 +197,11 @@ function App() {
           </div>
           
           <div className="desktop-nav-links">
-            <Link to="/guide" className="btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>
-              Guide
+            <Link to="/features" className="btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>
+              Features
+            </Link>
+            <Link to="/installation" className="btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>
+              Installation
             </Link>
             <Link to="/dashboard" className="btn" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>
               Dashboard
@@ -209,8 +221,11 @@ function App() {
 
           {isMobileMenuOpen && (
             <div className="mobile-menu">
-              <Link to="/guide" className="btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', justifyContent: 'center' }} onClick={() => setIsMobileMenuOpen(false)}>
-                Guide
+              <Link to="/features" className="btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', justifyContent: 'center' }} onClick={() => setIsMobileMenuOpen(false)}>
+                Features
+              </Link>
+              <Link to="/installation" className="btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', justifyContent: 'center' }} onClick={() => setIsMobileMenuOpen(false)}>
+                Installation
               </Link>
               <Link to="/dashboard" className="btn" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', justifyContent: 'center' }} onClick={() => setIsMobileMenuOpen(false)}>
                 Dashboard
@@ -226,7 +241,8 @@ function App() {
 
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/guide" element={<Guide />} />
+        <Route path="/features" element={<Features />} />
+        <Route path="/installation" element={<Installation />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
