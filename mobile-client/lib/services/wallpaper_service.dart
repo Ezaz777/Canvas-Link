@@ -82,6 +82,37 @@ class WallpaperService {
     }
   }
 
+  /// Instantly downloads and applies a specific image as the wallpaper.
+  /// Bypasses the daily backend sync logic.
+  static Future<bool> setWallpaperFromUrl(String url) async {
+    try {
+      print('WallpaperSync: Setting manual wallpaper...');
+      final imagePath = await _downloadImage(url);
+      if (imagePath == null) {
+        print('WallpaperSync: Failed to download image.');
+        return false;
+      }
+
+      final screenRes = ImageUtils.getScreenResolution();
+      final croppedPath = await ImageUtils.centerCrop(
+        imagePath,
+        screenRes['width']!,
+        screenRes['height']!,
+      );
+
+      final bool result = await AsyncWallpaper.setWallpaperFromFile(
+        filePath: croppedPath,
+        wallpaperLocation: AsyncWallpaper.BOTH_SCREENS,
+        goToHome: false,
+      ) ?? false;
+      
+      return result;
+    } catch (e) {
+      print('WallpaperSync: Error setting manual wallpaper - $e');
+      return false;
+    }
+  }
+
   /// Download an image from URL to a temporary file.
   static Future<String?> _downloadImage(String url) async {
     try {

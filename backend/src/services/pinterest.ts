@@ -169,8 +169,25 @@ export function buildAuthorizationUrl(appId: string, redirectUri: string, state:
     client_id: appId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'pins:read,boards:read,user_accounts:read',
+    scope: 'pins:read,pins:write,boards:read,user_accounts:read',
     state,
   });
   return `https://www.pinterest.com/oauth/?${params.toString()}`;
+}
+
+/**
+ * Delete a pin from Pinterest.
+ */
+export async function deletePin(accessToken: string, pinId: string): Promise<void> {
+  const response = await fetch(`${PINTEREST_API_BASE}/pins/${pinId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Pinterest pin deletion failed: ${response.status} - ${error}`);
+  }
 }

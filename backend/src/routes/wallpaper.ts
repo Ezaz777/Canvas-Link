@@ -10,7 +10,7 @@ import { IRequest } from 'itty-router';
 import { extractBearerToken, verifyToken } from '../middleware/auth';
 import { decrypt, encrypt } from '../utils/crypto';
 import { getSeededIndex, getTodayDateString } from '../utils/sync';
-import { refreshAccessToken, getBoardPins } from '../services/pinterest';
+import { refreshAccessToken, getBoardPins, deletePin } from '../services/pinterest';
 import { Env } from '../index';
 
 interface UserRow {
@@ -343,6 +343,57 @@ export function registerWallpaperRoutes(router: any) {
     } catch (err: any) {
       console.error('Failed to get board pins:', err);
       return Response.json({ error: 'Failed to fetch board pins', details: err.message }, { status: 500 });
+    }
+  });
+
+  /**
+   * DELETE /api/delete-pin/:pin_id
+   * Deletes a pin from the user's Pinterest board.
+   */
+  router.delete('/api/delete-pin/:pin_id', async (request: IRequest, env: Env) => {
+    const token = extractBearerToken(request as unknown as Request);
+    if (!token) {
+      return Response.json({ error: 'Missing authorization token' }, { status: 401 });
+    }
+
+    const pinId = request.params.pin_id;
+    if (!pinId) {
+      return Response.json({ error: 'Missing pin_id' }, { status: 400 });
+    }
+
+    let userId: string;
+    try {
+      const auth = await verifyToken(token, env.JWT_SECRET);
+      userId = auth.userId;
+    } catch {
+      return Response.json({ error: 'Invalid or expired token' }, { status: 401 });
+    }
+
+    const user = await env.DB.prepare(
+      'SELECT encrypted_refresh_token FROM users WHERE id = ?'
+    ).bind(userId).first<UserRow>();
+
+    if (!user) {
+      return Response.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    try {
+      const refreshToken = await decrypt(user.encrypted_refresh_token, env.ENCRYPTION_KEY);
+      const tokenData = await refreshAccessToken(refreshToken, env.PINTEREST_APP_ID, env.PINTEREST_APP_SECRET);
+
+      await deletePin(tokenData.access_token, pinId);
+
+      return Response.json({ success: true, message: 'Pin deleted successfully' });
+    } catch (err: any) {
+      console.error('Failed to delete pin:', err);
+      // If the error is related to scope, we should tell the client
+      if (err.message.includes('403') || err.message.includes('scope')) {
+        return Response.json(
+          { error: 'Permission denied', details: 'You need to re-authenticate to grant the app permission to delete pins.' },
+          { status: 403 }
+        );
+      }
+      return Response.json({ error: 'Failed to delete pin', details: err.message }, { status: 500 });
     }
   });
 }

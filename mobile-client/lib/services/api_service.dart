@@ -89,6 +89,31 @@ class ApiService {
     }
   }
 
+  /// Delete a pin from the user's Pinterest board.
+  Future<void> deletePin(String pinId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/api/delete-pin/$pinId'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 401) {
+      throw UnauthorizedException('Session expired. Please log in again.');
+    }
+
+    if (response.statusCode == 403) {
+      throw UnauthorizedException(
+          'Permission denied. Please re-authenticate to grant delete permissions.');
+    }
+
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+      throw ApiException(
+        body['error'] ?? 'Failed to delete pin',
+        response.statusCode,
+      );
+    }
+  }
+
   /// Skip the current wallpaper and force the cycle forward.
   Future<void> skipWallpaper() async {
     final response = await http.post(
