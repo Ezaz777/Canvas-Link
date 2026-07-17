@@ -169,7 +169,7 @@ export function buildAuthorizationUrl(appId: string, redirectUri: string, state:
     client_id: appId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'pins:read,pins:write,boards:read,user_accounts:read',
+    scope: 'pins:read,pins:write,boards:read,boards:write,user_accounts:read',
     state,
   });
   return `https://www.pinterest.com/oauth/?${params.toString()}`;
