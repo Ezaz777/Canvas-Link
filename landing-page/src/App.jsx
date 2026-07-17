@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Routes, Route, Link } from 'react-router-dom';
 import PrivacyPolicy from './PrivacyPolicy';
 import Dashboard from './Dashboard';
+import Guide from './Guide';
 import { 
   Monitor, 
   Smartphone, 
@@ -148,6 +149,14 @@ function Home() {
           
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
             <Link 
+              to="/guide"
+              className="feature-desc" 
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1rem' }}
+              onClick={() => window.scrollTo(0, 0)}
+            >
+              User Guide
+            </Link>
+            <Link 
               to="/privacy"
               className="feature-desc" 
               style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1rem' }}
@@ -179,6 +188,9 @@ function App() {
           </div>
           
           <div className="desktop-nav-links">
+            <Link to="/guide" className="btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>
+              Guide
+            </Link>
             <Link to="/dashboard" className="btn" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>
               Dashboard
             </Link>
@@ -197,6 +209,9 @@ function App() {
 
           {isMobileMenuOpen && (
             <div className="mobile-menu">
+              <Link to="/guide" className="btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', justifyContent: 'center' }} onClick={() => setIsMobileMenuOpen(false)}>
+                Guide
+              </Link>
               <Link to="/dashboard" className="btn" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', justifyContent: 'center' }} onClick={() => setIsMobileMenuOpen(false)}>
                 Dashboard
               </Link>
@@ -211,6 +226,7 @@ function App() {
 
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/guide" element={<Guide />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
