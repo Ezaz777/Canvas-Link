@@ -8,6 +8,7 @@ import '../services/wallpaper_service.dart';
 import '../workers/wallpaper_worker.dart';
 import '../utils/settings.dart';
 import 'board_screen.dart';
+import 'dashboard_screen.dart';
 import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -402,6 +403,47 @@ class _HomeScreenState extends State<HomeScreen>
                               ),
                             ),
                           ),
+
+                        const SizedBox(height: 16),
+
+                        // Manage Boards Dashboard Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const DashboardScreen(),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0x0CFFFFFF),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: BorderSide(
+                                    color: Colors.white.withOpacity(0.1)),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.dashboard_customize_rounded, size: 22),
+                                SizedBox(width: 12),
+                                Text(
+                                  'Manage Boards',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
 
                         const SizedBox(height: 32),
                       ],

@@ -73,11 +73,11 @@ class ApiService {
   }
 
   /// Set the user's Pinterest board ID.
-  Future<void> setBoard(String boardId) async {
+  Future<void> setBoard(String boardId, [String deviceType = 'mobile']) async {
     final response = await http.post(
       Uri.parse('$baseUrl/api/set-board'),
       headers: _headers,
-      body: jsonEncode({'board_id': boardId, 'device_type': 'mobile'}),
+      body: jsonEncode({'board_id': boardId, 'device_type': deviceType}),
     );
 
     if (response.statusCode != 200) {
@@ -130,6 +130,28 @@ class ApiService {
 
     final data = jsonDecode(response.body);
     return List<Map<String, dynamic>>.from(data['pins'] ?? []);
+  }
+
+  /// Get the user's Pinterest boards and selection state.
+  Future<Map<String, dynamic>> getBoards() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/boards'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 401) {
+      throw UnauthorizedException('Session expired. Please log in again.');
+    }
+
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+      throw ApiException(
+        body['error'] ?? 'Failed to fetch boards',
+        response.statusCode,
+      );
+    }
+
+    return jsonDecode(response.body);
   }
 
   /// Get the Pinterest OAuth URL for login.
