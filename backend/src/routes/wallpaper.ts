@@ -20,6 +20,7 @@ interface UserRow {
   mobile_board_id: string | null;
   desktop_board_id: string | null;
   subscription_status: string;
+  skip_offset: number;
 }
 
 export function registerWallpaperRoutes(router: any) {
@@ -50,7 +51,7 @@ export function registerWallpaperRoutes(router: any) {
 
     // 2. Fetch user and validate subscription
     const user = await env.DB.prepare(
-      'SELECT id, encrypted_refresh_token, board_id, mobile_board_id, desktop_board_id, subscription_status FROM users WHERE id = ?'
+      'SELECT id, encrypted_refresh_token, board_id, mobile_board_id, desktop_board_id, subscription_status, skip_offset FROM users WHERE id = ?'
     ).bind(userId).first<UserRow>();
 
     if (!user) {
@@ -119,7 +120,7 @@ export function registerWallpaperRoutes(router: any) {
 
       // 5. Deterministic selection: same date + same user = same wallpaper
       const today = getTodayDateString();
-      const selectedIndex = getSeededIndex(today, userId, pins.length);
+      const selectedIndex = getSeededIndex(today, userId, pins.length, user.skip_offset || 0);
       const selectedPin = pins[selectedIndex];
 
       // 6. Extract the best resolution URL
@@ -194,6 +195,36 @@ export function registerWallpaperRoutes(router: any) {
     }
 
     return Response.json({ success: true, board_id: body.board_id, device_type: body.device_type });
+  });
+
+  /**
+   * POST /api/skip-wallpaper
+   * Increments the user's skip_offset by 1 to manually cycle to the next wallpaper.
+   */
+  router.post('/api/skip-wallpaper', async (request: IRequest, env: Env) => {
+    const token = extractBearerToken(request as unknown as Request);
+    if (!token) {
+      return Response.json({ error: 'Missing authorization token' }, { status: 401 });
+    }
+
+    let userId: string;
+    try {
+      const auth = await verifyToken(token, env.JWT_SECRET);
+      userId = auth.userId;
+    } catch {
+      return Response.json({ error: 'Invalid or expired token' }, { status: 401 });
+    }
+
+    try {
+      await env.DB.prepare(
+        'UPDATE users SET skip_offset = skip_offset + 1, updated_at = datetime(\'now\') WHERE id = ?'
+      ).bind(userId).run();
+
+      return Response.json({ success: true, message: 'Wallpaper skipped' });
+    } catch (err: any) {
+      console.error('Failed to skip wallpaper:', err);
+      return Response.json({ error: 'Failed to skip wallpaper', details: err.message }, { status: 500 });
+    }
   });
 
   /**

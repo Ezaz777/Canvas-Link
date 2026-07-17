@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     desktop_board_id TEXT,
     stripe_customer_id TEXT UNIQUE,
     subscription_status TEXT NOT NULL DEFAULT 'inactive',
+    skip_offset INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

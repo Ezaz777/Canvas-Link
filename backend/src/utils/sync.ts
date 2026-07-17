@@ -55,19 +55,21 @@ function getDeterministicShuffle(seed: number, length: number): number[] {
  * @param dateStr - Current date as "YYYY-MM-DD"
  * @param userId  - The user's unique ID
  * @param totalPins - Total number of pins available
+ * @param skipOffset - Number of times the user has skipped a wallpaper
  * @returns A deterministic index into the pin array
  */
-export function getSeededIndex(dateStr: string, userId: string, totalPins: number): number {
+export function getSeededIndex(dateStr: string, userId: string, totalPins: number, skipOffset: number = 0): number {
   if (totalPins <= 0) return 0;
   
   // Calculate days since a fixed epoch (Jan 1, 2026)
   const epoch = new Date('2026-01-01T00:00:00Z').getTime();
   const current = new Date(`${dateStr}T00:00:00Z`).getTime();
-  const daysSinceEpoch = Math.floor((current - epoch) / 86400000);
+  const baseDaysSinceEpoch = Math.floor((current - epoch) / 86400000);
+  const daysSinceEpoch = baseDaysSinceEpoch + skipOffset;
   
   // If date is before epoch (fallback to old method)
   if (daysSinceEpoch < 0) {
-    const seed = hashString(`${dateStr}:${userId}`);
+    const seed = hashString(`${dateStr}:${userId}:${skipOffset}`);
     const rng = mulberry32(seed);
     rng(); rng(); rng();
     return Math.floor(rng() * totalPins);

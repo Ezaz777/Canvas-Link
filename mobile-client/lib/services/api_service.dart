@@ -89,6 +89,26 @@ class ApiService {
     }
   }
 
+  /// Skip the current wallpaper and force the cycle forward.
+  Future<void> skipWallpaper() async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/skip-wallpaper'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 401) {
+      throw UnauthorizedException('Session expired. Please log in again.');
+    }
+
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+      throw ApiException(
+        body['error'] ?? 'Failed to skip wallpaper',
+        response.statusCode,
+      );
+    }
+  }
+
   /// Get the Pinterest OAuth URL for login.
   static String getAuthUrl() => '$baseUrl/auth/pinterest';
 }

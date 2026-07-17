@@ -177,6 +177,48 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() => _isSyncing = false);
   }
 
+  Future<void> _skipNow() async {
+    setState(() => _isSyncing = true);
+
+    try {
+      final token = await AuthService.getToken();
+      if (token != null) {
+        final api = ApiService(token);
+        await api.skipWallpaper();
+        
+        // Immediately sync to fetch the new skipped wallpaper
+        await WallpaperWorker.runOnce();
+        final success = await WallpaperService.syncWallpaper();
+        
+        if (mounted) {
+          if (success) {
+            await _loadCurrentWallpaper();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('❌ Skip successful, but sync failed.'),
+                backgroundColor: const Color(0xFFEF4444),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+
+    setState(() => _isSyncing = false);
+  }
+
   Future<void> _openCheckout() async {
     try {
       final token = await AuthService.getToken();
@@ -517,50 +559,80 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildSyncButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 60,
-      child: ElevatedButton(
-        onPressed: _isSyncing ? null : _syncNow,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF7C3AED),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          elevation: 0,
-        ),
-        child: _isSyncing
-            ? const Row(
+    return Row(
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 60,
+            child: ElevatedButton(
+              onPressed: _isSyncing ? null : _skipNow,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white.withOpacity(0.06),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                ),
+                elevation: 0,
+              ),
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2.5,
-                    ),
-                  ),
-                  SizedBox(width: 14),
+                  Icon(Icons.skip_next_rounded, size: 22),
+                  SizedBox(width: 8),
                   Text(
-                    'Syncing...',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              )
-            : const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.sync_rounded, size: 22),
-                  SizedBox(width: 12),
-                  Text(
-                    'Sync Now',
+                    'Skip',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
-      ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 2,
+          child: SizedBox(
+            height: 60,
+            child: ElevatedButton(
+              onPressed: _isSyncing ? null : _syncNow,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C3AED),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                elevation: 0,
+              ),
+              child: _isSyncing
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        ),
+                      ],
+                    )
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.sync_rounded, size: 22),
+                        SizedBox(width: 12),
+                        Text(
+                          'Sync Now',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
