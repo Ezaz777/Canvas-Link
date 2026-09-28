@@ -5,7 +5,7 @@ import sys
 import os
 
 from auth import is_logged_in, login, clear_token, load_token
-from wallpaper import sync_wallpaper
+from wallpaper import sync_wallpaper, skip_wallpaper_api
 from scheduler import install_scheduled_task, is_task_installed, uninstall_scheduled_task, get_sync_time, set_sync_time
 
 
@@ -13,7 +13,7 @@ class WallpaperSyncGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Canvas Link Settings")
-        self.root.geometry("380x250")
+        self.root.geometry("380x280")
         self.root.resizable(False, False)
         
         # Center the window
@@ -32,6 +32,10 @@ class WallpaperSyncGUI:
         # Sync Button
         self.sync_btn = tk.Button(root, text="Sync Wallpaper Now", command=self.sync_now, width=20, font=("Segoe UI", 10))
         self.sync_btn.pack(pady=5)
+
+        # Skip Button
+        self.skip_btn = tk.Button(root, text="Skip Wallpaper", command=self.skip_now, width=20, font=("Segoe UI", 10))
+        self.skip_btn.pack(pady=5)
 
         # Background Task Frame
         self.task_frame = tk.Frame(root)
@@ -66,10 +70,12 @@ class WallpaperSyncGUI:
             self.status_var.set("Status: ✅ Logged In")
             self.auth_btn_text.set("Log Out")
             self.sync_btn.config(state=tk.NORMAL)
+            self.skip_btn.config(state=tk.NORMAL)
         else:
             self.status_var.set("Status: ❌ Not Logged In")
             self.auth_btn_text.set("Log In")
             self.sync_btn.config(state=tk.DISABLED)
+            self.skip_btn.config(state=tk.DISABLED)
 
         self.task_var.set(is_task_installed())
 
@@ -111,6 +117,33 @@ class WallpaperSyncGUI:
             messagebox.showerror("Error", "Failed to update wallpaper. Check the logs.")
 
         self.sync_btn.config(state=tk.NORMAL)
+        self.skip_btn.config(state=tk.NORMAL)
+        self.update_ui_state()
+
+    def skip_now(self):
+        token = load_token()
+        if not token:
+            return
+            
+        self.sync_btn.config(state=tk.DISABLED)
+        self.skip_btn.config(state=tk.DISABLED)
+        self.status_var.set("Status: ⏳ Skipping...")
+        self.root.update()
+
+        success = skip_wallpaper_api(token)
+        if success:
+            self.status_var.set("Status: ⏳ Syncing new wallpaper...")
+            self.root.update()
+            sync_success = sync_wallpaper(token)
+            if sync_success:
+                messagebox.showinfo("Success", "Wallpaper skipped and updated successfully!")
+            else:
+                messagebox.showerror("Error", "Skip successful, but failed to download new wallpaper.")
+        else:
+            messagebox.showerror("Error", "Failed to skip wallpaper. Check connection.")
+
+        self.sync_btn.config(state=tk.NORMAL)
+        self.skip_btn.config(state=tk.NORMAL)
         self.update_ui_state()
 
     def toggle_task(self):

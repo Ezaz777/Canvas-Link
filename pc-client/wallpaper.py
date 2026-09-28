@@ -61,6 +61,27 @@ def fetch_wallpaper_url(token: str) -> dict | None:
     return None
 
 
+def skip_wallpaper_api(token: str) -> bool:
+    """
+    Call the /api/skip-wallpaper endpoint to increment the user's skip offset.
+    Returns True on success.
+    """
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/api/skip-wallpaper",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=30,
+        )
+        if response.status_code == 200:
+            logger.info("Successfully sent skip wallpaper request.")
+            return True
+        logger.error(f"Failed to skip wallpaper. Status: {response.status_code}")
+        return False
+    except requests.RequestException as e:
+        logger.error(f"Network error while skipping wallpaper: {e}")
+        return False
+
+
 def download_image(url: str) -> Image.Image | None:
     """Download an image from URL and return as a PIL Image."""
     try:
