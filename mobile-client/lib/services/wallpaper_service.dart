@@ -70,9 +70,6 @@ class WallpaperService {
 
       print('WallpaperSync: Wallpaper applied successfully!');
       return true;
-    } on PaymentRequiredException {
-      print('WallpaperSync: Subscription not active. Skipping.');
-      return false;
     } on UnauthorizedException {
       print('WallpaperSync: Auth token expired.');
       return false;
