@@ -51,7 +51,7 @@ function PrivacyPolicy() {
 
           <section>
             <h2 style={{ color: 'var(--color-text)', marginBottom: '0.5rem' }}>4. Third-Party Services</h2>
-            <p>Our app integrates with Pinterest via their official API and handles payments (donations) via Razorpay. Please refer to their respective Privacy Policies for how they handle your data.</p>
+            <p>Our app integrates with Pinterest via their official API. Purchases and app downloads are securely processed directly by app marketplaces (such as Google Play Store). Please refer to their respective Privacy Policies for how they handle your data.</p>
           </section>
 
           <section>

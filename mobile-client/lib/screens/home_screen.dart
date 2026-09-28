@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
@@ -21,7 +20,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
-  late Razorpay _razorpay;
   bool _isSyncing = false;
   bool _isLoadingPreview = true;
   String? _currentImageUrl;
@@ -40,18 +38,11 @@ class _HomeScreenState extends State<HomeScreen>
     )..forward();
     _loadCurrentWallpaper();
     _loadSettings();
-
-    // Initialize Razorpay
-    _razorpay = Razorpay();
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
   }
 
   @override
   void dispose() {
     _animController.dispose();
-    _razorpay.clear();
     super.dispose();
   }
 
@@ -62,43 +53,6 @@ class _HomeScreenState extends State<HomeScreen>
         _syncFrequency = freq;
       });
     }
-  }
-
-  void _handlePaymentSuccess(PaymentSuccessResponse response) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('✅ Payment successful! Subscription activated.'),
-        backgroundColor: const Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-    // Reload to reflect active subscription
-    _loadCurrentWallpaper();
-  }
-
-  void _handlePaymentError(PaymentFailureResponse response) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('❌ Payment failed: ${response.message ?? "Unknown error"}'),
-        backgroundColor: const Color(0xFFEF4444),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  void _handleExternalWallet(ExternalWalletResponse response) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('External wallet selected: ${response.walletName}'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
   }
 
   Future<void> _loadCurrentWallpaper() async {
@@ -119,11 +73,6 @@ class _HomeScreenState extends State<HomeScreen>
         _currentPinId = data['pin_id'];
         _currentDate = data['date'];
         _totalPins = data['total_pins'];
-        _isLoadingPreview = false;
-      });
-    } on PaymentRequiredException {
-      setState(() {
-        _errorMessage = 'subscription_required';
         _isLoadingPreview = false;
       });
     } on UnauthorizedException {
@@ -220,31 +169,6 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     setState(() => _isSyncing = false);
-  }
-
-  Future<void> _openCheckout() async {
-    try {
-      final token = await AuthService.getToken();
-      if (token == null) return;
-
-      final api = ApiService(token);
-      final checkoutUrl = await api.createCheckout();
-
-      // Open Razorpay's hosted checkout page
-      final url = Uri.parse(checkoutUrl);
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to open checkout: $e'),
-          backgroundColor: const Color(0xFFEF4444),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
   }
 
   Future<void> _logout() async {
@@ -349,13 +273,8 @@ class _HomeScreenState extends State<HomeScreen>
                         _buildPreviewCard(),
                         const SizedBox(height: 20),
 
-                        // Subscription Banner (if needed)
-                        if (_errorMessage == 'subscription_required')
-                          _buildSubscriptionBanner(),
-
                         // Sync Button
-                        if (_errorMessage != 'subscription_required')
-                          _buildSyncButton(),
+                        _buildSyncButton(),
 
                         const SizedBox(height: 20),
 
@@ -550,17 +469,13 @@ class _HomeScreenState extends State<HomeScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          _errorMessage == 'subscription_required'
-                              ? Icons.lock_rounded
-                              : Icons.image_not_supported_rounded,
+                          Icons.image_not_supported_rounded,
                           color: Colors.white.withOpacity(0.2),
                           size: 56,
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          _errorMessage == 'subscription_required'
-                              ? 'Premium Required'
-                              : 'No wallpaper yet',
+                          'No wallpaper yet',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.4),
                             fontSize: 16,
@@ -570,79 +485,6 @@ class _HomeScreenState extends State<HomeScreen>
                       ],
                     ),
                   ),
-      ),
-    );
-  }
-
-  Widget _buildSubscriptionBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF8B5CF6).withOpacity(0.2),
-            const Color(0xFF3B82F6).withOpacity(0.1),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          const Icon(Icons.stars_rounded, color: Color(0xFF8B5CF6), size: 36),
-          const SizedBox(height: 12),
-          const Text(
-            'Unlock Premium',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Subscribe to sync your Pinterest wallpapers daily across all your devices.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
-              fontSize: 14,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ElevatedButton(
-                onPressed: _openCheckout,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Subscribe Now',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

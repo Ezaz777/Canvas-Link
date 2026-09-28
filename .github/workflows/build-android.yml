@@ -36,19 +36,9 @@ jobs:
           rm -rf android
           flutter create --project-name wallpaper_sync --platforms=android .
           
-          # Add ProGuard rules for razorpay_flutter and okhttp3
+          # Add ProGuard rules for okhttp3 and conscrypt
           cat << 'EOF' > android/app/proguard-rules.pro
-          -keepclassmembers class * {
-              @android.webkit.JavascriptInterface <methods>;
-          }
-          -keepattributes JavascriptInterface
           -keepattributes *Annotation*
-          -dontwarn com.razorpay.**
-          -keep class com.razorpay.** {*;}
-          -optimizations !method/inlining/
-          -keepclasseswithmembers class * {
-            public void onPayment*(...);
-          }
           -dontwarn org.conscrypt.**
           -dontwarn okhttp3.**
           EOF

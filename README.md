@@ -10,7 +10,6 @@ Canvas-Link ensures that your desktop and mobile devices are always kept fresh w
 - **Cross-Platform**: Support for both Android smartphones and Windows PCs.
 - **Secure Authentication**: Uses modern OAuth flows to securely link your Pinterest account without ever exposing your credentials.
 - **Battery & Resource Friendly**: Background tasks are intelligently scheduled using modern OS APIs (WorkManager on Android, native schedulers on PC) to avoid draining your battery or hogging CPU.
-- **Support the Developer**: Integrated Razorpay system for seamless donations directly within the mobile app.
 
 ---
 
@@ -21,7 +20,7 @@ This repository is organized into three distinct, decoupled components:
 ### 1. 📱 Mobile Client (`/mobile-client`)
 The Android companion application built using **Flutter**.
 - **Tech Stack**: Flutter, Dart.
-- **Key Packages**: `workmanager` (for background fetching), `wallpaper_manager_plus` (for setting the wallpaper), `razorpay_flutter` (donations), and `flutter_secure_storage`.
+- **Key Packages**: `workmanager` (for background fetching), `wallpaper_manager_plus` (for setting the wallpaper), and `flutter_secure_storage`.
 - **CI/CD**: Fully automated GitHub Actions workflow (`build-android.yml`) that builds and uploads the release APK on every push.
 
 ### 2. 💻 PC Client (`/pc-client`)

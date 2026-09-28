@@ -151,7 +151,7 @@ function Home() {
               </li>
               <li style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                 <Heart size={20} className="text-gradient" />
-                <span>Support development with built-in Razorpay integration</span>
+                <span>Clean, ad-free experience with zero in-app paywalls</span>
               </li>
             </ul>
           </div>
@@ -159,7 +159,7 @@ function Home() {
           <div className="why-image-placeholder glass-panel">
             <div style={{ textAlign: 'center' }}>
               <Monitor size={64} style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '1rem' }} />
-              <Smartphone size={48} style={{ color: 'rgba(255,255,255,0.3)' }} />
+              <Smartphone size={48} style={{ color: 'rgba(255,255,230,0.3)' }} />
               <p style={{ marginTop: '1rem', color: 'rgba(255,255,255,0.7)', fontWeight: '600' }}>Cross-Platform Synergy</p>
             </div>
           </div>
@@ -185,8 +185,8 @@ function Home() {
             </div>
             
             <div className="glass-panel" style={{ padding: '2rem' }}>
-              <h3 style={{ marginBottom: '0.5rem' }}>Is Canvas Link really free?</h3>
-              <p className="feature-desc">Yes! It is 100% free and open-source. However, if you'd like to support the developer and server costs, there is a built-in Razorpay donation option in the dashboard!</p>
+              <h3 style={{ marginBottom: '0.5rem' }}>How does billing work?</h3>
+              <p className="feature-desc">Canvas Link is available directly on the Google Play Store as a simple upfront purchase. Once purchased, you get full access to all features with no ads, no trackers, and no recurring in-app subscriptions.</p>
             </div>
           </div>
         </div>

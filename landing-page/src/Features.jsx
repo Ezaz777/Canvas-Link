@@ -122,14 +122,14 @@ const Features = () => {
               </p>
             </div>
 
-            {/* Developer Support */}
+            {/* One-Time Purchase */}
             <div className="glass-panel" style={{ padding: '3rem', borderRadius: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
                 <HeartHandshake size={28} className="text-gradient" />
-                <h2 style={{ fontSize: '2rem', margin: 0 }}>Support the Developer</h2>
+                <h2 style={{ fontSize: '2rem', margin: 0 }}>One-Time Store Purchase</h2>
               </div>
               <p style={{ fontSize: '1.1rem', lineHeight: '1.8', color: 'rgba(255,255,255,0.8)' }}>
-                If you love the app and want to help cover the costs of the cloud servers, Canvas Link has a built-in Razorpay integration in the mobile dashboard. You can securely and easily drop a tip to keep the project alive!
+                No annoying in-app subscriptions, hidden fees, or advertisements. You purchase the app once via the Google Play Store and enjoy uninterrupted, unlimited daily wallpaper synchronization forever.
               </p>
             </div>
 

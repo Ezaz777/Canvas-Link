@@ -327,7 +327,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                       // Footer
                       Text(
-                        'Premium subscription required for daily sync',
+                        'Seamless daily Pinterest wallpaper synchronization',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.3),
                           fontSize: 12,

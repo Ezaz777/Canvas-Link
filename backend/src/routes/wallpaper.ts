@@ -49,24 +49,13 @@ export function registerWallpaperRoutes(router: any) {
       );
     }
 
-    // 2. Fetch user and validate subscription
+    // 2. Fetch user
     const user = await env.DB.prepare(
       'SELECT id, encrypted_refresh_token, board_id, mobile_board_id, desktop_board_id, subscription_status, skip_offset FROM users WHERE id = ?'
     ).bind(userId).first<UserRow>();
 
     if (!user) {
       return Response.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    if (user.subscription_status !== 'active') {
-      return Response.json(
-        {
-          error: 'Premium subscription required',
-          message: 'Your subscription is not active. Please subscribe to access daily wallpapers.',
-          subscription_status: user.subscription_status,
-        },
-        { status: 402 }
-      );
     }
 
     const deviceType = new URL(request.url).searchParams.get('device_type');

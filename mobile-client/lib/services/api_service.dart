@@ -19,19 +19,12 @@ class ApiService {
 
   /// Fetch today's wallpaper URL from the backend.
   /// Returns a Map with 'image_url', 'pin_id', 'date', etc.
-  /// Throws [PaymentRequiredException] if subscription is not active.
   /// Throws [UnauthorizedException] if token is invalid/expired.
   Future<Map<String, dynamic>> getWallpaper() async {
     final response = await http.get(
       Uri.parse('$baseUrl/api/get-wallpaper?device_type=mobile'),
       headers: _headers,
     );
-
-    if (response.statusCode == 402) {
-      throw PaymentRequiredException(
-        'Premium subscription required. Please subscribe to access daily wallpapers.',
-      );
-    }
 
     if (response.statusCode == 401) {
       throw UnauthorizedException('Session expired. Please log in again.');
@@ -46,30 +39,6 @@ class ApiService {
     }
 
     return jsonDecode(response.body);
-  }
-
-  /// Create a Stripe Checkout session for premium subscription.
-  /// Returns the checkout URL.
-  Future<String> createCheckout() async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/api/checkout'),
-      headers: _headers,
-    );
-
-    if (response.statusCode == 401) {
-      throw UnauthorizedException('Session expired. Please log in again.');
-    }
-
-    if (response.statusCode != 200) {
-      final body = jsonDecode(response.body);
-      throw ApiException(
-        body['error'] ?? 'Failed to create checkout session',
-        response.statusCode,
-      );
-    }
-
-    final data = jsonDecode(response.body);
-    return data['checkout_url'];
   }
 
   /// Set the user's Pinterest board ID.
@@ -197,9 +166,6 @@ class ApiException implements Exception {
   String toString() => 'ApiException($statusCode): $message';
 }
 
-class PaymentRequiredException extends ApiException {
-  PaymentRequiredException(String message) : super(message, 402);
-}
 
 class UnauthorizedException extends ApiException {
   UnauthorizedException(String message) : super(message, 401);
