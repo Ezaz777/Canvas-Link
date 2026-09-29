@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.wallpapersync.app"
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Network access for API calls and image downloads -->
@@ -29,7 +30,7 @@
 
         <!-- Main Activity -->
         <activity
-            android:name=".MainActivity"
+            android:name="com.wallpapersync.app.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/LaunchTheme"
