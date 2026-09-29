@@ -53,6 +53,10 @@ jobs:
           sed -i "s/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g" android/app/build.gradle
           sed -i "s/minSdkVersion 16/minSdkVersion 21/g" android/app/build.gradle
           sed -i "s/minSdkVersion 19/minSdkVersion 21/g" android/app/build.gradle
+          sed -i "s/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 35/g" android/app/build.gradle
+          sed -i "s/compileSdk = flutter.compileSdkVersion/compileSdk = 35/g" android/app/build.gradle
+          sed -i "s/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 35/g" android/app/build.gradle
+          sed -i "s/targetSdk = flutter.targetSdkVersion/targetSdk = 35/g" android/app/build.gradle
 
           # Add androidx.browser for native in-app Chrome Custom Tabs
           sed -i 's/dependencies {/dependencies {\n    implementation "androidx.browser:browser:1.8.0"/g' android/app/build.gradle
