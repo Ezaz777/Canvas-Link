@@ -176,12 +176,34 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  Future<void> _applyPinAsWallpaper(Map<String, dynamic> pin, {bool notify = true}) async {
+  Future<void> _applyPinAsWallpaper(
+    Map<String, dynamic> pin, {
+    String? target,
+    bool notify = true,
+  }) async {
+    final effectiveTarget = target ?? _screenTarget;
+    if (target != null && target != _screenTarget) {
+      await Settings.setScreenTarget(target);
+      if (mounted) setState(() => _screenTarget = target);
+    }
+
     setState(() => _isApplyingPin = true);
     HapticFeedback.mediumImpact();
 
     try {
-      final success = await WallpaperService.setWallpaperFromUrl(pin['image_url']);
+      int? location;
+      if (effectiveTarget == 'home') {
+        location = AsyncWallpaper.HOME_SCREEN;
+      } else if (effectiveTarget == 'lock') {
+        location = AsyncWallpaper.LOCK_SCREEN;
+      } else {
+        location = AsyncWallpaper.BOTH_SCREENS;
+      }
+
+      final success = await WallpaperService.setWallpaperFromUrl(
+        pin['image_url'],
+        location: location,
+      );
       if (!mounted) return;
 
       if (success) {
@@ -204,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Wallpaper set to ${Settings.getScreenTargetDisplayString(_screenTarget)}!',
+                      'Wallpaper set to ${Settings.getScreenTargetDisplayString(effectiveTarget)}!',
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -528,9 +550,6 @@ class _HomeScreenState extends State<HomeScreen>
                       children: [
                         const SizedBox(height: 8),
 
-                        // Wallpaper Target Selector Pill
-                        _buildTargetSelector(),
-
                         // Wallpaper Preview Card
                         _buildPreviewCard(),
                         const SizedBox(height: 20),
@@ -639,94 +658,139 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildTargetSelector() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: const Color(0xB31E293B),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+  void _showSetWallpaperSheet(Map<String, dynamic> pin) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Row(
-        children: [
-          _buildTargetOption('both', 'Both Screens', Icons.devices_rounded),
-          _buildTargetOption('home', 'Home Screen', Icons.home_rounded),
-          _buildTargetOption('lock', 'Lock Screen', Icons.lock_outline_rounded),
-        ],
-      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Set as Wallpaper',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Choose where to apply this wallpaper on your device',
+                  style: TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _buildWallpaperTargetTile(
+                  icon: Icons.devices_rounded,
+                  title: 'Home & Lock Screens',
+                  subtitle: 'Set on both your home screen and lock screen',
+                  target: 'both',
+                  pin: pin,
+                ),
+                const SizedBox(height: 10),
+                _buildWallpaperTargetTile(
+                  icon: Icons.home_rounded,
+                  title: 'Home Screen Only',
+                  subtitle: 'Set only on your main home screen',
+                  target: 'home',
+                  pin: pin,
+                ),
+                const SizedBox(height: 10),
+                _buildWallpaperTargetTile(
+                  icon: Icons.lock_outline_rounded,
+                  title: 'Lock Screen Only',
+                  subtitle: 'Set only on your device lock screen',
+                  target: 'lock',
+                  pin: pin,
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildTargetOption(String target, String label, IconData icon) {
-    final isSelected = _screenTarget == target;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () async {
-          if (_screenTarget == target) return;
-          HapticFeedback.selectionClick();
-          await Settings.setScreenTarget(target);
-          if (mounted) {
-            setState(() => _screenTarget = target);
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Row(
-                  children: [
-                    Icon(icon, color: Colors.white, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Target set to: ${Settings.getScreenTargetDisplayString(target)}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-                backgroundColor: const Color(0xFF8B5CF6),
-                duration: const Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            );
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 8),
+  Widget _buildWallpaperTargetTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String target,
+    required Map<String, dynamic> pin,
+  }) {
+    final isCurrent = _screenTarget == target;
+    return Container(
+      decoration: BoxDecoration(
+        color: isCurrent ? const Color(0x268B5CF6) : const Color(0x0CFFFFFF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isCurrent
+              ? const Color(0xFF8B5CF6).withOpacity(0.6)
+              : Colors.white.withOpacity(0.08),
+        ),
+      ),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        leading: Container(
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF8B5CF6) : Colors.transparent,
+            color: isCurrent
+                ? const Color(0xFF8B5CF6).withOpacity(0.3)
+                : Colors.white.withOpacity(0.06),
             borderRadius: BorderRadius.circular(12),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFF8B5CF6).withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 15,
-                color: isSelected ? Colors.white : const Color(0xFF94A3B8),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFF94A3B8),
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                ),
-              ),
-            ],
+          child: Icon(
+            icon,
+            color: isCurrent ? const Color(0xFFC4B5FD) : Colors.white70,
+            size: 22,
           ),
         ),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: isCurrent ? FontWeight.bold : FontWeight.w600,
+            fontSize: 15,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.5),
+            fontSize: 12,
+          ),
+        ),
+        trailing: isCurrent
+            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF8B5CF6), size: 22)
+            : null,
+        onTap: () {
+          Navigator.pop(context);
+          _applyPinAsWallpaper(pin, target: target);
+        },
       ),
     );
   }
@@ -1004,11 +1068,21 @@ class _HomeScreenState extends State<HomeScreen>
                 child: !isActive
                     ? Center(
                         key: ValueKey('set_button_${_currentIndex}'),
-                        child: ElevatedButton.icon(
+                        child: ElevatedButton(
                           onPressed: (_isApplyingPin || _pins.isEmpty)
                               ? null
-                              : () => _applyPinAsWallpaper(_pins[_currentIndex]),
-                          icon: _isApplyingPin
+                              : () => _showSetWallpaperSheet(_pins[_currentIndex]),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF8B5CF6),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            elevation: 6,
+                            shadowColor: const Color(0xFF8B5CF6).withOpacity(0.6),
+                          ),
+                          child: _isApplyingPin
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
@@ -1017,25 +1091,47 @@ class _HomeScreenState extends State<HomeScreen>
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Icon(Icons.flash_on_rounded, size: 18),
-                          label: Text(
-                            _isApplyingPin ? 'Applying...' : 'Set as Wallpaper Now',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF8B5CF6),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            elevation: 6,
-                            shadowColor: const Color(0xFF8B5CF6).withOpacity(0.6),
-                          ),
+                              : Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.flash_on_rounded, size: 18),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Set as Wallpaper',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            _screenTarget == 'home'
+                                                ? 'Home'
+                                                : _screenTarget == 'lock'
+                                                    ? 'Lock'
+                                                    : 'Both',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 2),
+                                          const Icon(Icons.arrow_drop_down_rounded, size: 16),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                         ),
                       )
                     : Center(
@@ -1508,7 +1604,23 @@ class _HomeScreenState extends State<HomeScreen>
             height: 40,
             color: Colors.white.withOpacity(0.08),
           ),
-          _buildStat('Status', 'Active', Icons.check_circle_rounded),
+          InkWell(
+            onTap: _showSettingsModal,
+            borderRadius: BorderRadius.circular(12),
+            child: _buildStat(
+              'Target',
+              _screenTarget == 'home'
+                  ? 'Home'
+                  : _screenTarget == 'lock'
+                      ? 'Lock'
+                      : 'Both',
+              _screenTarget == 'home'
+                  ? Icons.home_rounded
+                  : _screenTarget == 'lock'
+                      ? Icons.lock_outline_rounded
+                      : Icons.devices_rounded,
+            ),
+          ),
           Container(
             width: 1,
             height: 40,
