@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/wallpaper_service.dart';
 import '../workers/wallpaper_worker.dart';
 import '../utils/settings.dart';
+import 'package:async_wallpaper/async_wallpaper.dart';
 import 'board_screen.dart';
 import 'dashboard_screen.dart';
 import 'login_screen.dart';
