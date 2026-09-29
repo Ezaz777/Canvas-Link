@@ -58,9 +58,6 @@ jobs:
           sed -i "s/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 35/g" android/app/build.gradle
           sed -i "s/targetSdk = flutter.targetSdkVersion/targetSdk = 35/g" android/app/build.gradle
 
-          # Add androidx.browser for native in-app Chrome Custom Tabs
-          sed -i 's/dependencies {/dependencies {\n    implementation "androidx.browser:browser:1.8.0"/g' android/app/build.gradle
-          
           cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           mkdir -p android/app/src/main/kotlin/com/wallpapersync/app
           cp /tmp/backup/MainActivity.kt android/app/src/main/kotlin/com/wallpapersync/app/MainActivity.kt

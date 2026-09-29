@@ -1,9 +1,7 @@
 package com.wallpapersync.app
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import androidx.browser.customtabs.CustomTabsIntent
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -54,7 +52,7 @@ class MainActivity: FlutterActivity() {
             }
         )
 
-        // MethodChannel for querying pending tokens and launching native in-app Chrome Custom Tabs
+        // MethodChannel for querying pending tokens on resume
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "getLatestToken" -> {
@@ -64,22 +62,6 @@ class MainActivity: FlutterActivity() {
                 "clearLatestToken" -> {
                     lastTokenLink = null
                     result.success(true)
-                }
-                "openCustomTab" -> {
-                    val url = call.argument<String>("url")
-                    if (url != null) {
-                        try {
-                            val customTabsIntent = CustomTabsIntent.Builder()
-                                .setShowTitle(true)
-                                .build()
-                            customTabsIntent.launchUrl(this@MainActivity, Uri.parse(url))
-                            result.success(true)
-                        } catch (e: Exception) {
-                            result.error("CUSTOM_TAB_ERROR", e.message, null)
-                        }
-                    } else {
-                        result.error("INVALID_URL", "URL cannot be null", null)
-                    }
                 }
                 else -> result.notImplemented()
             }

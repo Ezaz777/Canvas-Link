@@ -142,30 +142,28 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// Opens the URL using Reddit-style native Chrome Custom Tab (in-app sheet)
+  /// Opens the URL using Reddit-style in-app Chrome Custom Tab
   Future<void> _openCustomTab(String url) async {
     setState(() => _isLoading = true);
 
-    bool opened = false;
     try {
-      // 1. First attempt native CustomTabsIntent via MainActivity (in-app like Reddit)
-      final res = await _methodChannel.invokeMethod<bool>('openCustomTab', {'url': url});
-      opened = res == true;
-    } catch (_) {
-      opened = false;
-    }
-
-    if (!opened) {
-      // 2. Fallback to url_launcher inAppBrowserView
+      final uri = Uri.parse(url);
+      bool opened = false;
       try {
-        final uri = Uri.parse(url);
-        opened = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
-        if (!opened) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-      } catch (e) {
-        _showToast('Could not open login page: $e');
+        opened = await launchUrl(
+          uri,
+          mode: LaunchMode.inAppBrowserView,
+          browserConfiguration: const BrowserConfiguration(showTitle: true),
+        );
+      } catch (_) {
+        opened = false;
       }
+
+      if (!opened) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      _showToast('Could not open login page: $e');
     }
 
     if (mounted) {
