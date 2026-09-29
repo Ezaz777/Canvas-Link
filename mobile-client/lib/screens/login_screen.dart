@@ -1,10 +1,13 @@
 /// WallpaperSync — Login Screen
 /// A premium-styled login screen with gradient background and glassmorphism.
+/// Supports 1-tap Google login via in-app Custom Tabs and instant deep-link return.
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:app_links/app_links.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
@@ -25,6 +28,9 @@ class _LoginScreenState extends State<LoginScreen>
   bool _isAwaitingAuth = false;
   final _tokenController = TextEditingController();
 
+  late final AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -43,11 +49,47 @@ class _LoginScreenState extends State<LoginScreen>
       CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
     );
     _animController.forward();
-    // Do NOT auto-read clipboard on startup so users can freely switch accounts or log in fresh
+
+    _initDeepLinks();
+  }
+
+  void _initDeepLinks() {
+    _appLinks = AppLinks();
+
+    // 1. Listen for real-time deep links while app is running or resumed
+    _linkSubscription = _appLinks.uriLinkStream.listen(
+      (uri) {
+        _handleDeepLink(uri);
+      },
+      onError: (err) {
+        debugPrint('AppLinks stream error: $err');
+      },
+    );
+
+    // 2. Check if launched cold from a deep link
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null) {
+        _handleDeepLink(uri);
+      }
+    }).catchError((err) {
+      debugPrint('Initial AppLinks error: $err');
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    if ((uri.scheme == 'canvaslink' || uri.scheme == 'wallpapersync') &&
+        uri.host == 'auth') {
+      final token = uri.queryParameters['token'];
+      if (token != null && token.isNotEmpty) {
+        _tokenController.text = token;
+        _submitTokenWithToken(token);
+      }
+    }
   }
 
   @override
   void dispose() {
+    _linkSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _animController.dispose();
     _tokenController.dispose();
@@ -86,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           );
         }
-        await _submitToken();
+        await _submitTokenWithToken(text);
       }
     } catch (_) {}
   }
@@ -101,15 +143,21 @@ class _LoginScreenState extends State<LoginScreen>
       final url = Uri.parse(ApiService.getAuthUrl());
       bool launched = false;
       try {
-        // Launch external browser so user can choose account or app
-        launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+        // Open secure in-app Custom Tab (Chrome Custom Tab):
+        // 1. Keeps user inside Canvas Link (never kicks them out to separate browser app)
+        // 2. Full support for native "Continue with Google" 1-tap account picker
+        // 3. Auto-redirects back to Canvas Link via custom scheme canvaslink://auth?token=...
+        launched = await launchUrl(
+          url,
+          mode: LaunchMode.inAppBrowserView,
+        );
       } catch (_) {
         launched = false;
       }
 
       if (!launched) {
         if (await canLaunchUrl(url)) {
-          await launchUrl(url, mode: LaunchMode.inAppBrowserView);
+          await launchUrl(url, mode: LaunchMode.externalApplication);
         } else {
           _showError('Could not open browser for authentication.');
         }
@@ -128,22 +176,66 @@ class _LoginScreenState extends State<LoginScreen>
 
     final logoutUrl = Uri.parse('https://www.pinterest.com/logout/');
     try {
-      await launchUrl(logoutUrl, mode: LaunchMode.externalApplication);
+      // Open in inAppBrowserView to clear Custom Tab cookies
+      bool launched = false;
+      try {
+        launched = await launchUrl(logoutUrl, mode: LaunchMode.inAppBrowserView);
+      } catch (_) {
+        launched = false;
+      }
+      if (!launched) {
+        await launchUrl(logoutUrl, mode: LaunchMode.externalApplication);
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text(
-                'Opened Pinterest logout page in browser. Once logged out, tap "Connect with Pinterest" to sign into your other account!'),
+                'Pinterest logout page opened. Tap "Connect with Pinterest" to sign into another Google/Pinterest account.'),
             backgroundColor: const Color(0xFF8B5CF6),
             duration: const Duration(seconds: 5),
             behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
     } catch (e) {
       _showError('Could not open logout page: $e');
+    }
+  }
+
+  Future<void> _submitTokenWithToken(String token) async {
+    setState(() => _isLoading = true);
+
+    try {
+      await AuthService.saveToken(token);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 10),
+              Expanded(child: Text('Connected to Pinterest! Loading your boards...')),
+            ],
+          ),
+          backgroundColor: const Color(0xFF10B981),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } catch (e) {
+      _showError('Invalid token. Please try again.');
+      await AuthService.deleteToken();
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -153,22 +245,7 @@ class _LoginScreenState extends State<LoginScreen>
       _showError('Please paste your authentication token.');
       return;
     }
-
-    setState(() => _isLoading = true);
-
-    try {
-      await AuthService.saveToken(token);
-
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
-    } catch (e) {
-      _showError('Invalid token. Please try again.');
-      await AuthService.deleteToken();
-    }
-
-    setState(() => _isLoading = false);
+    await _submitTokenWithToken(token);
   }
 
   void _showError(String message) {
@@ -193,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen>
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 28),
               child: FadeTransition(
                 opacity: _fadeAnim,
                 child: SlideTransition(
@@ -203,8 +280,8 @@ class _LoginScreenState extends State<LoginScreen>
                     children: [
                       // App Icon
                       Container(
-                        width: 96,
-                        height: 96,
+                        width: 90,
+                        height: 90,
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
@@ -222,11 +299,11 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                         child: const Icon(
                           Icons.wallpaper_rounded,
-                          size: 48,
+                          size: 46,
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 28),
 
                       // Title
                       Text(
@@ -238,20 +315,20 @@ class _LoginScreenState extends State<LoginScreen>
                           letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
+                      const SizedBox(height: 6),
+                      const Text(
                         'Your Pinterest boards, on every screen.',
                         style: TextStyle(
-                          fontSize: 16,
-                          color: const Color(0xFF94A3B8),
+                          fontSize: 15,
+                          color: Color(0xFF94A3B8),
                           fontWeight: FontWeight.w400,
                         ),
                       ),
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 40),
 
                       // Glass Card
                       Container(
-                        padding: const EdgeInsets.all(28),
+                        padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
                           color: const Color(0xB31E293B),
                           borderRadius: BorderRadius.circular(24),
@@ -268,7 +345,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                         child: Column(
                           children: [
-                            // Pinterest Login Button
+                            // Main Pinterest Connect Button
                             SizedBox(
                               width: double.infinity,
                               height: 56,
@@ -280,7 +357,8 @@ class _LoginScreenState extends State<LoginScreen>
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
-                                  elevation: 0,
+                                  elevation: 4,
+                                  shadowColor: const Color(0xFFE60023).withOpacity(0.4),
                                 ),
                                 child: _isLoading
                                     ? const SizedBox(
@@ -294,13 +372,14 @@ class _LoginScreenState extends State<LoginScreen>
                                     : const Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Icon(Icons.push_pin_rounded, size: 20),
-                                          SizedBox(width: 12),
+                                          Icon(Icons.push_pin_rounded, size: 22),
+                                          SizedBox(width: 10),
                                           Text(
                                             'Connect with Pinterest',
                                             style: TextStyle(
                                               fontSize: 16,
-                                              fontWeight: FontWeight.w600,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 0.2,
                                             ),
                                           ),
                                         ],
@@ -308,11 +387,39 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                             ),
                             const SizedBox(height: 12),
+
+                            // 1-Tap Google Login Hint Pill
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.06),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.white.withOpacity(0.08)),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.g_mobiledata_rounded, color: Color(0xFF38BDF8), size: 22),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Supports 1-Tap Google Sign-In',
+                                    style: TextStyle(
+                                      color: Color(0xFF94A3B8),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Switch Account Button
                             TextButton.icon(
                               onPressed: _isLoading ? null : _switchPinterestAccount,
                               icon: const Icon(Icons.switch_account_rounded, size: 16, color: Color(0xFF94A3B8)),
                               label: const Text(
-                                'Switch Pinterest Account',
+                                'Switch Pinterest / Google Account',
                                 style: TextStyle(
                                   color: Color(0xFF94A3B8),
                                   fontSize: 13,
@@ -320,97 +427,66 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 4),
 
-                            // Divider
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Container(
-                                    height: 1,
-                                    color: Colors.white.withOpacity(0.1),
+                            // Expandable Manual Token Section (Kept discreet for clean UX)
+                            Theme(
+                              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                              child: ExpansionTile(
+                                initiallyExpanded: false,
+                                tilePadding: EdgeInsets.zero,
+                                title: Text(
+                                  'Enter Token Manually',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.35),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: Text(
-                                    'then paste your token',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.4),
-                                      fontSize: 12,
+                                iconColor: Colors.white38,
+                                collapsedIconColor: Colors.white24,
+                                children: [
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: _tokenController,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontFamily: 'monospace',
+                                    ),
+                                    maxLines: 3,
+                                    decoration: InputDecoration(
+                                      hintText: 'Paste JWT token...',
+                                      hintStyle: TextStyle(
+                                        color: Colors.white.withOpacity(0.25),
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.black.withOpacity(0.2),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      contentPadding: const EdgeInsets.all(14),
                                     ),
                                   ),
-                                ),
-                                Expanded(
-                                  child: Container(
-                                    height: 1,
-                                    color: Colors.white.withOpacity(0.1),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Token Input
-                            TextField(
-                              controller: _tokenController,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontFamily: 'monospace',
-                              ),
-                              maxLines: 3,
-                              decoration: InputDecoration(
-                                hintText: 'Paste your JWT token here...',
-                                hintStyle: TextStyle(
-                                  color: Colors.white.withOpacity(0.25),
-                                ),
-                                filled: true,
-                                fillColor: Colors.black.withOpacity(0.2),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                  borderSide: BorderSide.none,
-                                ),
-                                contentPadding: const EdgeInsets.all(16),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Submit Button
-                            Container(
-                              width: double.infinity,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF8B5CF6).withOpacity(0.4),
-                                    blurRadius: 14,
-                                    offset: const Offset(0, 4),
+                                  const SizedBox(height: 12),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 44,
+                                    child: ElevatedButton(
+                                      onPressed: _isLoading ? null : _submitToken,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF8B5CF6),
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                      child: const Text('Activate Token'),
+                                    ),
                                   ),
                                 ],
-                              ),
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _submitToken,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                child: const Text(
-                                  'Activate',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
                               ),
                             ),
                           ],

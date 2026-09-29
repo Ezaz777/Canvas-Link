@@ -177,7 +177,7 @@ class ApiService {
   }
 
   /// Get the Pinterest OAuth URL for login.
-  static String getAuthUrl() => '$baseUrl/auth/pinterest';
+  static String getAuthUrl() => '$baseUrl/auth/pinterest?client=mobile';
 }
 
 // =============================================================================

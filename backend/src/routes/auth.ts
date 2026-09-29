@@ -18,8 +18,10 @@ export function registerAuthRoutes(router: any) {
    * Initiates Pinterest OAuth2 flow by redirecting to Pinterest's consent screen.
    */
   router.get('/auth/pinterest', async (request: IRequest, env: Env) => {
-    // Generate a random state parameter for CSRF protection
-    const state = crypto.randomUUID();
+    const url = new URL(request.url);
+    const client = url.searchParams.get('client') || 'mobile';
+    // Prefix state with client type (e.g. mobile_... or pc_...)
+    const state = `${client}_${crypto.randomUUID()}`;
 
     const authUrl = buildAuthorizationUrl(
       env.PINTEREST_APP_ID,
@@ -38,18 +40,19 @@ export function registerAuthRoutes(router: any) {
   router.get('/auth/callback', async (request: IRequest, env: Env) => {
     const url = new URL(request.url);
     const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state') || '';
     const error = url.searchParams.get('error');
 
     if (error) {
       return new Response(
-        renderCallbackPage(false, `Pinterest authorization failed: ${error}`),
+        renderCallbackPage(false, `Pinterest authorization failed: ${error}`, false),
         { status: 400, headers: { 'Content-Type': 'text/html' } }
       );
     }
 
     if (!code) {
       return new Response(
-        renderCallbackPage(false, 'Missing authorization code.'),
+        renderCallbackPage(false, 'Missing authorization code.', false),
         { status: 400, headers: { 'Content-Type': 'text/html' } }
       );
     }
@@ -92,15 +95,31 @@ export function registerAuthRoutes(router: any) {
       // Create JWT
       const jwt = await createToken(actualUserId, env.JWT_SECRET);
 
-      // Return a pretty HTML page that passes the token to the opener (PC/mobile client)
+      const isMobile = state.startsWith('mobile_');
+
+      if (isMobile) {
+        // Return 302 redirect with custom scheme location and HTML fallback for instant native return
+        return new Response(
+          renderCallbackPage(true, jwt, true),
+          {
+            status: 302,
+            headers: {
+              'Content-Type': 'text/html',
+              'Location': `canvaslink://auth?token=${encodeURIComponent(jwt)}`
+            }
+          }
+        );
+      }
+
+      // Return a pretty HTML page that passes the token to the opener (PC/web client)
       return new Response(
-        renderCallbackPage(true, jwt),
+        renderCallbackPage(true, jwt, false),
         { status: 200, headers: { 'Content-Type': 'text/html' } }
       );
     } catch (err: any) {
       console.error('Auth callback error:', err);
       return new Response(
-        renderCallbackPage(false, `Authentication failed: ${err.message}`),
+        renderCallbackPage(false, `Authentication failed: ${err.message}`, false),
         { status: 500, headers: { 'Content-Type': 'text/html' } }
       );
     }
@@ -111,79 +130,77 @@ export function registerAuthRoutes(router: any) {
  * Renders a styled HTML callback page.
  * On success, displays the JWT token and attempts to communicate it to the opener window.
  */
-function renderCallbackPage(success: boolean, data: string): string {
+function renderCallbackPage(success: boolean, data: string, isMobile = false): string {
+  const deepLink = `canvaslink://auth?token=${encodeURIComponent(data)}`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WallpaperSync — ${success ? 'Success' : 'Error'}</title>
+  ${success && isMobile ? `<meta http-equiv="refresh" content="0;url=${deepLink}">` : ''}
+  <title>Canvas Link — ${success ? 'Connected' : 'Error'}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      background: linear-gradient(135deg, #0f172a, #1e1b4b, #0f172a);
       color: #fff;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 20px;
     }
     .card {
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(20px);
-      border-radius: 20px;
-      padding: 40px;
-      max-width: 480px;
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(24px);
+      border-radius: 24px;
+      padding: 36px 28px;
+      max-width: 440px;
+      width: 100%;
       text-align: center;
-      border: 1px solid rgba(255,255,255,0.15);
-      box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
     }
-    .icon { font-size: 48px; margin-bottom: 16px; }
-    h1 { font-size: 24px; margin-bottom: 12px; }
-    p { color: rgba(255,255,255,0.7); line-height: 1.6; margin-bottom: 20px; }
-    .token-box {
-      background: rgba(0,0,0,0.3);
-      border-radius: 12px;
-      padding: 16px;
-      word-break: break-all;
-      font-family: monospace;
-      font-size: 12px;
-      color: #a78bfa;
-      margin-bottom: 16px;
-      max-height: 120px;
-      overflow-y: auto;
-    }
+    .icon { font-size: 52px; margin-bottom: 16px; }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+    p { color: #94a3b8; line-height: 1.6; font-size: 14px; margin-bottom: 24px; }
     .btn {
-      display: inline-block;
+      display: block;
+      width: 100%;
       text-decoration: none;
-      padding: 14px 28px;
-      background: linear-gradient(135deg, #7c3aed, #a78bfa);
+      padding: 16px 24px;
+      background: linear-gradient(135deg, #8b5cf6, #3b82f6);
       border: none;
       border-radius: 14px;
       color: #fff;
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 700;
       cursor: pointer;
-      margin: 6px;
+      margin-bottom: 12px;
+      box-shadow: 0 10px 25px rgba(139, 92, 246, 0.35);
       transition: transform 0.2s, box-shadow 0.2s;
     }
-    .btn:hover { transform: scale(1.03); }
+    .btn:active { transform: scale(0.98); }
     .btn-secondary {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #cbd5e1;
+      font-size: 14px;
+      padding: 12px 20px;
+      box-shadow: none;
     }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="icon">${success ? '🎉' : '❌'}</div>
-    <h1>${success ? 'Connected to Pinterest!' : 'Authentication Failed'}</h1>
+    <div class="icon">${success ? '✨' : '❌'}</div>
+    <h1>${success ? 'Connected Successfully!' : 'Authentication Failed'}</h1>
     ${
       success
-        ? `<p>Your Pinterest account has been connected successfully.</p>
-           <a href="canvaslink://auth?token=${data}" class="btn" style="display:block;margin-bottom:12px;">🚀 Open Canvas Link App</a>
-           <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('${data}');alert('Token copied!');">Copy Token</button>`
+        ? `<p>${isMobile ? 'Returning to Canvas Link app...' : 'Your Pinterest account is now connected.'}</p>
+           <a href="${deepLink}" class="btn">🚀 Open Canvas Link App</a>
+           <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('${data}');alert('Token copied!');">Copy Token Manually</button>`
         : `<p>${data}</p>`
     }
   </div>
@@ -191,12 +208,15 @@ function renderCallbackPage(success: boolean, data: string): string {
     ${
       success
         ? `
-    // 1. Deep-link back into the Canvas Link mobile app automatically
+    // Auto-return for mobile client
     try {
-      window.location.href = "canvaslink://auth?token=" + encodeURIComponent("${data}");
+      window.location.replace("${deepLink}");
     } catch(e) {}
+    setTimeout(function() {
+      try { window.location.href = "${deepLink}"; } catch(e) {}
+    }, 150);
 
-    // 2. Also attempt passing to PC client local server or popup opener
+    // Pass token to PC client local server or popup opener
     try {
       if (window.opener) {
         window.opener.postMessage({ type: 'wallpaper_sync_token', token: '${data}' }, '*');
