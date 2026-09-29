@@ -25,18 +25,6 @@ void main() async {
   // Initialize WorkManager for background tasks
   await WallpaperWorker.initialize();
 
-  // Check if launched via deep link token
-  try {
-    final initialRoute = WidgetsBinding.instance.platformDispatcher.defaultRouteName;
-    if (initialRoute.contains('token=')) {
-      final uri = Uri.parse(initialRoute);
-      final token = uri.queryParameters['token'];
-      if (token != null && token.isNotEmpty) {
-        await AuthService.saveToken(token);
-      }
-    }
-  } catch (_) {}
-
   // Check if user is logged in
   final isLoggedIn = await AuthService.isLoggedIn();
 

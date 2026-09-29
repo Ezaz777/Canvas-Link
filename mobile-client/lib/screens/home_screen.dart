@@ -456,6 +456,9 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _logout() async {
     await AuthService.clearAll();
     await WallpaperWorker.cancelAll();
+    try {
+      await Clipboard.setData(const ClipboardData(text: ''));
+    } catch (_) {}
 
     if (!mounted) return;
     Navigator.of(context).pushReplacement(

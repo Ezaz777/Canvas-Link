@@ -22,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen>
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
   bool _isLoading = false;
+  bool _isAwaitingAuth = false;
   final _tokenController = TextEditingController();
 
   @override
@@ -42,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen>
       CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
     );
     _animController.forward();
-    _checkInitialRouteOrClipboard();
+    // Do NOT auto-read clipboard on startup so users can freely switch accounts or log in fresh
   }
 
   @override
@@ -55,26 +56,9 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed && _isAwaitingAuth) {
       _checkClipboardForToken();
     }
-  }
-
-  Future<void> _checkInitialRouteOrClipboard() async {
-    try {
-      final initialRoute = WidgetsBinding.instance.platformDispatcher.defaultRouteName;
-      if (initialRoute.contains('token=')) {
-        final uri = Uri.parse(initialRoute);
-        final token = uri.queryParameters['token'];
-        if (token != null && token.isNotEmpty) {
-          _tokenController.text = token;
-          await _submitToken();
-          return;
-        }
-      }
-    } catch (_) {}
-
-    await _checkClipboardForToken();
   }
 
   Future<void> _checkClipboardForToken() async {
@@ -93,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen>
                 children: [
                   Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
                   SizedBox(width: 10),
-                  Expanded(child: Text('Detected Pinterest token! Activating...')),
+                  Expanded(child: Text('Detected Pinterest token! Connecting...')),
                 ],
               ),
               backgroundColor: const Color(0xFF8B5CF6),
@@ -108,21 +92,24 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _openPinterestAuth() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _isAwaitingAuth = true;
+    });
 
     try {
       final url = Uri.parse(ApiService.getAuthUrl());
       bool launched = false;
       try {
-        // Try Chrome Custom Tab (shares saved browser sessions / Google login)
-        launched = await launchUrl(url, mode: LaunchMode.inAppBrowserView);
+        // Launch external browser so user can choose account or app
+        launched = await launchUrl(url, mode: LaunchMode.externalApplication);
       } catch (_) {
         launched = false;
       }
 
       if (!launched) {
         if (await canLaunchUrl(url)) {
-          await launchUrl(url, mode: LaunchMode.externalApplication);
+          await launchUrl(url, mode: LaunchMode.inAppBrowserView);
         } else {
           _showError('Could not open browser for authentication.');
         }
@@ -132,6 +119,32 @@ class _LoginScreenState extends State<LoginScreen>
     }
 
     setState(() => _isLoading = false);
+  }
+
+  Future<void> _switchPinterestAccount() async {
+    await Clipboard.setData(const ClipboardData(text: ''));
+    _tokenController.clear();
+    setState(() => _isAwaitingAuth = false);
+
+    final logoutUrl = Uri.parse('https://www.pinterest.com/logout/');
+    try {
+      await launchUrl(logoutUrl, mode: LaunchMode.externalApplication);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                'Opened Pinterest logout page in browser. Once logged out, tap "Connect with Pinterest" to sign into your other account!'),
+            backgroundColor: const Color(0xFF8B5CF6),
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      _showError('Could not open logout page: $e');
+    }
   }
 
   Future<void> _submitToken() async {
@@ -294,7 +307,20 @@ class _LoginScreenState extends State<LoginScreen>
                                       ),
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 12),
+                            TextButton.icon(
+                              onPressed: _isLoading ? null : _switchPinterestAccount,
+                              icon: const Icon(Icons.switch_account_rounded, size: 16, color: Color(0xFF94A3B8)),
+                              label: const Text(
+                                'Switch Pinterest Account',
+                                style: TextStyle(
+                                  color: Color(0xFF94A3B8),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
 
                             // Divider
                             Row(

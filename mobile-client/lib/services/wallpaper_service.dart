@@ -72,11 +72,7 @@ class WallpaperService {
 
     // 5. Set as wallpaper (Home, Lock, or Both)
     final wallpaperLocation = await _resolveWallpaperLocation(location);
-    final bool result = await AsyncWallpaper.setWallpaperFromFile(
-      filePath: croppedPath,
-      wallpaperLocation: wallpaperLocation,
-      goToHome: false,
-    ) ?? false;
+    final bool result = await _applyToDevice(croppedPath, wallpaperLocation);
     
     if (!result) {
       throw ApiException(
@@ -105,16 +101,47 @@ class WallpaperService {
     );
 
     final wallpaperLocation = await _resolveWallpaperLocation(location);
-    final bool result = await AsyncWallpaper.setWallpaperFromFile(
-      filePath: croppedPath,
-      wallpaperLocation: wallpaperLocation,
-      goToHome: false,
-    ) ?? false;
+    final bool result = await _applyToDevice(croppedPath, wallpaperLocation);
     
     if (!result) {
       throw ApiException('Failed to set wallpaper on device.', 500);
     }
     return true;
+  }
+
+  /// Applies wallpaper to device, handling OEM-specific restrictions on lock screen.
+  static Future<bool> _applyToDevice(String croppedPath, int wallpaperLocation) async {
+    try {
+      if (wallpaperLocation == AsyncWallpaper.BOTH_SCREENS) {
+        // Many Android OEM skins (Xiaomi HyperOS/MIUI, Samsung OneUI, ColorOS)
+        // ignore FLAG_LOCK when set concurrently with BOTH_SCREENS.
+        // Applying sequentially ensures both screens receive the update.
+        final homeResult = await AsyncWallpaper.setWallpaperFromFile(
+          filePath: croppedPath,
+          wallpaperLocation: AsyncWallpaper.HOME_SCREEN,
+          goToHome: false,
+        ) ?? false;
+
+        await Future.delayed(const Duration(milliseconds: 250));
+
+        final lockResult = await AsyncWallpaper.setWallpaperFromFile(
+          filePath: croppedPath,
+          wallpaperLocation: AsyncWallpaper.LOCK_SCREEN,
+          goToHome: false,
+        ) ?? false;
+
+        return homeResult || lockResult;
+      } else {
+        return await AsyncWallpaper.setWallpaperFromFile(
+          filePath: croppedPath,
+          wallpaperLocation: wallpaperLocation,
+          goToHome: false,
+        ) ?? false;
+      }
+    } catch (e) {
+      print('WallpaperSync: Native error applying wallpaper: $e');
+      throw ApiException('Error applying wallpaper: $e', 500);
+    }
   }
 
   /// Download an image from URL to a temporary file.

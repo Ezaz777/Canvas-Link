@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:async_wallpaper/async_wallpaper.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/wallpaper_service.dart';
@@ -308,10 +310,11 @@ class _BoardScreenState extends State<BoardScreen> {
               ListTile(
                 leading: const Icon(Icons.wallpaper_rounded, color: Colors.white),
                 title: const Text('Set as Wallpaper', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                subtitle: Text('Apply this image right now', style: TextStyle(color: Colors.white.withOpacity(0.6))),
-                onTap: () async {
+                subtitle: Text('Choose Home, Lock, or Both screens', style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white38),
+                onTap: () {
                   Navigator.pop(context);
-                  _setAsWallpaper(pin['image_url']);
+                  _showSetTargetSheet(pin['image_url']);
                 },
               ),
               const Divider(color: Colors.white10),
@@ -332,23 +335,174 @@ class _BoardScreenState extends State<BoardScreen> {
     );
   }
 
-  Future<void> _setAsWallpaper(String url) async {
+  void _showSetTargetSheet(String imageUrl) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Set as Wallpaper',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Choose which screen to apply this wallpaper to',
+                  style: TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _buildGalleryTargetTile(
+                  icon: Icons.devices_rounded,
+                  title: 'Home & Lock Screens',
+                  subtitle: 'Set on both your home screen and lock screen',
+                  location: AsyncWallpaper.BOTH_SCREENS,
+                  imageUrl: imageUrl,
+                  targetLabel: 'Home & Lock Screens',
+                ),
+                const SizedBox(height: 10),
+                _buildGalleryTargetTile(
+                  icon: Icons.home_rounded,
+                  title: 'Home Screen Only',
+                  subtitle: 'Set only on your main home screen',
+                  location: AsyncWallpaper.HOME_SCREEN,
+                  imageUrl: imageUrl,
+                  targetLabel: 'Home Screen Only',
+                ),
+                const SizedBox(height: 10),
+                _buildGalleryTargetTile(
+                  icon: Icons.lock_outline_rounded,
+                  title: 'Lock Screen Only',
+                  subtitle: 'Set only on your device lock screen',
+                  location: AsyncWallpaper.LOCK_SCREEN,
+                  imageUrl: imageUrl,
+                  targetLabel: 'Lock Screen Only',
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGalleryTargetTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required int location,
+    required String imageUrl,
+    required String targetLabel,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0x0CFFFFFF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+      ),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: const Color(0xFF8B5CF6).withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: const Color(0xFFC4B5FD), size: 22),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.5),
+            fontSize: 12,
+          ),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 14),
+        onTap: () {
+          Navigator.pop(context);
+          _setAsWallpaper(imageUrl, location: location, targetLabel: targetLabel);
+        },
+      ),
+    );
+  }
+
+  Future<void> _setAsWallpaper(String url, {required int location, required String targetLabel}) async {
+    HapticFeedback.mediumImpact();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Downloading and applying wallpaper...'),
+      SnackBar(
+        content: Text('Setting wallpaper to $targetLabel...'),
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
 
-    final success = await WallpaperService.setWallpaperFromUrl(url);
+    try {
+      final success = await WallpaperService.setWallpaperFromUrl(url, location: location);
+      if (!mounted) return;
 
-    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      if (success) {
+        HapticFeedback.heavyImpact();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(child: Text('Wallpaper set to $targetLabel!')),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? '✅ Wallpaper applied successfully!' : '❌ Failed to set wallpaper'),
-          backgroundColor: success ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+          content: Text('Failed to set wallpaper: $e'),
+          backgroundColor: const Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       );
     }
