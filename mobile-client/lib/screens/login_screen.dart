@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:app_links/app_links.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
@@ -28,8 +27,8 @@ class _LoginScreenState extends State<LoginScreen>
   bool _isAwaitingAuth = false;
   final _tokenController = TextEditingController();
 
-  late final AppLinks _appLinks;
-  StreamSubscription<Uri>? _linkSubscription;
+  static const _deepLinkChannel = EventChannel('com.wallpapersync.app/auth_deep_link');
+  StreamSubscription? _linkSubscription;
 
   @override
   void initState() {
@@ -54,26 +53,22 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _initDeepLinks() {
-    _appLinks = AppLinks();
-
-    // 1. Listen for real-time deep links while app is running or resumed
-    _linkSubscription = _appLinks.uriLinkStream.listen(
-      (uri) {
-        _handleDeepLink(uri);
+    // Listen for incoming deep links from MainActivity (both warm starts and cold starts)
+    _linkSubscription = _deepLinkChannel.receiveBroadcastStream().listen(
+      (dynamic link) {
+        if (link is String && link.isNotEmpty) {
+          try {
+            final uri = Uri.parse(link);
+            _handleDeepLink(uri);
+          } catch (e) {
+            debugPrint('Failed to parse deep link: $e');
+          }
+        }
       },
       onError: (err) {
-        debugPrint('AppLinks stream error: $err');
+        debugPrint('Deep link stream error: $err');
       },
     );
-
-    // 2. Check if launched cold from a deep link
-    _appLinks.getInitialLink().then((uri) {
-      if (uri != null) {
-        _handleDeepLink(uri);
-      }
-    }).catchError((err) {
-      debugPrint('Initial AppLinks error: $err');
-    });
   }
 
   void _handleDeepLink(Uri uri) {

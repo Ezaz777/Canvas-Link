@@ -33,6 +33,7 @@ jobs:
         run: |
           mkdir -p /tmp/backup
           cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml
+          cp android/app/src/main/kotlin/com/wallpapersync/app/MainActivity.kt /tmp/backup/MainActivity.kt
           rm -rf android
           flutter create --project-name wallpaper_sync --platforms=android .
           
@@ -50,6 +51,8 @@ jobs:
           sed -i "s/minSdkVersion 16/minSdkVersion 21/g" android/app/build.gradle
           sed -i "s/minSdkVersion 19/minSdkVersion 21/g" android/app/build.gradle
           cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          mkdir -p android/app/src/main/kotlin/com/wallpapersync/app
+          cp /tmp/backup/MainActivity.kt android/app/src/main/kotlin/com/wallpapersync/app/MainActivity.kt
 
       - name: Install dependencies
         run: flutter pub get
