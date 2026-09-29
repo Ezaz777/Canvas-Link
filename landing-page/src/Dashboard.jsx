@@ -68,10 +68,10 @@ export default function Dashboard() {
         body: JSON.stringify({ board_id: boardId, device_type: deviceType })
       });
       
-      if (!response.ok) throw new Error('Failed to set board');
+      if (!response.ok) throw new Error('Failed to update board');
       
-      // Update local state to reflect change immediately
-      setSelectedBoards(prev => ({ ...prev, [deviceType]: boardId }));
+      // Update local state to reflect change immediately and clear legacy fallback
+      setSelectedBoards(prev => ({ ...prev, [deviceType]: boardId, fallback: null }));
     } catch (err) {
       alert(err.message);
     }
@@ -144,6 +144,26 @@ export default function Dashboard() {
               <RefreshCw size={32} className="text-gradient" />
             </motion.div>
           </div>
+        ) : boards.length === 0 ? (
+          <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
+            <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>No Pinterest Boards Found</h3>
+            <p className="feature-desc" style={{ marginBottom: '2rem' }}>
+              Your Pinterest account does not have any boards yet. Create a board on Pinterest, pin wallpapers to it, and link it here!
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <a 
+                href="https://www.pinterest.com" 
+                target="_blank" 
+                rel="noreferrer" 
+                className="btn btn-primary"
+              >
+                Open Pinterest
+              </a>
+              <button onClick={fetchBoards} className="btn btn-secondary">
+                Refresh Boards
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="features-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
             {boards.map((board) => {
@@ -162,7 +182,8 @@ export default function Dashboard() {
                   
                   <div style={{ marginTop: 'auto', display: 'flex', gap: '1rem', flexDirection: 'column' }}>
                     <button 
-                      onClick={() => setBoard(board.id, 'mobile')}
+                      onClick={() => setBoard(isMobile ? null : board.id, 'mobile')}
+                      title={isMobile ? 'Click to deactivate for Mobile' : 'Set for Mobile'}
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
                         padding: '0.75rem', borderRadius: '10px',
@@ -174,12 +195,13 @@ export default function Dashboard() {
                       }}
                     >
                       <Smartphone size={18} />
-                      {isMobile ? 'Active on Mobile' : 'Set for Mobile'}
+                      {isMobile ? 'Active on Mobile • Click to Remove' : 'Set for Mobile'}
                       {isMobile && <CheckCircle size={16} color="#34d399" />}
                     </button>
 
                     <button 
-                      onClick={() => setBoard(board.id, 'desktop')}
+                      onClick={() => setBoard(isDesktop ? null : board.id, 'desktop')}
+                      title={isDesktop ? 'Click to deactivate for PC' : 'Set for PC'}
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
                         padding: '0.75rem', borderRadius: '10px',
@@ -191,7 +213,7 @@ export default function Dashboard() {
                       }}
                     >
                       <Monitor size={18} />
-                      {isDesktop ? 'Active on PC' : 'Set for PC'}
+                      {isDesktop ? 'Active on PC • Click to Remove' : 'Set for PC'}
                       {isDesktop && <CheckCircle size={16} color="#34d399" />}
                     </button>
                   </div>

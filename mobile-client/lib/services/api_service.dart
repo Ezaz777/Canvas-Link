@@ -31,18 +31,28 @@ class ApiService {
     }
 
     if (response.statusCode != 200) {
-      final body = jsonDecode(response.body);
-      throw ApiException(
-        body['error'] ?? 'Failed to fetch wallpaper',
-        response.statusCode,
-      );
+      try {
+        final body = jsonDecode(response.body);
+        throw ApiException(
+          body['message'] ?? body['error'] ?? 'Failed to fetch wallpaper',
+          response.statusCode,
+          body['code'] ?? body['error'],
+        );
+      } catch (e) {
+        if (e is ApiException) rethrow;
+        throw ApiException(
+          'Failed to fetch wallpaper (Server error ${response.statusCode})',
+          response.statusCode,
+        );
+      }
     }
 
     return jsonDecode(response.body);
   }
 
-  /// Set the user's Pinterest board ID.
-  Future<void> setBoard(String boardId, [String deviceType = 'mobile']) async {
+  /// Set or deactivate the user's Pinterest board ID.
+  /// Pass null to deactivate the board for the specified device.
+  Future<void> setBoard(String? boardId, [String deviceType = 'mobile']) async {
     final response = await http.post(
       Uri.parse('$baseUrl/api/set-board'),
       headers: _headers,
@@ -50,11 +60,20 @@ class ApiService {
     );
 
     if (response.statusCode != 200) {
-      final body = jsonDecode(response.body);
-      throw ApiException(
-        body['error'] ?? 'Failed to set board',
-        response.statusCode,
-      );
+      try {
+        final body = jsonDecode(response.body);
+        throw ApiException(
+          body['message'] ?? body['error'] ?? 'Failed to update board',
+          response.statusCode,
+          body['code'] ?? body['error'],
+        );
+      } catch (e) {
+        if (e is ApiException) rethrow;
+        throw ApiException(
+          'Failed to update board (${response.statusCode})',
+          response.statusCode,
+        );
+      }
     }
   }
 
@@ -115,11 +134,20 @@ class ApiService {
     }
 
     if (response.statusCode != 200) {
-      final body = jsonDecode(response.body);
-      throw ApiException(
-        body['error'] ?? 'Failed to fetch board pins',
-        response.statusCode,
-      );
+      try {
+        final body = jsonDecode(response.body);
+        throw ApiException(
+          body['message'] ?? body['error'] ?? 'Failed to fetch board pins',
+          response.statusCode,
+          body['code'] ?? body['error'],
+        );
+      } catch (e) {
+        if (e is ApiException) rethrow;
+        throw ApiException(
+          'Failed to fetch board pins (${response.statusCode})',
+          response.statusCode,
+        );
+      }
     }
 
     final data = jsonDecode(response.body);
@@ -159,14 +187,14 @@ class ApiService {
 class ApiException implements Exception {
   final String message;
   final int statusCode;
+  final String? code;
 
-  ApiException(this.message, this.statusCode);
+  ApiException(this.message, this.statusCode, [this.code]);
 
   @override
-  String toString() => 'ApiException($statusCode): $message';
+  String toString() => message;
 }
 
-
 class UnauthorizedException extends ApiException {
-  UnauthorizedException(String message) : super(message, 401);
+  UnauthorizedException(String message) : super(message, 401, 'unauthorized');
 }

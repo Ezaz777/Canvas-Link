@@ -26,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen>
   String? _currentPinId;
   String? _currentDate;
   String? _errorMessage;
+  String? _errorCode;
   int? _totalPins;
   int _syncFrequency = 24;
 
@@ -59,11 +60,15 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() {
       _isLoadingPreview = true;
       _errorMessage = null;
+      _errorCode = null;
     });
 
     try {
       final token = await AuthService.getToken();
-      if (token == null) return;
+      if (token == null) {
+        _logout();
+        return;
+      }
 
       final api = ApiService(token);
       final data = await api.getWallpaper();
@@ -74,15 +79,31 @@ class _HomeScreenState extends State<HomeScreen>
         _currentDate = data['date'];
         _totalPins = data['total_pins'];
         _isLoadingPreview = false;
+        _errorMessage = null;
+        _errorCode = null;
       });
     } on UnauthorizedException {
       setState(() {
-        _errorMessage = 'auth_expired';
+        _errorMessage = 'Session expired. Please log in again.';
+        _errorCode = 'auth_expired';
+        _currentImageUrl = null;
+        _totalPins = null;
+        _isLoadingPreview = false;
+      });
+    } on ApiException catch (e) {
+      setState(() {
+        _errorMessage = e.message;
+        _errorCode = e.code;
+        _currentImageUrl = null;
+        _totalPins = null;
         _isLoadingPreview = false;
       });
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to load wallpaper preview.';
+        _errorCode = 'unknown';
+        _currentImageUrl = null;
+        _totalPins = null;
         _isLoadingPreview = false;
       });
     }
@@ -93,40 +114,102 @@ class _HomeScreenState extends State<HomeScreen>
 
     try {
       await WallpaperWorker.runOnce();
-      final success = await WallpaperService.syncWallpaper();
+      await WallpaperService.syncWallpaper();
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            success
-                ? '✅ Wallpaper synced successfully!'
-                : '❌ Sync failed. Check your connection.',
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 10),
+              Expanded(child: Text('Wallpaper synced successfully!')),
+            ],
           ),
-          backgroundColor:
-              success ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+          backgroundColor: const Color(0xFF10B981),
           behavior: SnackBarBehavior.floating,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
 
-      if (success) {
-        await _loadCurrentWallpaper();
-      }
+      await _loadCurrentWallpaper();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      final isNoPins = e.code == 'no_pins_found';
+      final isNoBoard = e.code == 'no_board_selected';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                isNoPins
+                    ? Icons.collections_bookmark_rounded
+                    : isNoBoard
+                        ? Icons.dashboard_customize_rounded
+                        : Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  e.message,
+                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFE11D48),
+          duration: const Duration(seconds: 5),
+          action: isNoPins
+              ? SnackBarAction(
+                  label: 'Open Pinterest',
+                  textColor: Colors.white,
+                  onPressed: () => launchUrl(
+                    Uri.parse('https://www.pinterest.com'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                )
+              : isNoBoard
+                  ? SnackBarAction(
+                      label: 'Pick Board',
+                      textColor: Colors.white,
+                      onPressed: () => Navigator.of(context)
+                          .push(
+                            MaterialPageRoute(
+                                builder: (_) => const DashboardScreen()),
+                          )
+                          .then((_) => _loadCurrentWallpaper()),
+                    )
+                  : null,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+
+      await _loadCurrentWallpaper();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Text('Sync failed: $e'),
           backgroundColor: const Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
+      await _loadCurrentWallpaper();
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncing = false);
+      }
     }
-
-    setState(() => _isSyncing = false);
   }
 
   Future<void> _skipNow() async {
@@ -138,37 +221,56 @@ class _HomeScreenState extends State<HomeScreen>
         final api = ApiService(token);
         await api.skipWallpaper();
         
-        // Immediately sync to fetch the new skipped wallpaper
         await WallpaperWorker.runOnce();
-        final success = await WallpaperService.syncWallpaper();
+        await WallpaperService.syncWallpaper();
         
         if (mounted) {
-          if (success) {
-            await _loadCurrentWallpaper();
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('❌ Skip successful, but sync failed.'),
-                backgroundColor: const Color(0xFFEF4444),
-                behavior: SnackBarBehavior.floating,
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.skip_next_rounded, color: Colors.white, size: 20),
+                  SizedBox(width: 10),
+                  Expanded(child: Text('Wallpaper skipped! New wallpaper applied.')),
+                ],
               ),
-            );
-          }
+              backgroundColor: const Color(0xFF10B981),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+          await _loadCurrentWallpaper();
         }
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        await _loadCurrentWallpaper();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text('Skip failed: $e'),
             backgroundColor: const Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncing = false);
+      }
     }
-
-    setState(() => _isSyncing = false);
   }
 
   Future<void> _logout() async {
@@ -335,7 +437,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 MaterialPageRoute(
                                   builder: (_) => const DashboardScreen(),
                                 ),
-                              );
+                              ).then((_) => _loadCurrentWallpaper());
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0x0CFFFFFF),
@@ -380,7 +482,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildPreviewCard() {
     return Container(
       width: double.infinity,
-      height: 380,
+      constraints: const BoxConstraints(minHeight: 380),
       decoration: BoxDecoration(
         color: const Color(0xB31E293B),
         borderRadius: BorderRadius.circular(24),
@@ -396,96 +498,348 @@ class _HomeScreenState extends State<HomeScreen>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
         child: _isLoadingPreview
-            ? const Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFF8B5CF6),
-                  strokeWidth: 2.5,
+            ? const SizedBox(
+                height: 380,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF8B5CF6),
+                    strokeWidth: 2.5,
+                  ),
                 ),
               )
             : _currentImageUrl != null
-                ? Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.network(
-                        _currentImageUrl!,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (ctx, child, progress) {
-                          if (progress == null) return child;
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              color: Color(0xFF8B5CF6),
-                              strokeWidth: 2.5,
-                            ),
-                          );
-                        },
-                        errorBuilder: (ctx, err, stack) => Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.broken_image_rounded,
-                                  color: Colors.white.withOpacity(0.3),
-                                  size: 48),
-                              const SizedBox(height: 12),
-                              Text('Failed to load preview',
-                                  style: TextStyle(
-                                      color: Colors.white.withOpacity(0.4))),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // Date overlay
-                      Positioned(
-                        bottom: 16,
-                        left: 16,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.6),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.calendar_today_rounded,
-                                  color: Color(0xFF8B5CF6), size: 14),
-                              const SizedBox(width: 8),
-                              Text(
-                                _currentDate ?? 'Today',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                ? SizedBox(
+                    height: 380,
+                    child: Stack(
+                      fit: StackFit.expand,
                       children: [
-                        Icon(
-                          Icons.image_not_supported_rounded,
-                          color: Colors.white.withOpacity(0.2),
-                          size: 56,
+                        Image.network(
+                          _currentImageUrl!,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (ctx, child, progress) {
+                            if (progress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF8B5CF6),
+                                strokeWidth: 2.5,
+                              ),
+                            );
+                          },
+                          errorBuilder: (ctx, err, stack) => Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.broken_image_rounded,
+                                    color: Colors.white.withOpacity(0.3),
+                                    size: 48),
+                                const SizedBox(height: 12),
+                                Text('Failed to load preview',
+                                    style: TextStyle(
+                                        color: Colors.white.withOpacity(0.4))),
+                              ],
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No wallpaper yet',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.4),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
+                        // Date overlay
+                        Positioned(
+                          bottom: 16,
+                          left: 16,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.6),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.calendar_today_rounded,
+                                    color: Color(0xFF8B5CF6), size: 14),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _currentDate ?? 'Today',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                  )
+                : _buildEmptyOrErrorGuide(),
       ),
+    );
+  }
+
+  Widget _buildEmptyOrErrorGuide() {
+    if (_errorCode == 'no_pins_found') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE60023).withOpacity(0.15),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFE60023).withOpacity(0.3)),
+              ),
+              child: const Icon(
+                Icons.collections_bookmark_rounded,
+                color: Color(0xFFE60023),
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No Wallpapers in Board',
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You haven\'t saved any wallpapers in this Pinterest board yet! Follow these quick steps to get started:',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.6),
+                fontSize: 13,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0x0CFFFFFF),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withOpacity(0.08)),
+              ),
+              child: Column(
+                children: [
+                  _buildGuideStep('1', 'Open Pinterest & search for wallpapers you love'),
+                  const SizedBox(height: 8),
+                  _buildGuideStep('2', 'Save (Pin) them to your selected board'),
+                  const SizedBox(height: 8),
+                  _buildGuideStep('3', 'Return here and tap "Sync Now" below'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => launchUrl(
+                      Uri.parse('https://www.pinterest.com'),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                    label: const Text('Open Pinterest', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE60023),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                    ).then((_) => _loadCurrentWallpaper()),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white70,
+                      side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('Change Board', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_errorCode == 'no_board_selected') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: const Color(0xFF8B5CF6).withOpacity(0.15),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
+              ),
+              child: const Icon(
+                Icons.dashboard_customize_rounded,
+                color: Color(0xFF8B5CF6),
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No Board Selected',
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You haven\'t linked a Pinterest board to your Mobile yet. Choose a board so Canvas Link can sync daily wallpapers to your phone.',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.6),
+                fontSize: 13,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                ).then((_) => _loadCurrentWallpaper()),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                label: const Text('Choose a Board', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B5CF6),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_errorCode == 'auth_expired') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.lock_clock_rounded, color: Color(0xFFEF4444), size: 48),
+            const SizedBox(height: 16),
+            Text(
+              'Session Expired',
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your Pinterest connection has expired. Please log in again to continue syncing wallpapers.',
+              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _logout,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Log In Again'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Default error / empty fallback
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.collections_bookmark_outlined, color: Colors.white.withOpacity(0.2), size: 52),
+          const SizedBox(height: 16),
+          Text(
+            _errorMessage ?? 'No wallpaper loaded yet',
+            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, fontWeight: FontWeight.w500),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: _loadCurrentWallpaper,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Try Again'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xB31E293B),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuideStep(String number, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 20,
+          height: 20,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE60023).withOpacity(0.2),
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            number,
+            style: const TextStyle(
+              color: Color(0xFFE60023),
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 12,
+              height: 1.3,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

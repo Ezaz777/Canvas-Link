@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
@@ -54,7 +55,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _setBoard(String boardId, String deviceType) async {
+  Future<void> _setBoard(String? boardId, String deviceType) async {
     try {
       final token = await AuthService.getToken();
       if (token == null) return;
@@ -64,13 +65,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       setState(() {
         _selectedBoards[deviceType] = boardId;
+        if (boardId == null) {
+          _selectedBoards['fallback'] = null;
+        }
       });
 
       if (mounted) {
+        final deviceName = deviceType == 'mobile' ? 'Mobile' : 'PC';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ Board set for $deviceType!'),
-            backgroundColor: const Color(0xFF10B981),
+            content: Text(boardId == null
+                ? '⚪ Board deactivated for $deviceName.'
+                : '✅ Board activated for $deviceName!'),
+            backgroundColor: boardId == null
+                ? const Color(0xFF475569)
+                : const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12)),
@@ -81,7 +90,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to set board: $e'),
+            content: Text('Failed to update board: $e'),
             backgroundColor: const Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
           ),
@@ -174,21 +183,81 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (_boards.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.dashboard_customize_rounded,
-                color: Colors.white.withOpacity(0.2), size: 56),
-            const SizedBox(height: 16),
-            Text(
-              'No boards found',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.4),
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE60023).withOpacity(0.15),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFE60023).withOpacity(0.3)),
+                ),
+                child: const Icon(
+                  Icons.collections_bookmark_rounded,
+                  color: Color(0xFFE60023),
+                  size: 40,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+              Text(
+                'No Pinterest Boards Found',
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'You don\'t have any boards in your Pinterest account yet. Create a board on Pinterest, save some wallpapers into it, and come back here to link it!',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: () => launchUrl(
+                    Uri.parse('https://www.pinterest.com'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 20),
+                  label: const Text('Open Pinterest', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE60023),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: _loadBoards,
+                  icon: const Icon(Icons.refresh_rounded, size: 20),
+                  label: const Text('Refresh Boards', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    side: BorderSide(color: Colors.white.withOpacity(0.15)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -245,17 +314,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 20),
           _buildDeviceButton(
-            label: isMobile ? 'Active on Mobile' : 'Set for Mobile',
+            label: isMobile ? 'Active on Mobile • Tap to Remove' : 'Set for Mobile',
             icon: Icons.smartphone_rounded,
             isActive: isMobile,
-            onPressed: () => _setBoard(boardId, 'mobile'),
+            onPressed: () => _setBoard(isMobile ? null : boardId, 'mobile'),
           ),
           const SizedBox(height: 12),
           _buildDeviceButton(
-            label: isDesktop ? 'Active on PC' : 'Set for PC',
+            label: isDesktop ? 'Active on PC • Tap to Remove' : 'Set for PC',
             icon: Icons.monitor_rounded,
             isActive: isDesktop,
-            onPressed: () => _setBoard(boardId, 'desktop'),
+            onPressed: () => _setBoard(isDesktop ? null : boardId, 'desktop'),
           ),
         ],
       ),
@@ -279,7 +348,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor:
-              isActive ? activeColor.withOpacity(0.2) : const Color(0x0CFFFFFF),
+              isActive ? activeColor.withOpacity(0.18) : const Color(0x0CFFFFFF),
           foregroundColor: isActive ? Colors.white : Colors.white.withOpacity(0.7),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -294,11 +363,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             Icon(icon, size: 20, color: isActive ? activeColor : null),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             if (isActive) ...[

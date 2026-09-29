@@ -59,18 +59,23 @@ export function registerWallpaperRoutes(router: any) {
     }
 
     const deviceType = new URL(request.url).searchParams.get('device_type');
-    let targetBoardId = user.board_id;
-    if (deviceType === 'mobile' && user.mobile_board_id) {
-      targetBoardId = user.mobile_board_id;
-    } else if (deviceType === 'desktop' && user.desktop_board_id) {
-      targetBoardId = user.desktop_board_id;
+    let targetBoardId: string | null = null;
+    if (deviceType === 'mobile') {
+      targetBoardId = user.mobile_board_id || (user.desktop_board_id ? null : user.board_id);
+    } else if (deviceType === 'desktop') {
+      targetBoardId = user.desktop_board_id || (user.mobile_board_id ? null : user.board_id);
+    } else {
+      targetBoardId = user.board_id || user.mobile_board_id || user.desktop_board_id;
     }
 
     if (!targetBoardId) {
       return Response.json(
         {
           error: 'No board selected',
-          message: 'Please configure a Pinterest board to sync wallpapers from.',
+          code: 'no_board_selected',
+          message: deviceType === 'desktop'
+            ? 'No Pinterest board is selected for PC. Please select a board in the Canvas Link settings.'
+            : 'No Pinterest board is selected for Mobile. Please open Your Boards in the app to pick a board.',
         },
         { status: 400 }
       );
@@ -101,7 +106,8 @@ export function registerWallpaperRoutes(router: any) {
         return Response.json(
           {
             error: 'No image pins found',
-            message: 'Your selected Pinterest board has no image pins.',
+            code: 'no_pins_found',
+            message: 'Your selected Pinterest board has no saved wallpapers or images. Please open Pinterest and save some image pins to this board!',
           },
           { status: 404 }
         );
@@ -164,26 +170,38 @@ export function registerWallpaperRoutes(router: any) {
       return Response.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    const body = await (request as unknown as Request).json() as { board_id?: string, device_type?: string };
-    if (!body.board_id) {
-      return Response.json({ error: 'board_id is required' }, { status: 400 });
-    }
+    const body = await (request as unknown as Request).json() as { board_id?: string | null, device_type?: string };
+    const boardId = (body.board_id && body.board_id.trim() !== '' && body.board_id !== 'null') ? body.board_id.trim() : null;
+    const deviceType = body.device_type || 'all';
 
-    if (body.device_type === 'mobile') {
+    if (deviceType === 'mobile') {
       await env.DB.prepare(
-        'UPDATE users SET mobile_board_id = ?, updated_at = datetime(\'now\') WHERE id = ?'
-      ).bind(body.board_id, userId).run();
-    } else if (body.device_type === 'desktop') {
+        `UPDATE users SET 
+          mobile_board_id = ?, 
+          board_id = NULL,
+          updated_at = datetime('now') 
+         WHERE id = ?`
+      ).bind(boardId, userId).run();
+    } else if (deviceType === 'desktop') {
       await env.DB.prepare(
-        'UPDATE users SET desktop_board_id = ?, updated_at = datetime(\'now\') WHERE id = ?'
-      ).bind(body.board_id, userId).run();
+        `UPDATE users SET 
+          desktop_board_id = ?, 
+          board_id = NULL,
+          updated_at = datetime('now') 
+         WHERE id = ?`
+      ).bind(boardId, userId).run();
     } else {
       await env.DB.prepare(
-        'UPDATE users SET board_id = ?, updated_at = datetime(\'now\') WHERE id = ?'
-      ).bind(body.board_id, userId).run();
+        `UPDATE users SET 
+          board_id = NULL, 
+          mobile_board_id = ?, 
+          desktop_board_id = ?, 
+          updated_at = datetime('now') 
+         WHERE id = ?`
+      ).bind(boardId, boardId, userId).run();
     }
 
-    return Response.json({ success: true, board_id: body.board_id, device_type: body.device_type });
+    return Response.json({ success: true, board_id: boardId, device_type: deviceType });
   });
 
   /**
@@ -256,11 +274,11 @@ export function registerWallpaperRoutes(router: any) {
 
       const data = await response.json();
       
-      // Inject user's selected boards into the response
+      // Inject user's selected boards into the response cleanly
       data.selected_boards = {
-        mobile: user.mobile_board_id,
-        desktop: user.desktop_board_id,
-        fallback: user.board_id
+        mobile: user.mobile_board_id || null,
+        desktop: user.desktop_board_id || null,
+        fallback: (user.mobile_board_id == null && user.desktop_board_id == null) ? user.board_id : null
       };
       
       return Response.json(data);
@@ -297,15 +315,24 @@ export function registerWallpaperRoutes(router: any) {
     }
 
     const deviceType = new URL(request.url).searchParams.get('device_type');
-    let targetBoardId = user.board_id;
-    if (deviceType === 'mobile' && user.mobile_board_id) {
-      targetBoardId = user.mobile_board_id;
-    } else if (deviceType === 'desktop' && user.desktop_board_id) {
-      targetBoardId = user.desktop_board_id;
+    let targetBoardId: string | null = null;
+    if (deviceType === 'mobile') {
+      targetBoardId = user.mobile_board_id || (user.desktop_board_id ? null : user.board_id);
+    } else if (deviceType === 'desktop') {
+      targetBoardId = user.desktop_board_id || (user.mobile_board_id ? null : user.board_id);
+    } else {
+      targetBoardId = user.board_id || user.mobile_board_id || user.desktop_board_id;
     }
 
     if (!targetBoardId) {
-      return Response.json({ error: 'No board selected' }, { status: 400 });
+      return Response.json(
+        {
+          error: 'No board selected',
+          code: 'no_board_selected',
+          message: 'No Pinterest board is selected. Please pick a board in your dashboard.',
+        },
+        { status: 400 }
+      );
     }
 
     try {

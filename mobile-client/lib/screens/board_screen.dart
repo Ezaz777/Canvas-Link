@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/wallpaper_service.dart';
+import 'dashboard_screen.dart';
 
 class BoardScreen extends StatefulWidget {
   const BoardScreen({super.key});
@@ -15,6 +16,7 @@ class BoardScreen extends StatefulWidget {
 class _BoardScreenState extends State<BoardScreen> {
   bool _isLoading = true;
   String? _errorMessage;
+  String? _errorCode;
   List<Map<String, dynamic>> _pins = [];
 
   @override
@@ -27,6 +29,7 @@ class _BoardScreenState extends State<BoardScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _errorCode = null;
     });
 
     try {
@@ -42,9 +45,16 @@ class _BoardScreenState extends State<BoardScreen> {
         _pins = pins;
         _isLoading = false;
       });
+    } on ApiException catch (e) {
+      setState(() {
+        _errorMessage = e.message;
+        _errorCode = e.code;
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
+        _errorCode = 'unknown';
         _isLoading = false;
       });
     }
@@ -82,64 +92,101 @@ class _BoardScreenState extends State<BoardScreen> {
       );
     }
 
-    if (_errorMessage != null) {
+    if (_errorMessage != null || _pins.isEmpty) {
+      final isNoPins = _errorCode == 'no_pins_found' || _pins.isEmpty;
+      final isNoBoard = _errorCode == 'no_board_selected';
+
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline_rounded,
-                color: Color(0xFFEF4444), size: 48),
-            const SizedBox(height: 16),
-            Text(
-              'Failed to load gallery',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _errorMessage!,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.4),
-                fontSize: 12,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _loadPins,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xB31E293B),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: (isNoPins ? const Color(0xFFE60023) : const Color(0xFF8B5CF6)).withOpacity(0.15),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: (isNoPins ? const Color(0xFFE60023) : const Color(0xFF8B5CF6)).withOpacity(0.3),
+                  ),
+                ),
+                child: Icon(
+                  isNoPins ? Icons.collections_bookmark_rounded : Icons.dashboard_customize_rounded,
+                  color: isNoPins ? const Color(0xFFE60023) : const Color(0xFF8B5CF6),
+                  size: 36,
                 ),
               ),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_pins.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.image_not_supported_rounded,
-                color: Colors.white.withOpacity(0.2), size: 56),
-            const SizedBox(height: 16),
-            Text(
-              'No images found on this board',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.4),
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+              const SizedBox(height: 20),
+              Text(
+                isNoPins ? 'No Wallpapers in Board' : isNoBoard ? 'No Board Selected' : 'Failed to Load Gallery',
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+              Text(
+                isNoPins
+                    ? 'Your selected Pinterest board has no saved wallpapers or images yet. Save some pins on Pinterest and check back!'
+                    : _errorMessage ?? 'Please choose a Pinterest board in Your Boards first.',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 28),
+              if (isNoPins) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: () => launchUrl(
+                      Uri.parse('https://www.pinterest.com'),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 20),
+                    label: const Text('Open Pinterest', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE60023),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                  ).then((_) => _loadPins()),
+                  icon: const Icon(Icons.dashboard_customize_rounded, size: 20),
+                  label: const Text('Manage Boards', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    side: BorderSide(color: Colors.white.withOpacity(0.15)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: _loadPins,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Retry'),
+                style: TextButton.styleFrom(foregroundColor: Colors.white54),
+              ),
+            ],
+          ),
         ),
       );
     }

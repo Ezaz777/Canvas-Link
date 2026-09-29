@@ -19,95 +19,84 @@ class WallpaperService {
   ///
   /// Returns true on success, false on failure.
   static Future<bool> syncWallpaper() async {
-    try {
-      // 1. Get auth token
-      final token = await AuthService.getToken();
-      if (token == null) {
-        print('WallpaperSync: No auth token found. User not logged in.');
-        return false;
-      }
-
-      // 2. Fetch wallpaper URL from backend
-      final api = ApiService(token);
-      final data = await api.getWallpaper();
-      final imageUrl = data['image_url'] as String?;
-
-      if (imageUrl == null || imageUrl.isEmpty) {
-        print('WallpaperSync: No image URL received from backend.');
-        return false;
-      }
-
-      print('WallpaperSync: Got wallpaper URL for pin ${data['pin_id']}');
-
-      // 3. Download the image
-      final imagePath = await _downloadImage(imageUrl);
-      if (imagePath == null) {
-        print('WallpaperSync: Failed to download image.');
-        return false;
-      }
-
-      // 4. Get screen dimensions and center-crop
-      final screenRes = ImageUtils.getScreenResolution();
-      final croppedPath = await ImageUtils.centerCrop(
-        imagePath,
-        screenRes['width']!,
-        screenRes['height']!,
-      );
-
-      print('WallpaperSync: Image cropped to ${screenRes['width']}x${screenRes['height']}');
-
-      // 5. Set as wallpaper (both Home and Lock screen)
-      final bool result = await AsyncWallpaper.setWallpaperFromFile(
-        filePath: croppedPath,
-        wallpaperLocation: AsyncWallpaper.BOTH_SCREENS,
-        goToHome: false,
-      ) ?? false;
-      
-      if (!result) {
-        print('WallpaperSync: Failed to set wallpaper');
-        return false;
-      }
-
-      print('WallpaperSync: Wallpaper applied successfully!');
-      return true;
-    } on UnauthorizedException {
-      print('WallpaperSync: Auth token expired.');
-      return false;
-    } catch (e) {
-      print('WallpaperSync: Error during sync - $e');
-      return false;
+    // 1. Get auth token
+    final token = await AuthService.getToken();
+    if (token == null) {
+      throw UnauthorizedException('No auth token found. Please log in again.');
     }
+
+    // 2. Fetch wallpaper URL from backend
+    final api = ApiService(token);
+    final data = await api.getWallpaper();
+    final imageUrl = data['image_url'] as String?;
+
+    if (imageUrl == null || imageUrl.isEmpty) {
+      throw ApiException('No wallpaper image found in response.', 404);
+    }
+
+    print('WallpaperSync: Got wallpaper URL for pin ${data['pin_id']}');
+
+    // 3. Download the image
+    final imagePath = await _downloadImage(imageUrl);
+    if (imagePath == null) {
+      throw ApiException(
+          'Failed to download wallpaper image. Please check your internet connection.',
+          500);
+    }
+
+    // 4. Get screen dimensions and center-crop
+    final screenRes = ImageUtils.getScreenResolution();
+    final croppedPath = await ImageUtils.centerCrop(
+      imagePath,
+      screenRes['width']!,
+      screenRes['height']!,
+    );
+
+    print('WallpaperSync: Image cropped to ${screenRes['width']}x${screenRes['height']}');
+
+    // 5. Set as wallpaper (both Home and Lock screen)
+    final bool result = await AsyncWallpaper.setWallpaperFromFile(
+      filePath: croppedPath,
+      wallpaperLocation: AsyncWallpaper.BOTH_SCREENS,
+      goToHome: false,
+    ) ?? false;
+    
+    if (!result) {
+      throw ApiException(
+          'Failed to set wallpaper on device. Check wallpaper permissions.',
+          500);
+    }
+
+    print('WallpaperSync: Wallpaper applied successfully!');
+    return true;
   }
 
   /// Instantly downloads and applies a specific image as the wallpaper.
   /// Bypasses the daily backend sync logic.
   static Future<bool> setWallpaperFromUrl(String url) async {
-    try {
-      print('WallpaperSync: Setting manual wallpaper...');
-      final imagePath = await _downloadImage(url);
-      if (imagePath == null) {
-        print('WallpaperSync: Failed to download image.');
-        return false;
-      }
-
-      final screenRes = ImageUtils.getScreenResolution();
-      final croppedPath = await ImageUtils.centerCrop(
-        imagePath,
-        screenRes['width']!,
-        screenRes['height']!,
-      );
-
-      final bool result = await AsyncWallpaper.setWallpaperFromFile(
-        filePath: croppedPath,
-        wallpaperLocation: AsyncWallpaper.BOTH_SCREENS,
-        goToHome: false,
-      ) ?? false;
-      
-      return result;
-    } catch (e) {
-      print('WallpaperSync: Error setting manual wallpaper - $e');
-      return false;
+    print('WallpaperSync: Setting manual wallpaper...');
+    final imagePath = await _downloadImage(url);
+    if (imagePath == null) {
+      throw ApiException('Failed to download image from Pinterest.', 500);
     }
+
+    final screenRes = ImageUtils.getScreenResolution();
+    final croppedPath = await ImageUtils.centerCrop(
+      imagePath,
+      screenRes['width']!,
+      screenRes['height']!,
+    );
+
+    final bool result = await AsyncWallpaper.setWallpaperFromFile(
+      filePath: croppedPath,
+      wallpaperLocation: AsyncWallpaper.BOTH_SCREENS,
+      goToHome: false,
+    ) ?? false;
+    
+    if (!result) {
+      throw ApiException('Failed to set wallpaper on device.', 500);
+    }
+    return true;
   }
 
   /// Download an image from URL to a temporary file.
