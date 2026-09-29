@@ -47,10 +47,13 @@
             </intent-filter>
 
             <!-- Deep link handler for OAuth callback -->
-            <intent-filter android:autoVerify="true">
+            <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="canvaslink"
+                    android:host="auth" />
                 <data
                     android:scheme="wallpapersync"
                     android:host="auth" />

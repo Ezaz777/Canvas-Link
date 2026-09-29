@@ -6,19 +6,35 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:async_wallpaper/async_wallpaper.dart';
 import '../utils/image_utils.dart';
+import '../utils/settings.dart';
 import 'api_service.dart';
 import 'auth_service.dart';
 
 class WallpaperService {
+  /// Resolves the AsyncWallpaper target from user settings or direct override.
+  static Future<int> _resolveWallpaperLocation([int? location]) async {
+    if (location != null) return location;
+    final target = await Settings.getScreenTarget();
+    switch (target) {
+      case 'home':
+        return AsyncWallpaper.HOME_SCREEN;
+      case 'lock':
+        return AsyncWallpaper.LOCK_SCREEN;
+      case 'both':
+      default:
+        return AsyncWallpaper.BOTH_SCREENS;
+    }
+  }
+
   /// Full wallpaper sync pipeline:
   /// 1. Load auth token
   /// 2. Fetch today's wallpaper URL from backend
   /// 3. Download the image
   /// 4. Center-crop to device screen dimensions
-  /// 5. Set as Home + Lock screen wallpaper
+  /// 5. Set as wallpaper (Home, Lock, or Both based on settings)
   ///
-  /// Returns true on success, false on failure.
-  static Future<bool> syncWallpaper() async {
+  /// Returns true on success, throws on failure.
+  static Future<bool> syncWallpaper({int? location}) async {
     // 1. Get auth token
     final token = await AuthService.getToken();
     if (token == null) {
@@ -54,10 +70,11 @@ class WallpaperService {
 
     print('WallpaperSync: Image cropped to ${screenRes['width']}x${screenRes['height']}');
 
-    // 5. Set as wallpaper (both Home and Lock screen)
+    // 5. Set as wallpaper (Home, Lock, or Both)
+    final wallpaperLocation = await _resolveWallpaperLocation(location);
     final bool result = await AsyncWallpaper.setWallpaperFromFile(
       filePath: croppedPath,
-      wallpaperLocation: AsyncWallpaper.BOTH_SCREENS,
+      wallpaperLocation: wallpaperLocation,
       goToHome: false,
     ) ?? false;
     
@@ -73,7 +90,7 @@ class WallpaperService {
 
   /// Instantly downloads and applies a specific image as the wallpaper.
   /// Bypasses the daily backend sync logic.
-  static Future<bool> setWallpaperFromUrl(String url) async {
+  static Future<bool> setWallpaperFromUrl(String url, {int? location}) async {
     print('WallpaperSync: Setting manual wallpaper...');
     final imagePath = await _downloadImage(url);
     if (imagePath == null) {
@@ -87,9 +104,10 @@ class WallpaperService {
       screenRes['height']!,
     );
 
+    final wallpaperLocation = await _resolveWallpaperLocation(location);
     final bool result = await AsyncWallpaper.setWallpaperFromFile(
       filePath: croppedPath,
-      wallpaperLocation: AsyncWallpaper.BOTH_SCREENS,
+      wallpaperLocation: wallpaperLocation,
       goToHome: false,
     ) ?? false;
     

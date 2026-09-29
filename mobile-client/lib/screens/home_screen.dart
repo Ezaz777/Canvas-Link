@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
@@ -18,9 +19,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _animController;
+  late AnimationController _burstAnimController;
+  late Animation<double> _burstScaleAnimation;
+  late Animation<double> _burstFadeAnimation;
+  late PageController _pageController;
   bool _isSyncing = false;
+  bool _isApplyingPin = false;
   bool _isLoadingPreview = true;
   String? _currentImageUrl;
   String? _currentPinId;
@@ -29,29 +35,54 @@ class _HomeScreenState extends State<HomeScreen>
   String? _errorCode;
   int? _totalPins;
   int _syncFrequency = 24;
+  String _screenTarget = 'both';
+  List<Map<String, dynamic>> _pins = [];
+  int _currentIndex = 0;
+  int _activeWallpaperIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     )..forward();
+
+    _burstAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _burstScaleAnimation = CurvedAnimation(
+      parent: _burstAnimController,
+      curve: Curves.elasticOut,
+    );
+    _burstFadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _burstAnimController,
+        curve: const Interval(0.65, 1.0, curve: Curves.easeOut),
+      ),
+    );
+
     _loadCurrentWallpaper();
     _loadSettings();
   }
 
   @override
   void dispose() {
+    _pageController.dispose();
     _animController.dispose();
+    _burstAnimController.dispose();
     super.dispose();
   }
 
   Future<void> _loadSettings() async {
     final freq = await Settings.getSyncFrequency();
+    final target = await Settings.getScreenTarget();
     if (mounted) {
       setState(() {
         _syncFrequency = freq;
+        _screenTarget = target;
       });
     }
   }
@@ -72,21 +103,55 @@ class _HomeScreenState extends State<HomeScreen>
 
       final api = ApiService(token);
       final data = await api.getWallpaper();
+      final currentImg = data['image_url'] as String?;
+      final currentPin = data['pin_id'] as String?;
+
+      List<Map<String, dynamic>> loadedPins = [];
+      try {
+        loadedPins = await api.getBoardPins();
+      } catch (_) {}
+
+      if (loadedPins.isEmpty && currentImg != null) {
+        loadedPins = [
+          {
+            'id': currentPin ?? 'current',
+            'image_url': currentImg,
+            'title': data['title'] ?? 'Pinterest Wallpaper',
+          }
+        ];
+      }
+
+      int activeIdx = 0;
+      if (currentPin != null && loadedPins.isNotEmpty) {
+        final found = loadedPins.indexWhere(
+            (p) => p['id'] == currentPin || p['image_url'] == currentImg);
+        if (found != -1) activeIdx = found;
+      }
 
       setState(() {
-        _currentImageUrl = data['image_url'];
-        _currentPinId = data['pin_id'];
+        _currentImageUrl = currentImg;
+        _currentPinId = currentPin;
         _currentDate = data['date'];
-        _totalPins = data['total_pins'];
+        _totalPins = data['total_pins'] ?? loadedPins.length;
+        _pins = loadedPins;
+        _activeWallpaperIndex = activeIdx;
+        _currentIndex = activeIdx;
         _isLoadingPreview = false;
         _errorMessage = null;
         _errorCode = null;
       });
+
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(activeIdx);
+      } else {
+        _pageController = PageController(initialPage: activeIdx);
+      }
     } on UnauthorizedException {
       setState(() {
         _errorMessage = 'Session expired. Please log in again.';
         _errorCode = 'auth_expired';
         _currentImageUrl = null;
+        _pins = [];
         _totalPins = null;
         _isLoadingPreview = false;
       });
@@ -95,6 +160,7 @@ class _HomeScreenState extends State<HomeScreen>
         _errorMessage = e.message;
         _errorCode = e.code;
         _currentImageUrl = null;
+        _pins = [];
         _totalPins = null;
         _isLoadingPreview = false;
       });
@@ -103,9 +169,67 @@ class _HomeScreenState extends State<HomeScreen>
         _errorMessage = 'Failed to load wallpaper preview.';
         _errorCode = 'unknown';
         _currentImageUrl = null;
+        _pins = [];
         _totalPins = null;
         _isLoadingPreview = false;
       });
+    }
+  }
+
+  Future<void> _applyPinAsWallpaper(Map<String, dynamic> pin, {bool notify = true}) async {
+    setState(() => _isApplyingPin = true);
+    HapticFeedback.mediumImpact();
+
+    try {
+      final success = await WallpaperService.setWallpaperFromUrl(pin['image_url']);
+      if (!mounted) return;
+
+      if (success) {
+        setState(() {
+          _activeWallpaperIndex = _currentIndex;
+          _currentImageUrl = pin['image_url'];
+          _currentPinId = pin['id'];
+        });
+
+        HapticFeedback.heavyImpact();
+        _burstAnimController.forward(from: 0.0);
+
+        if (notify) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Wallpaper set to ${Settings.getScreenTargetDisplayString(_screenTarget)}!',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: const Color(0xFF10B981),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to set wallpaper: $e'),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isApplyingPin = false);
+      }
     }
   }
 
@@ -120,11 +244,13 @@ class _HomeScreenState extends State<HomeScreen>
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-              SizedBox(width: 10),
-              Expanded(child: Text('Wallpaper synced successfully!')),
+              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text('Wallpaper synced to ${Settings.getScreenTargetDisplayString(_screenTarget)}!'),
+              ),
             ],
           ),
           backgroundColor: const Color(0xFF10B981),
@@ -213,49 +339,80 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _skipNow() async {
+    if (_pins.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No wallpapers in this board to skip.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (_pins.length == 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ℹ️ Only 1 wallpaper in your board. Save more pins on Pinterest to skip between them!'),
+          backgroundColor: Color(0xFF3B82F6),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSyncing = true);
+    HapticFeedback.lightImpact();
 
     try {
-      final token = await AuthService.getToken();
-      if (token != null) {
-        final api = ApiService(token);
-        await api.skipWallpaper();
-        
-        await WallpaperWorker.runOnce();
-        await WallpaperService.syncWallpaper();
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Row(
-                children: [
-                  Icon(Icons.skip_next_rounded, color: Colors.white, size: 20),
-                  SizedBox(width: 10),
-                  Expanded(child: Text('Wallpaper skipped! New wallpaper applied.')),
-                ],
-              ),
-              backgroundColor: const Color(0xFF10B981),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-          );
-          await _loadCurrentWallpaper();
-        }
+      // Advance to the next unique pin in the carousel - GUARANTEED NOT THE SAME
+      final nextIdx = (_currentIndex + 1) % _pins.length;
+
+      // Animate smoothly with satisfying cubic curve
+      if (_pageController.hasClients) {
+        await _pageController.animateToPage(
+          nextIdx,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOutCubic,
+        );
+      } else {
+        setState(() => _currentIndex = nextIdx);
       }
-    } on ApiException catch (e) {
+
+      // Apply this next pin immediately
+      final nextPin = _pins[nextIdx];
+      await _applyPinAsWallpaper(nextPin, notify: false);
+
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.message),
-            backgroundColor: const Color(0xFFEF4444),
+            content: Row(
+              children: [
+                const Icon(Icons.skip_next_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Switched to next wallpaper (${nextIdx + 1} of ${_pins.length})!',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
         );
-        await _loadCurrentWallpaper();
       }
+
+      // Tell backend to increment skip_offset in background
+      try {
+        final token = await AuthService.getToken();
+        if (token != null) {
+          final api = ApiService(token);
+          await api.skipWallpaper();
+        }
+      } catch (_) {}
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -371,6 +528,9 @@ class _HomeScreenState extends State<HomeScreen>
                       children: [
                         const SizedBox(height: 8),
 
+                        // Wallpaper Target Selector Pill
+                        _buildTargetSelector(),
+
                         // Wallpaper Preview Card
                         _buildPreviewCard(),
                         const SizedBox(height: 20),
@@ -479,17 +639,150 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _buildTargetSelector() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xB31E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+      ),
+      child: Row(
+        children: [
+          _buildTargetOption('both', 'Both Screens', Icons.devices_rounded),
+          _buildTargetOption('home', 'Home Screen', Icons.home_rounded),
+          _buildTargetOption('lock', 'Lock Screen', Icons.lock_outline_rounded),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTargetOption(String target, String label, IconData icon) {
+    final isSelected = _screenTarget == target;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () async {
+          if (_screenTarget == target) return;
+          HapticFeedback.selectionClick();
+          await Settings.setScreenTarget(target);
+          if (mounted) {
+            setState(() => _screenTarget = target);
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    Icon(icon, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Target set to: ${Settings.getScreenTargetDisplayString(target)}',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: const Color(0xFF8B5CF6),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF8B5CF6) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 15,
+                color: isSelected ? Colors.white : const Color(0xFF94A3B8),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFF94A3B8),
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPreviewCard() {
+    if (_isLoadingPreview) {
+      return Container(
+        width: double.infinity,
+        height: 440,
+        decoration: BoxDecoration(
+          color: const Color(0xB31E293B),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF8B5CF6),
+            strokeWidth: 2.5,
+          ),
+        ),
+      );
+    }
+
+    if (_pins.isEmpty && _currentImageUrl == null) {
+      return Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(minHeight: 380),
+        decoration: BoxDecoration(
+          color: const Color(0xB31E293B),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: _buildEmptyOrErrorGuide(),
+      );
+    }
+
+    final totalCount = _pins.isNotEmpty ? _pins.length : 1;
+    final isActive = _currentIndex == _activeWallpaperIndex;
+
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 380),
+      height: 440,
       decoration: BoxDecoration(
         color: const Color(0xB31E293B),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(
+          color: isActive
+              ? const Color(0xFF10B981).withOpacity(0.5)
+              : Colors.white.withOpacity(0.12),
+          width: isActive ? 1.5 : 1.0,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: isActive
+                ? const Color(0xFF10B981).withOpacity(0.18)
+                : Colors.black.withOpacity(0.3),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -497,82 +790,349 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: _isLoadingPreview
-            ? const SizedBox(
-                height: 380,
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF8B5CF6),
-                    strokeWidth: 2.5,
-                  ),
-                ),
-              )
-            : _currentImageUrl != null
-                ? SizedBox(
-                    height: 380,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network(
-                          _currentImageUrl!,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (ctx, child, progress) {
-                            if (progress == null) return child;
-                            return const Center(
-                              child: CircularProgressIndicator(
-                                color: Color(0xFF8B5CF6),
-                                strokeWidth: 2.5,
-                              ),
-                            );
-                          },
-                          errorBuilder: (ctx, err, stack) => Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.broken_image_rounded,
-                                    color: Colors.white.withOpacity(0.3),
-                                    size: 48),
-                                const SizedBox(height: 12),
-                                Text('Failed to load preview',
-                                    style: TextStyle(
-                                        color: Colors.white.withOpacity(0.4))),
-                              ],
-                            ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Swipeable Gallery PageView
+            PageView.builder(
+              controller: _pageController,
+              physics: const BouncingScrollPhysics(),
+              itemCount: totalCount,
+              onPageChanged: (idx) {
+                setState(() => _currentIndex = idx);
+                HapticFeedback.selectionClick();
+              },
+              itemBuilder: (context, index) {
+                final pin = _pins.isNotEmpty ? _pins[index] : null;
+                final imageUrl = pin != null ? (pin['image_url'] as String?) : _currentImageUrl;
+
+                if (imageUrl == null) {
+                  return _buildEmptyOrErrorGuide();
+                }
+
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (ctx, child, progress) {
+                        if (progress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF8B5CF6),
+                            strokeWidth: 2.5,
                           ),
+                        );
+                      },
+                      errorBuilder: (ctx, err, stack) => Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.broken_image_rounded,
+                                color: Colors.white.withOpacity(0.3), size: 48),
+                            const SizedBox(height: 12),
+                            Text('Failed to load image',
+                                style: TextStyle(color: Colors.white.withOpacity(0.4))),
+                          ],
                         ),
-                        // Date overlay
-                        Positioned(
-                          bottom: 16,
-                          left: 16,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.6),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.calendar_today_rounded,
-                                    color: Color(0xFF8B5CF6), size: 14),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _currentDate ?? 'Today',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
+                      ),
+                    ),
+                    // Gradient shading for readability
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withOpacity(0.6),
+                            Colors.transparent,
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.8),
+                          ],
+                          stops: const [0.0, 0.22, 0.65, 1.0],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+
+            // Top Header: Date badge on left, Active indicator on right
+            Positioned(
+              top: 14,
+              left: 14,
+              right: 14,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.65),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.12)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.calendar_today_rounded,
+                            color: Color(0xFF8B5CF6), size: 13),
+                        const SizedBox(width: 6),
+                        Text(
+                          _currentDate ?? 'Today',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
-                  )
-                : _buildEmptyOrErrorGuide(),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isActive
+                          ? const Color(0xFF10B981).withOpacity(0.25)
+                          : Colors.black.withOpacity(0.65),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isActive
+                            ? const Color(0xFF10B981).withOpacity(0.6)
+                            : Colors.white.withOpacity(0.12),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isActive
+                              ? Icons.check_circle_rounded
+                              : Icons.collections_rounded,
+                          color: isActive
+                              ? const Color(0xFF34D399)
+                              : const Color(0xFF94A3B8),
+                          size: 14,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          isActive
+                              ? 'Active on Device'
+                              : '${_currentIndex + 1} of $totalCount',
+                          style: TextStyle(
+                            color: isActive ? Colors.white : const Color(0xFFE2E8F0),
+                            fontSize: 12,
+                            fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Left / Right Navigation Chevrons
+            if (totalCount > 1) ...[
+              if (_currentIndex > 0)
+                Positioned(
+                  left: 10,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: InkWell(
+                      onTap: () {
+                        _pageController.previousPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white.withOpacity(0.15)),
+                        ),
+                        child: const Icon(Icons.chevron_left_rounded,
+                            color: Colors.white, size: 24),
+                      ),
+                    ),
+                  ),
+                ),
+              if (_currentIndex < totalCount - 1)
+                Positioned(
+                  right: 10,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: InkWell(
+                      onTap: () {
+                        _pageController.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white.withOpacity(0.15)),
+                        ),
+                        child: const Icon(Icons.chevron_right_rounded,
+                            color: Colors.white, size: 24),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+
+            // Bottom Action: If NOT active, display "Set as Wallpaper Now" button!
+            Positioned(
+              bottom: 18,
+              left: 20,
+              right: 20,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (child, animation) =>
+                    FadeTransition(opacity: animation, child: ScaleTransition(scale: animation, child: child)),
+                child: !isActive
+                    ? Center(
+                        key: ValueKey('set_button_${_currentIndex}'),
+                        child: ElevatedButton.icon(
+                          onPressed: (_isApplyingPin || _pins.isEmpty)
+                              ? null
+                              : () => _applyPinAsWallpaper(_pins[_currentIndex]),
+                          icon: _isApplyingPin
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.flash_on_rounded, size: 18),
+                          label: Text(
+                            _isApplyingPin ? 'Applying...' : 'Set as Wallpaper Now',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF8B5CF6),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            elevation: 6,
+                            shadowColor: const Color(0xFF8B5CF6).withOpacity(0.6),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        key: const ValueKey('active_pill'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 16),
+                              SizedBox(width: 8),
+                              Text(
+                                'Current Wallpaper',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+
+            // Satisfying Central Burst Animation on Wallpaper Set
+            Center(
+              child: AnimatedBuilder(
+                animation: _burstAnimController,
+                builder: (context, child) {
+                  if (_burstAnimController.value == 0.0 || _burstAnimController.value == 1.0) {
+                    return const SizedBox.shrink();
+                  }
+                  return FadeTransition(
+                    opacity: _burstFadeAnimation,
+                    child: ScaleTransition(
+                      scale: _burstScaleAnimation,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                        decoration: BoxDecoration(
+                          color: const Color(0xF00F172A),
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: const Color(0xFF10B981), width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF10B981).withOpacity(0.4),
+                              blurRadius: 30,
+                              spreadRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 52,
+                              height: 52,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF10B981),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.check_rounded, color: Colors.white, size: 34),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Wallpaper Set!',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              Settings.getScreenTargetDisplayString(_screenTarget),
+                              style: const TextStyle(
+                                color: Color(0xFF94A3B8),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -988,7 +1548,7 @@ class _HomeScreenState extends State<HomeScreen>
   void _showSettingsModal() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF24243E),
+      backgroundColor: const Color(0xFF1E293B),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -997,47 +1557,101 @@ class _HomeScreenState extends State<HomeScreen>
           builder: (context, setModalState) {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Auto-Sync Frequency',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ...Settings.availableFrequencies.map((freq) {
-                    final isSelected = freq == _syncFrequency;
-                    return ListTile(
-                      title: Text(
-                        Settings.getFrequencyDisplayString(freq),
-                        style: TextStyle(
-                          color: isSelected ? const Color(0xFF8B5CF6) : Colors.white,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Wallpaper Screen Target',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                      trailing: isSelected
-                          ? const Icon(Icons.check_circle_rounded, color: Color(0xFF8B5CF6))
-                          : null,
-                      onTap: () async {
-                        await Settings.setSyncFrequency(freq);
-                        await WallpaperWorker.registerPeriodicSync();
-                        if (mounted) {
-                          setState(() {
-                            _syncFrequency = freq;
-                          });
-                        }
-                        setModalState(() {});
-                        Navigator.pop(context);
-                      },
-                    );
-                  }).toList(),
-                  const SizedBox(height: 16),
-                ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Choose which screen(s) new wallpapers are applied to',
+                      style: TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ...Settings.availableScreenTargets.map((target) {
+                      final isSelected = target == _screenTarget;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(
+                          target == 'both'
+                              ? Icons.devices_rounded
+                              : target == 'home'
+                                  ? Icons.home_rounded
+                                  : Icons.lock_outline_rounded,
+                          color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF94A3B8),
+                        ),
+                        title: Text(
+                          Settings.getScreenTargetDisplayString(target),
+                          style: TextStyle(
+                            color: isSelected ? const Color(0xFF8B5CF6) : Colors.white,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF8B5CF6))
+                            : null,
+                        onTap: () async {
+                          await Settings.setScreenTarget(target);
+                          if (mounted) {
+                            setState(() {
+                              _screenTarget = target;
+                            });
+                          }
+                          setModalState(() {});
+                        },
+                      );
+                    }).toList(),
+                    const Divider(color: Color(0x1FFFFFFF), height: 32),
+                    const Text(
+                      'Auto-Sync Frequency',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ...Settings.availableFrequencies.map((freq) {
+                      final isSelected = freq == _syncFrequency;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          Settings.getFrequencyDisplayString(freq),
+                          style: TextStyle(
+                            color: isSelected ? const Color(0xFF8B5CF6) : Colors.white,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF8B5CF6))
+                            : null,
+                        onTap: () async {
+                          await Settings.setSyncFrequency(freq);
+                          await WallpaperWorker.registerPeriodicSync();
+                          if (mounted) {
+                            setState(() {
+                              _syncFrequency = freq;
+                            });
+                          }
+                          setModalState(() {});
+                          Navigator.pop(context);
+                        },
+                      );
+                    }).toList(),
+                    const SizedBox(height: 16),
+                  ],
+                ),
               ),
             );
           },

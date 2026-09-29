@@ -72,17 +72,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       if (mounted) {
         final deviceName = deviceType == 'mobile' ? 'Mobile' : 'PC';
+        final isDeactivated = boardId == null;
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(boardId == null
-                ? '⚪ Board deactivated for $deviceName.'
-                : '✅ Board activated for $deviceName!'),
-            backgroundColor: boardId == null
-                ? const Color(0xFF475569)
+            content: Row(
+              children: [
+                Icon(
+                  isDeactivated
+                      ? Icons.remove_circle_rounded
+                      : Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    isDeactivated
+                        ? 'Board removed from $deviceName.'
+                        : 'Board activated for $deviceName!',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: isDeactivated
+                ? const Color(0xFFE11D48)
                 : const Color(0xFF10B981),
+            duration: const Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              borderRadius: BorderRadius.circular(14),
+            ),
           ),
         );
       }

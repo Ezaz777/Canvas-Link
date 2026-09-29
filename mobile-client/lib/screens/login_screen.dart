@@ -2,6 +2,7 @@
 /// A premium-styled login screen with gradient background and glassmorphism.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
@@ -16,7 +17,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
@@ -26,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -40,13 +42,69 @@ class _LoginScreenState extends State<LoginScreen>
       CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
     );
     _animController.forward();
+    _checkInitialRouteOrClipboard();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _animController.dispose();
     _tokenController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkClipboardForToken();
+    }
+  }
+
+  Future<void> _checkInitialRouteOrClipboard() async {
+    try {
+      final initialRoute = WidgetsBinding.instance.platformDispatcher.defaultRouteName;
+      if (initialRoute.contains('token=')) {
+        final uri = Uri.parse(initialRoute);
+        final token = uri.queryParameters['token'];
+        if (token != null && token.isNotEmpty) {
+          _tokenController.text = token;
+          await _submitToken();
+          return;
+        }
+      }
+    } catch (_) {}
+
+    await _checkClipboardForToken();
+  }
+
+  Future<void> _checkClipboardForToken() async {
+    try {
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      final text = data?.text?.trim();
+      if (text != null &&
+          text.startsWith('eyJ') &&
+          text.split('.').length >= 3 &&
+          _tokenController.text.isEmpty) {
+        _tokenController.text = text;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
+                  SizedBox(width: 10),
+                  Expanded(child: Text('Detected Pinterest token! Activating...')),
+                ],
+              ),
+              backgroundColor: const Color(0xFF8B5CF6),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+        await _submitToken();
+      }
+    } catch (_) {}
   }
 
   Future<void> _openPinterestAuth() async {
@@ -54,10 +112,20 @@ class _LoginScreenState extends State<LoginScreen>
 
     try {
       final url = Uri.parse(ApiService.getAuthUrl());
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        _showError('Could not open browser for authentication.');
+      bool launched = false;
+      try {
+        // Try Chrome Custom Tab (shares saved browser sessions / Google login)
+        launched = await launchUrl(url, mode: LaunchMode.inAppBrowserView);
+      } catch (_) {
+        launched = false;
+      }
+
+      if (!launched) {
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+        } else {
+          _showError('Could not open browser for authentication.');
+        }
       }
     } catch (e) {
       _showError('Failed to open authentication page: $e');
@@ -76,7 +144,6 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _isLoading = true);
 
     try {
-      // Verify the token works by making a test API call
       await AuthService.saveToken(token);
 
       if (!mounted) return;

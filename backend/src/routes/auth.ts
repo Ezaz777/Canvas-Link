@@ -156,28 +156,34 @@ function renderCallbackPage(success: boolean, data: string): string {
     }
     .btn {
       display: inline-block;
-      padding: 12px 32px;
+      text-decoration: none;
+      padding: 14px 28px;
       background: linear-gradient(135deg, #7c3aed, #a78bfa);
       border: none;
-      border-radius: 12px;
+      border-radius: 14px;
       color: #fff;
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 15px;
+      font-weight: 700;
       cursor: pointer;
-      transition: transform 0.2s;
+      margin: 6px;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
-    .btn:hover { transform: scale(1.05); }
+    .btn:hover { transform: scale(1.03); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="icon">${success ? '✅' : '❌'}</div>
-    <h1>${success ? 'Authentication Successful!' : 'Authentication Failed'}</h1>
+    <div class="icon">${success ? '🎉' : '❌'}</div>
+    <h1>${success ? 'Connected to Pinterest!' : 'Authentication Failed'}</h1>
     ${
       success
-        ? `<p>Your account is connected. Copy the token below and paste it into your WallpaperSync app.</p>
-           <div class="token-box" id="token">${data}</div>
-           <button class="btn" onclick="navigator.clipboard.writeText(document.getElementById('token').textContent)">Copy Token</button>`
+        ? `<p>Your Pinterest account has been connected successfully.</p>
+           <a href="canvaslink://auth?token=${data}" class="btn" style="display:block;margin-bottom:12px;">🚀 Open Canvas Link App</a>
+           <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('${data}');alert('Token copied!');">Copy Token</button>`
         : `<p>${data}</p>`
     }
   </div>
@@ -185,12 +191,16 @@ function renderCallbackPage(success: boolean, data: string): string {
     ${
       success
         ? `
-    // Attempt to pass the token to the PC client's local callback server
+    // 1. Deep-link back into the Canvas Link mobile app automatically
+    try {
+      window.location.href = "canvaslink://auth?token=" + encodeURIComponent("${data}");
+    } catch(e) {}
+
+    // 2. Also attempt passing to PC client local server or popup opener
     try {
       if (window.opener) {
         window.opener.postMessage({ type: 'wallpaper_sync_token', token: '${data}' }, '*');
       }
-      // Try fetching both localhost and 127.0.0.1
       fetch('http://127.0.0.1:9437/callback?token=${data}', { mode: 'no-cors' }).catch(() => {});
       fetch('http://localhost:9437/callback?token=${data}', { mode: 'no-cors' }).catch(() => {});
     } catch(e) {}
