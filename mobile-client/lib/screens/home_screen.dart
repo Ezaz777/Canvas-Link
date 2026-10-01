@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/wallpaper_service.dart';
 import '../workers/wallpaper_worker.dart';
 import '../utils/settings.dart';
+import '../utils/image_utils.dart';
 import 'package:async_wallpaper/async_wallpaper.dart';
 import 'board_screen.dart';
 import 'dashboard_screen.dart';
@@ -1663,7 +1664,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _onSetWallpaperPressed() async {
     if (_pins.isNotEmpty && _currentIndex < _pins.length) {
-      await _applyCurrentPinWallpaper(targetOverride: _screenTarget, notify: true);
+      await _applyPinAsWallpaper(_pins[_currentIndex], target: _screenTarget, notify: true);
     } else {
       await _syncNow();
     }
