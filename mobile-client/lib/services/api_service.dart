@@ -17,14 +17,30 @@ class ApiService {
         if (_token != null) 'Authorization': 'Bearer $_token',
       };
 
-  /// Fetch today's wallpaper URL from the backend.
-  /// Returns a Map with 'image_url', 'pin_id', 'date', etc.
-  /// Throws [UnauthorizedException] if token is invalid/expired.
-  Future<Map<String, dynamic>> getWallpaper() async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/api/get-wallpaper?device_type=mobile'),
-      headers: _headers,
-    );
+  /// Fetch wallpaper URL from the backend.
+  /// Supports frequency and hour parameters for interval cycling.
+  Future<Map<String, dynamic>> getWallpaper({int? frequency, int? hour}) async {
+    final freq = frequency ?? 24;
+    final currentHour = hour ?? DateTime.now().hour;
+    final url = '$baseUrl/api/get-wallpaper?device_type=mobile&frequency=$freq&hour=$currentHour';
+
+    http.Response? response;
+    // Transient retry loop (up to 2 attempts) to handle momentary network blips
+    for (int attempt = 0; attempt < 2; attempt++) {
+      try {
+        response = await http.get(Uri.parse(url), headers: _headers);
+        if (response.statusCode == 200 || response.statusCode == 401 || response.statusCode == 400 || response.statusCode == 404) {
+          break;
+        }
+      } catch (e) {
+        if (attempt == 1) rethrow;
+      }
+      await Future.delayed(const Duration(milliseconds: 600));
+    }
+
+    if (response == null) {
+      throw ApiException('Failed to connect to server. Please check your internet connection.', 500);
+    }
 
     if (response.statusCode == 401) {
       throw UnauthorizedException('Session expired. Please log in again.');

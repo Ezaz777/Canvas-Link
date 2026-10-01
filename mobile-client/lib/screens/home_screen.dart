@@ -79,23 +79,26 @@ class _HomeScreenState extends State<HomeScreen>
       // 2. Register periodic background WorkManager task
       await WallpaperWorker.registerPeriodicSync();
 
-      // 3. Check if today's wallpaper needs automatic sync
-      final now = DateTime.now();
-      final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      final lastSync = await Settings.getLastSyncDate();
+      // 3. Check if current interval's wallpaper needs automatic change
+      final freq = await Settings.getSyncFrequency();
+      if (freq > 0) {
+        final now = DateTime.now();
+        final currentIntervalKey = Settings.getIntervalKey(now, freq);
+        final lastInterval = await Settings.getLastSyncIntervalKey();
 
-      if (lastSync != todayStr) {
-        print('HomeScreen: New day detected ($lastSync -> $todayStr). Auto-applying today wallpaper...');
-        WallpaperService.syncWallpaper().then((success) {
-          if (success && mounted) {
-            _loadCurrentWallpaper();
-          }
-        }).catchError((e) {
-          print('HomeScreen: Auto-sync on launch notice: $e');
-        });
+        if (lastInterval != currentIntervalKey) {
+          print('HomeScreen: New interval detected ($lastInterval -> $currentIntervalKey). Auto-applying wallpaper...');
+          WallpaperService.syncWallpaper(frequency: freq, hour: now.hour).then((success) {
+            if (success && mounted) {
+              _loadCurrentWallpaper();
+            }
+          }).catchError((e) {
+            print('HomeScreen: Auto-change on launch notice: $e');
+          });
+        }
       }
     } catch (e) {
-      print('HomeScreen: Error initializing background sync: $e');
+      print('HomeScreen: Error initializing background worker: $e');
     }
   }
 
@@ -132,8 +135,10 @@ class _HomeScreenState extends State<HomeScreen>
         return;
       }
 
+      final freq = await Settings.getSyncFrequency();
+      final currentHour = DateTime.now().hour;
       final api = ApiService(token);
-      final data = await api.getWallpaper();
+      final data = await api.getWallpaper(frequency: freq, hour: currentHour);
       final currentImg = data['image_url'] as String?;
       final currentPin = data['pin_id'] as String?;
 
@@ -302,7 +307,7 @@ class _HomeScreenState extends State<HomeScreen>
               const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
               const SizedBox(width: 10),
               Expanded(
-                child: Text('Wallpaper synced to ${Settings.getScreenTargetDisplayString(_screenTarget)}!'),
+                child: Text('Wallpaper set to ${Settings.getScreenTargetDisplayString(_screenTarget)}!'),
               ),
             ],
           ),
@@ -609,7 +614,7 @@ class _HomeScreenState extends State<HomeScreen>
                                   MaterialPageRoute(
                                     builder: (_) => const BoardScreen(),
                                   ),
-                                );
+                                ).then((_) => _loadCurrentWallpaper());
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xB31E293B),
@@ -1429,7 +1434,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              'You haven\'t linked a Pinterest board to your Mobile yet. Choose a board so Canvas Link can sync daily wallpapers to your phone.',
+              'You haven\'t linked a Pinterest board to your Mobile yet. Choose a board so Canvas Link can automatically change daily wallpapers on your phone.',
               style: TextStyle(
                 color: Colors.white.withOpacity(0.6),
                 fontSize: 13,
@@ -1673,36 +1678,31 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildStatsCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
         color: const Color(0xB31E293B),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStat('Board Pins', '$_totalPins', Icons.grid_view_rounded),
-          Container(
-            width: 1,
-            height: 40,
-            color: Colors.white.withOpacity(0.08),
-          ),
-          InkWell(
-            onTap: _showSettingsModal,
-            borderRadius: BorderRadius.circular(12),
-            child: _buildStat(
-              'Target',
-              _screenTarget == 'home'
-                  ? 'Home'
-                  : _screenTarget == 'lock'
-                      ? 'Lock'
-                      : 'Both',
-              _screenTarget == 'home'
-                  ? Icons.home_rounded
-                  : _screenTarget == 'lock'
-                      ? Icons.lock_outline_rounded
-                      : Icons.devices_rounded,
+          // 1. Board Pins: Clickable, opens BoardScreen
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const BoardScreen()),
+                ).then((_) => _loadCurrentWallpaper());
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: _buildStat(
+                  'Board Pins',
+                  '$_totalPins',
+                  Icons.grid_view_rounded,
+                ),
+              ),
             ),
           ),
           Container(
@@ -1710,7 +1710,49 @@ class _HomeScreenState extends State<HomeScreen>
             height: 40,
             color: Colors.white.withOpacity(0.08),
           ),
-          _buildStat('Next Sync', Settings.getFrequencyDisplayString(_syncFrequency), Icons.schedule_rounded),
+          // 2. Screen Target: Clickable, opens Screen Target modal
+          Expanded(
+            child: InkWell(
+              onTap: _showScreenTargetModal,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: _buildStat(
+                  'Target',
+                  _screenTarget == 'home'
+                      ? 'Home'
+                      : _screenTarget == 'lock'
+                          ? 'Lock'
+                          : 'Both',
+                  _screenTarget == 'home'
+                      ? Icons.home_rounded
+                      : _screenTarget == 'lock'
+                          ? Icons.lock_outline_rounded
+                          : Icons.devices_rounded,
+                ),
+              ),
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 40,
+            color: Colors.white.withOpacity(0.08),
+          ),
+          // 3. Change Timer: Clickable, opens Frequency modal
+          Expanded(
+            child: InkWell(
+              onTap: _showFrequencyModal,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: _buildStat(
+                  'Change Timer',
+                  Settings.getFrequencyShortString(_syncFrequency),
+                  Icons.schedule_rounded,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1718,6 +1760,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildStat(String label, String value, IconData icon) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, color: const Color(0xFF8B5CF6), size: 20),
         const SizedBox(height: 8),
@@ -1728,6 +1771,8 @@ class _HomeScreenState extends State<HomeScreen>
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 4),
         Text(
@@ -1736,8 +1781,188 @@ class _HomeScreenState extends State<HomeScreen>
             color: Colors.white.withOpacity(0.4),
             fontSize: 11,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
+    );
+  }
+
+  void _showScreenTargetModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Wallpaper Screen Target',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Choose which screen(s) new wallpapers are applied to',
+                      style: TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...Settings.availableScreenTargets.map((target) {
+                      final isSelected = target == _screenTarget;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(
+                          target == 'both'
+                              ? Icons.devices_rounded
+                              : target == 'home'
+                                  ? Icons.home_rounded
+                                  : Icons.lock_outline_rounded,
+                          color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF94A3B8),
+                        ),
+                        title: Text(
+                          Settings.getScreenTargetDisplayString(target),
+                          style: TextStyle(
+                            color: isSelected ? const Color(0xFF8B5CF6) : Colors.white,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF8B5CF6))
+                            : null,
+                        onTap: () async {
+                          await Settings.setScreenTarget(target);
+                          if (mounted) {
+                            setState(() {
+                              _screenTarget = target;
+                            });
+                          }
+                          setModalState(() {});
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Target updated to ${Settings.getScreenTargetDisplayString(target)}'),
+                              behavior: SnackBarBehavior.floating,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                      );
+                    }).toList(),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showFrequencyModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Wallpaper Change Frequency',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Choose how often Canvas Link automatically changes your wallpaper',
+                      style: TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...Settings.availableFrequencies.map((freq) {
+                      final isSelected = freq == _syncFrequency;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(
+                          freq == 1
+                              ? Icons.update_rounded
+                              : freq == 6
+                                  ? Icons.timelapse_rounded
+                                  : freq == 12
+                                      ? Icons.access_time_rounded
+                                      : freq == 24
+                                          ? Icons.calendar_today_rounded
+                                          : Icons.pause_circle_outline_rounded,
+                          color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF94A3B8),
+                        ),
+                        title: Text(
+                          Settings.getFrequencyDisplayString(freq),
+                          style: TextStyle(
+                            color: isSelected ? const Color(0xFF8B5CF6) : Colors.white,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF8B5CF6))
+                            : null,
+                        onTap: () async {
+                          await Settings.setSyncFrequency(freq);
+                          await WallpaperWorker.registerPeriodicSync();
+                          if (mounted) {
+                            setState(() {
+                              _syncFrequency = freq;
+                            });
+                          }
+                          setModalState(() {});
+                          Navigator.pop(context);
+                          _loadCurrentWallpaper();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Wallpaper change set to: ${Settings.getFrequencyDisplayString(freq)}'),
+                              behavior: SnackBarBehavior.floating,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                      );
+                    }).toList(),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -1810,11 +2035,19 @@ class _HomeScreenState extends State<HomeScreen>
                     }).toList(),
                     const Divider(color: Color(0x1FFFFFFF), height: 32),
                     const Text(
-                      'Auto-Sync Frequency',
+                      'Wallpaper Change Frequency',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Choose how often Canvas Link automatically changes your wallpaper',
+                      style: TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 12,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -1842,6 +2075,7 @@ class _HomeScreenState extends State<HomeScreen>
                           }
                           setModalState(() {});
                           Navigator.pop(context);
+                          _loadCurrentWallpaper();
                         },
                       );
                     }).toList(),

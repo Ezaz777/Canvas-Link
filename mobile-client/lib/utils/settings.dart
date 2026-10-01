@@ -47,6 +47,16 @@ class Settings {
     await _storage.write(key: _lastSyncDateKey, value: date);
   }
 
+  /// Get the interval key (e.g. 2026-10-01_h13) of the last successful wallpaper sync.
+  static Future<String?> getLastSyncIntervalKey() async {
+    return await _storage.read(key: 'last_sync_interval_key');
+  }
+
+  /// Record the interval key of the last successful wallpaper sync.
+  static Future<void> setLastSyncIntervalKey(String key) async {
+    await _storage.write(key: 'last_sync_interval_key', value: key);
+  }
+
   /// Get the configured sync frequency in hours. Defaults to 24.
   static Future<int> getSyncFrequency() async {
     final value = await _storage.read(key: _syncFrequencyKey);
@@ -82,19 +92,51 @@ class Settings {
     }
   }
 
+  /// Generate a deterministic interval key based on date and frequency
+  static String getIntervalKey(DateTime now, int frequency) {
+    final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    if (frequency <= 1) {
+      return '${dateStr}_h${now.hour}';
+    } else if (frequency == 6) {
+      return '${dateStr}_b${now.hour ~/ 6}';
+    } else if (frequency == 12) {
+      return '${dateStr}_b${now.hour ~/ 12}';
+    } else {
+      return dateStr;
+    }
+  }
+
   /// Convert frequency hours to a display string.
   static String getFrequencyDisplayString(int hours) {
     switch (hours) {
       case 0:
         return 'Off';
       case 1:
-        return '1 Hour';
+        return 'Every 1 Hour';
       case 6:
-        return '6 Hours';
+        return 'Every 6 Hours';
       case 12:
-        return '12 Hours';
+        return 'Every 12 Hours';
       case 24:
-        return 'Daily (24h)';
+        return 'Daily wallpaper change';
+      default:
+        return 'Every ${hours}h';
+    }
+  }
+
+  /// Compact frequency string for badges and dashboard stats.
+  static String getFrequencyShortString(int hours) {
+    switch (hours) {
+      case 0:
+        return 'Off';
+      case 1:
+        return 'Every 1h';
+      case 6:
+        return 'Every 6h';
+      case 12:
+        return 'Every 12h';
+      case 24:
+        return 'Daily';
       default:
         return '${hours}h';
     }

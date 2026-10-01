@@ -28,29 +28,33 @@ class WallpaperService {
 
   /// Full wallpaper sync pipeline:
   /// 1. Load auth token
-  /// 2. Fetch today's wallpaper URL from backend
+  /// 2. Fetch wallpaper URL from backend based on frequency & current hour
   /// 3. Download the image
   /// 4. Center-crop to device screen dimensions
   /// 5. Set as wallpaper (Home, Lock, or Both based on settings)
   ///
   /// Returns true on success, throws on failure.
-  static Future<bool> syncWallpaper({int? location}) async {
+  static Future<bool> syncWallpaper({int? location, int? frequency, int? hour}) async {
     // 1. Get auth token
     final token = await AuthService.getToken();
     if (token == null) {
       throw UnauthorizedException('No auth token found. Please log in again.');
     }
 
-    // 2. Fetch wallpaper URL from backend
+    final freq = frequency ?? await Settings.getSyncFrequency();
+    final now = DateTime.now();
+    final currentHour = hour ?? now.hour;
+
+    // 2. Fetch wallpaper URL from backend for this interval
     final api = ApiService(token);
-    final data = await api.getWallpaper();
+    final data = await api.getWallpaper(frequency: freq, hour: currentHour);
     final imageUrl = data['image_url'] as String?;
 
     if (imageUrl == null || imageUrl.isEmpty) {
       throw ApiException('No wallpaper image found in response.', 404);
     }
 
-    print('WallpaperSync: Got wallpaper URL for pin ${data['pin_id']}');
+    print('WallpaperSync: Got wallpaper URL for pin ${data['pin_id']} (hour: $currentHour, freq: ${freq}h)');
 
     // 3. Download the image
     final imagePath = await _downloadImage(imageUrl);
@@ -80,12 +84,14 @@ class WallpaperService {
           500);
     }
 
-    // Record last sync date
+    // Record last sync date and interval key
     if (data['date'] != null) {
       await Settings.setLastSyncDate(data['date'] as String);
     }
+    final intervalKey = Settings.getIntervalKey(now, freq);
+    await Settings.setLastSyncIntervalKey(intervalKey);
 
-    print('WallpaperSync: Wallpaper applied successfully!');
+    print('WallpaperSync: Wallpaper applied successfully for interval $intervalKey!');
     return true;
   }
 

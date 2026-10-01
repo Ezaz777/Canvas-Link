@@ -18,7 +18,8 @@ void callbackDispatcher() {
     print('WallpaperSync Worker: Task "$taskName" started.');
 
     try {
-      final success = await WallpaperService.syncWallpaper();
+      final hours = await Settings.getSyncFrequency();
+      final success = await WallpaperService.syncWallpaper(frequency: hours);
       print('WallpaperSync Worker: Task completed. Success: $success');
       return success;
     } catch (e) {

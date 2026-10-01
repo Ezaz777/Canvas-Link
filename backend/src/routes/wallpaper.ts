@@ -23,10 +23,90 @@ interface UserRow {
   skip_offset: number;
 }
 
+interface TokenCacheEntry {
+  accessToken: string;
+  expiresAt: number;
+}
+
+interface PinsCacheEntry {
+  pins: any[];
+  expiresAt: number;
+}
+
+// In-memory cache across Cloudflare Worker warm invocations
+const tokenCache = new Map<string, TokenCacheEntry>();
+const pinsCache = new Map<string, PinsCacheEntry>();
+
+async function getValidAccessToken(
+  userId: string,
+  encryptedRefreshToken: string,
+  env: Env,
+  forceRefresh: boolean = false
+): Promise<string> {
+  const now = Date.now();
+  const cached = tokenCache.get(userId);
+  if (!forceRefresh && cached && cached.expiresAt > now) {
+    return cached.accessToken;
+  }
+
+  const refreshToken = await decrypt(encryptedRefreshToken, env.ENCRYPTION_KEY);
+  const tokenData = await refreshAccessToken(
+    refreshToken,
+    env.PINTEREST_APP_ID,
+    env.PINTEREST_APP_SECRET
+  );
+
+  tokenCache.set(userId, {
+    accessToken: tokenData.access_token,
+    expiresAt: now + 50 * 60 * 1000, // Cache for 50 minutes (valid for 30 days)
+  });
+
+  if (tokenData.refresh_token && tokenData.refresh_token !== refreshToken) {
+    const newEncryptedToken = await encrypt(tokenData.refresh_token, env.ENCRYPTION_KEY);
+    await env.DB.prepare(
+      'UPDATE users SET encrypted_refresh_token = ?, updated_at = datetime(\'now\') WHERE id = ?'
+    ).bind(newEncryptedToken, userId).run();
+  }
+
+  return tokenData.access_token;
+}
+
+async function getCachedBoardPins(
+  userId: string,
+  encryptedRefreshToken: string,
+  boardId: string,
+  env: Env
+): Promise<any[]> {
+  const now = Date.now();
+  const cached = pinsCache.get(boardId);
+  if (cached && cached.expiresAt > now && cached.pins.length > 0) {
+    return cached.pins;
+  }
+
+  let accessToken = await getValidAccessToken(userId, encryptedRefreshToken, env);
+  try {
+    const pins = await getBoardPins(accessToken, boardId);
+    pinsCache.set(boardId, {
+      pins,
+      expiresAt: now + 5 * 60 * 1000, // Cache board pins for 5 minutes
+    });
+    return pins;
+  } catch (err: any) {
+    // If Pinterest token expired or returned 401, refresh once
+    accessToken = await getValidAccessToken(userId, encryptedRefreshToken, env, true);
+    const pins = await getBoardPins(accessToken, boardId);
+    pinsCache.set(boardId, {
+      pins,
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    });
+    return pins;
+  }
+}
+
 export function registerWallpaperRoutes(router: any) {
   /**
    * GET /api/get-wallpaper
-   * Returns the daily wallpaper URL. Same URL for same user on same day across all devices.
+   * Returns the wallpaper URL. Supports frequency (1, 6, 12, 24 hours) and local hour cycling.
    */
   router.get('/api/get-wallpaper', async (request: IRequest, env: Env) => {
     // 1. Authenticate
@@ -58,7 +138,12 @@ export function registerWallpaperRoutes(router: any) {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const deviceType = new URL(request.url).searchParams.get('device_type');
+    const url = new URL(request.url);
+    const deviceType = url.searchParams.get('device_type');
+    const frequencyParam = parseInt(url.searchParams.get('frequency') || '24', 10);
+    const hourParam = parseInt(url.searchParams.get('hour') || '-1', 10);
+    const currentHour = (hourParam >= 0 && hourParam <= 23) ? hourParam : new Date().getUTCHours();
+
     let targetBoardId: string | null = null;
     if (deviceType === 'mobile') {
       targetBoardId = user.mobile_board_id || (user.desktop_board_id ? null : user.board_id);
@@ -82,25 +167,8 @@ export function registerWallpaperRoutes(router: any) {
     }
 
     try {
-      // 3. Decrypt refresh token and get a fresh access token
-      const refreshToken = await decrypt(user.encrypted_refresh_token, env.ENCRYPTION_KEY);
-
-      const tokenData = await refreshAccessToken(
-        refreshToken,
-        env.PINTEREST_APP_ID,
-        env.PINTEREST_APP_SECRET
-      );
-
-      // Store the new refresh token (continuous refresh)
-      if (tokenData.refresh_token && tokenData.refresh_token !== refreshToken) {
-        const newEncryptedToken = await encrypt(tokenData.refresh_token, env.ENCRYPTION_KEY);
-        await env.DB.prepare(
-          'UPDATE users SET encrypted_refresh_token = ?, updated_at = datetime(\'now\') WHERE id = ?'
-        ).bind(newEncryptedToken, userId).run();
-      }
-
-      // 4. Fetch all image pins from the user's board
-      const pins = await getBoardPins(tokenData.access_token, targetBoardId);
+      // 3. Fetch board pins with in-memory caching and token reuse (blazing fast, no rate-limits)
+      const pins = await getCachedBoardPins(userId, user.encrypted_refresh_token, targetBoardId, env);
 
       if (pins.length === 0) {
         return Response.json(
@@ -113,9 +181,16 @@ export function registerWallpaperRoutes(router: any) {
         );
       }
 
-      // 5. Deterministic selection: same date + same user = same wallpaper
+      // 4. Deterministic selection: date + userId + interval = consistent wallpaper for the active interval
       const today = getTodayDateString();
-      const selectedIndex = getSeededIndex(today, userId, pins.length, user.skip_offset || 0);
+      const selectedIndex = getSeededIndex(
+        today,
+        userId,
+        pins.length,
+        user.skip_offset || 0,
+        frequencyParam,
+        currentHour
+      );
       const selectedPin = pins[selectedIndex];
 
       // 6. Extract the best resolution URL
@@ -202,6 +277,7 @@ export function registerWallpaperRoutes(router: any) {
       ).bind(boardId, boardId, userId).run();
     }
 
+    pinsCache.clear();
     return Response.json({ success: true, board_id: boardId, device_type: deviceType });
   });
 
@@ -337,10 +413,7 @@ export function registerWallpaperRoutes(router: any) {
     }
 
     try {
-      const refreshToken = await decrypt(user.encrypted_refresh_token, env.ENCRYPTION_KEY);
-      const tokenData = await refreshAccessToken(refreshToken, env.PINTEREST_APP_ID, env.PINTEREST_APP_SECRET);
-
-      const pins = await getBoardPins(tokenData.access_token, targetBoardId);
+      const pins = await getCachedBoardPins(userId, user.encrypted_refresh_token, targetBoardId, env);
 
       // Map pins to simpler format and extract highest available resolution safely
       const formattedPins = pins.map(pin => {
@@ -405,6 +478,7 @@ export function registerWallpaperRoutes(router: any) {
       const tokenData = await refreshAccessToken(refreshToken, env.PINTEREST_APP_ID, env.PINTEREST_APP_SECRET);
 
       await deletePin(tokenData.access_token, pinId);
+      pinsCache.clear();
 
       return Response.json({ success: true, message: 'Pin deleted successfully' });
     } catch (err: any) {

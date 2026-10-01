@@ -49,43 +49,56 @@ function getDeterministicShuffle(seed: number, length: number): number[] {
 }
 
 /**
- * Returns a deterministic index [0, totalPins) for a given date + userId.
+ * Returns a deterministic index [0, totalPins) for a given date + userId + interval.
  * Uses a cycle-based shuffle to ensure no repeats until all pins are used.
  *
  * @param dateStr - Current date as "YYYY-MM-DD"
  * @param userId  - The user's unique ID
  * @param totalPins - Total number of pins available
  * @param skipOffset - Number of times the user has skipped a wallpaper
+ * @param frequencyHours - How often the wallpaper changes (e.g. 1, 6, 12, 24)
+ * @param currentHour - Current hour (0-23)
  * @returns A deterministic index into the pin array
  */
-export function getSeededIndex(dateStr: string, userId: string, totalPins: number, skipOffset: number = 0): number {
+export function getSeededIndex(
+  dateStr: string,
+  userId: string,
+  totalPins: number,
+  skipOffset: number = 0,
+  frequencyHours: number = 24,
+  currentHour: number = 0
+): number {
   if (totalPins <= 0) return 0;
   
-  // Calculate days since a fixed epoch (Jan 1, 2026)
+  const freq = (frequencyHours > 0 && frequencyHours <= 24) ? frequencyHours : 24;
+  const hour = (currentHour >= 0 && currentHour <= 23) ? currentHour : 0;
+  
+  const intervalsPerDay = Math.floor(24 / freq);
+  const currentIntervalInDay = Math.floor(hour / freq);
+
+  // Calculate days since fixed epoch (Jan 1, 2026)
   const epoch = new Date('2026-01-01T00:00:00Z').getTime();
   const current = new Date(`${dateStr}T00:00:00Z`).getTime();
   const baseDaysSinceEpoch = Math.floor((current - epoch) / 86400000);
-  const daysSinceEpoch = baseDaysSinceEpoch + skipOffset;
   
-  // If date is before epoch (fallback to old method)
-  if (daysSinceEpoch < 0) {
-    const seed = hashString(`${dateStr}:${userId}:${skipOffset}`);
+  // Total intervals since epoch steps forward with each frequency interval (e.g. every 1 hour)
+  const totalIntervalsSinceEpoch = (baseDaysSinceEpoch * intervalsPerDay) + currentIntervalInDay + skipOffset;
+
+  if (totalIntervalsSinceEpoch < 0) {
+    const seed = hashString(`${dateStr}:${hour}:${userId}:${skipOffset}`);
     const rng = mulberry32(seed);
     rng(); rng(); rng();
     return Math.floor(rng() * totalPins);
   }
-  
+
   // Calculate current cycle and position within the cycle
-  const cycleIndex = Math.floor(daysSinceEpoch / totalPins);
-  const positionInCycle = daysSinceEpoch % totalPins;
-  
-  // The seed remains constant for the entire duration of the cycle!
+  const cycleIndex = Math.floor(totalIntervalsSinceEpoch / totalPins);
+  const positionInCycle = totalIntervalsSinceEpoch % totalPins;
+
+  // The seed remains constant for the entire duration of the cycle
   const seed = hashString(`${userId}:cycle:${cycleIndex}:pins:${totalPins}`);
-  
-  // Get the fully shuffled array for this specific cycle
   const shuffledIndices = getDeterministicShuffle(seed, totalPins);
-  
-  // Pick the pin for today's position
+
   return shuffledIndices[positionInCycle];
 }
 
