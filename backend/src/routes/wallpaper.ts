@@ -193,11 +193,11 @@ export function registerWallpaperRoutes(router: any) {
       );
       const selectedPin = pins[selectedIndex];
 
-      // 6. Extract the best resolution URL
+      // 6. Extract the best resolution URL (prioritize fast CDN-optimized 1200x, then orig)
       const images = selectedPin.media?.images || {};
       const originalUrl = (
-        images.orig?.url ||
         images['1200x']?.url ||
+        images.orig?.url ||
         images['736x']?.url ||
         images['600x']?.url ||
         images['400x300']?.url ||
@@ -419,9 +419,9 @@ export function registerWallpaperRoutes(router: any) {
       const formattedPins = pins.map(pin => {
         const images = pin.media?.images || {};
         const primaryUrl = (
-          images.orig?.url ||
           images['1200x']?.url ||
           images['736x']?.url ||
+          images.orig?.url ||
           images['600x']?.url ||
           images['400x300']?.url ||
           (Object.values(images)[0] as any)?.url
