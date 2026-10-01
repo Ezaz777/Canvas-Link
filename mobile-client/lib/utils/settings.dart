@@ -4,6 +4,9 @@ class Settings {
   static const _storage = FlutterSecureStorage();
   static const String _syncFrequencyKey = 'sync_frequency';
   static const String _screenTargetKey = 'wallpaper_screen_target';
+  static const String _screenWidthKey = 'device_screen_width';
+  static const String _screenHeightKey = 'device_screen_height';
+  static const String _lastSyncDateKey = 'last_sync_date';
 
   // Frequencies in hours. 0 means Off.
   static const List<int> availableFrequencies = [0, 1, 6, 12, 24];
@@ -11,6 +14,38 @@ class Settings {
   // Screen targets: 'both', 'home', 'lock'
   static const List<String> availableTargets = ['both', 'home', 'lock'];
   static const List<String> availableScreenTargets = availableTargets;
+
+  /// Cache device physical screen dimensions so background workers know exact resolution.
+  static Future<void> saveScreenDimensions(int width, int height) async {
+    if (width > 0 && height > 0) {
+      await _storage.write(key: _screenWidthKey, value: width.toString());
+      await _storage.write(key: _screenHeightKey, value: height.toString());
+    }
+  }
+
+  /// Retrieve cached physical screen dimensions.
+  static Future<Map<String, int>?> getSavedScreenDimensions() async {
+    final wStr = await _storage.read(key: _screenWidthKey);
+    final hStr = await _storage.read(key: _screenHeightKey);
+    if (wStr != null && hStr != null) {
+      final w = int.tryParse(wStr);
+      final h = int.tryParse(hStr);
+      if (w != null && h != null && w > 0 && h > 0) {
+        return {'width': w, 'height': h};
+      }
+    }
+    return null;
+  }
+
+  /// Get the date string (YYYY-MM-DD) of the last successful wallpaper sync.
+  static Future<String?> getLastSyncDate() async {
+    return await _storage.read(key: _lastSyncDateKey);
+  }
+
+  /// Record the date of the last successful wallpaper sync.
+  static Future<void> setLastSyncDate(String date) async {
+    await _storage.write(key: _lastSyncDateKey, value: date);
+  }
 
   /// Get the configured sync frequency in hours. Defaults to 24.
   static Future<int> getSyncFrequency() async {

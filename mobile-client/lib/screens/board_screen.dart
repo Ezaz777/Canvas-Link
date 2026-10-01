@@ -233,6 +233,10 @@ class _BoardScreenState extends State<BoardScreen> {
             children: [
               Image.network(
                 pin['image_url'],
+                headers: const {
+                  'User-Agent':
+                      'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36'
+                },
                 fit: BoxFit.cover,
                 loadingBuilder: (ctx, child, progress) {
                   if (progress == null) return child;
@@ -243,10 +247,27 @@ class _BoardScreenState extends State<BoardScreen> {
                     ),
                   );
                 },
-                errorBuilder: (ctx, err, stack) => Center(
-                  child: Icon(Icons.broken_image_rounded,
-                      color: Colors.white.withOpacity(0.3), size: 32),
-                ),
+                errorBuilder: (ctx, err, stack) {
+                  final fallbackUrl = pin['fallback_url'] as String?;
+                  if (fallbackUrl != null && fallbackUrl != pin['image_url']) {
+                    return Image.network(
+                      fallbackUrl,
+                      headers: const {
+                        'User-Agent':
+                            'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36'
+                      },
+                      fit: BoxFit.cover,
+                      errorBuilder: (ctx2, err2, stack2) => Center(
+                        child: Icon(Icons.broken_image_rounded,
+                            color: Colors.white.withOpacity(0.3), size: 32),
+                      ),
+                    );
+                  }
+                  return Center(
+                    child: Icon(Icons.broken_image_rounded,
+                        color: Colors.white.withOpacity(0.3), size: 32),
+                  );
+                },
               ),
               if (pin['title'] != null && pin['title'].toString().isNotEmpty)
                 Positioned(

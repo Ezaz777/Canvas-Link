@@ -98,14 +98,14 @@ export function registerAuthRoutes(router: any) {
       const isMobile = state.startsWith('mobile_');
 
       if (isMobile) {
-        // Return 302 redirect with custom scheme location and HTML fallback for instant native return
+        // Return 200 HTML page with instant clipboard copy, auto-redirect script, and direct tap button
+        // Returning 302 is blocked by Android Chrome Custom Tabs for custom schemes.
         return new Response(
           renderCallbackPage(true, jwt, true),
           {
-            status: 302,
+            status: 200,
             headers: {
               'Content-Type': 'text/html',
-              'Location': `canvaslink://auth?token=${encodeURIComponent(jwt)}`
             }
           }
         );
@@ -198,9 +198,12 @@ function renderCallbackPage(success: boolean, data: string, isMobile = false): s
     <h1>${success ? 'Connected Successfully!' : 'Authentication Failed'}</h1>
     ${
       success
-        ? `<p>${isMobile ? 'Returning to Canvas Link app...' : 'Your Pinterest account is now connected.'}</p>
-           <a href="${deepLink}" class="btn">🚀 Open Canvas Link App</a>
-           <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('${data}');alert('Token copied!');">Copy Token Manually</button>`
+        ? (isMobile
+            ? `<p>Returning to Canvas Link app...</p>
+               <a href="${deepLink}" id="openBtn" class="btn">🚀 Open Canvas Link App</a>
+               <p style="font-size: 12px; color: #64748b; margin-top: 14px;">Tap the button above if the app does not open automatically.</p>`
+            : `<p>Your Pinterest account is now connected.</p>
+               <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('${data}');alert('Token copied!');">Copy Token Manually</button>`)
         : `<p>${data}</p>`
     }
   </div>
@@ -208,13 +211,20 @@ function renderCallbackPage(success: boolean, data: string, isMobile = false): s
     ${
       success
         ? `
+    // Auto-copy token to clipboard so app detects it immediately on resume
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText('${data}').catch(function(){});
+      }
+    } catch(e) {}
+
     // Auto-return for mobile client
     try {
       window.location.replace("${deepLink}");
     } catch(e) {}
     setTimeout(function() {
       try { window.location.href = "${deepLink}"; } catch(e) {}
-    }, 150);
+    }, 200);
 
     // Pass token to PC client local server or popup opener
     try {

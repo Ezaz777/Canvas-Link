@@ -5,6 +5,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
+import 'settings.dart';
 
 class ImageUtils {
   /// Center-crop an image to match the device's screen aspect ratio.
@@ -30,11 +31,15 @@ class ImageUtils {
       throw Exception('Failed to decode image: $imagePath');
     }
 
+    // Safety checks for valid dimensions to prevent division by zero in headless worker
+    final int targetWidth = screenWidth > 200 ? screenWidth : 1080;
+    final int targetHeight = screenHeight > 200 ? screenHeight : 2400;
+
     int imgWidth = image.width;
     int imgHeight = image.height;
     
     bool isSourceLandscape = imgWidth > imgHeight;
-    bool isTargetLandscape = screenWidth > screenHeight;
+    bool isTargetLandscape = targetWidth > targetHeight;
     
     img.Image currentImage = image;
     
@@ -46,7 +51,7 @@ class ImageUtils {
       imgHeight = currentImage.height;
     }
 
-    final targetRatio = screenWidth / screenHeight;
+    final targetRatio = targetWidth / targetHeight;
     final imgRatio = imgWidth / imgHeight;
 
     int cropX, cropY, cropWidth, cropHeight;
@@ -77,8 +82,8 @@ class ImageUtils {
     // Resize to exact screen dimensions for optimal quality
     final resized = img.copyResize(
       cropped,
-      width: screenWidth,
-      height: screenHeight,
+      width: targetWidth,
+      height: targetHeight,
       interpolation: img.Interpolation.linear,
     );
 
@@ -93,18 +98,28 @@ class ImageUtils {
   }
 
   /// Get the device's physical screen resolution.
-  /// Uses FlutterView to get the actual pixel dimensions.
-  static Map<String, int> getScreenResolution() {
+  /// Uses FlutterView when running in foreground, or falls back to
+  /// cached dimensions from Settings (crucial for headless background workers).
+  static Future<Map<String, int>> getScreenResolution() async {
     final view = ui.PlatformDispatcher.instance.implicitView;
-    if (view != null) {
-      final pixelRatio = view.devicePixelRatio;
-      final logicalSize = view.physicalSize;
+    if (view != null && view.physicalSize.width > 200 && view.physicalSize.height > 200) {
+      final width = view.physicalSize.width.round();
+      final height = view.physicalSize.height.round();
+      // Cache for background WorkManager isolate
+      await Settings.saveScreenDimensions(width, height);
       return {
-        'width': logicalSize.width.round(),
-        'height': logicalSize.height.round(),
+        'width': width,
+        'height': height,
       };
     }
-    // Fallback for common Android resolution
+
+    // Check cached settings from foreground session
+    final saved = await Settings.getSavedScreenDimensions();
+    if (saved != null && saved['width']! > 200 && saved['height']! > 200) {
+      return saved;
+    }
+
+    // Fallback for modern Android resolution
     return {'width': 1080, 'height': 2400};
   }
 }

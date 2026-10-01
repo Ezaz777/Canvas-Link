@@ -120,13 +120,14 @@ export function registerWallpaperRoutes(router: any) {
 
       // 6. Extract the best resolution URL
       const images = selectedPin.media?.images || {};
-      let originalUrl = (images.orig || images['1200x'] || images['600x'])?.url;
-
-      // FREE ENHANCEMENT HACK: Force Pinterest to return the original uncompressed image
-      // by replacing the CDN resolution folder (like /1200x/) with /originals/
-      if (originalUrl) {
-        originalUrl = originalUrl.replace(/\/\d+x\//, '/originals/');
-      }
+      const originalUrl = (
+        images.orig?.url ||
+        images['1200x']?.url ||
+        images['736x']?.url ||
+        images['600x']?.url ||
+        images['400x300']?.url ||
+        (Object.values(images)[0] as any)?.url
+      );
 
       if (!originalUrl) {
         return Response.json(
@@ -341,17 +342,23 @@ export function registerWallpaperRoutes(router: any) {
 
       const pins = await getBoardPins(tokenData.access_token, targetBoardId);
 
-      // Map pins to simpler format and force original resolution URL if possible
+      // Map pins to simpler format and extract highest available resolution safely
       const formattedPins = pins.map(pin => {
         const images = pin.media?.images || {};
-        let url = (images.orig || images['1200x'] || images['600x'])?.url;
-        if (url) {
-          url = url.replace(/\/\d+x\//, '/originals/');
-        }
+        const primaryUrl = (
+          images.orig?.url ||
+          images['1200x']?.url ||
+          images['736x']?.url ||
+          images['600x']?.url ||
+          images['400x300']?.url ||
+          (Object.values(images)[0] as any)?.url
+        );
+        const fallbackUrl = images['600x']?.url || images['400x300']?.url || primaryUrl;
         return {
           id: pin.id,
           title: pin.title,
-          image_url: url
+          image_url: primaryUrl,
+          fallback_url: fallbackUrl,
         };
       }).filter(pin => pin.image_url);
 

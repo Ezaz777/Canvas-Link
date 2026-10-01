@@ -151,7 +151,7 @@ export async function getBoardPins(
 
     // Filter for image pins only (exclude videos, etc.)
     const imagePins = data.items.filter(
-      (pin) => pin.media?.media_type === 'image' && (pin.media?.images?.orig || pin.media?.images?.['1200x'] || pin.media?.images?.['600x'])
+      (pin) => pin.media?.media_type === 'image' && pin.media?.images && Object.keys(pin.media.images).length > 0
     );
     allPins.push(...imagePins);
 

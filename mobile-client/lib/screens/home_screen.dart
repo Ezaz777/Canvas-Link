@@ -67,6 +67,35 @@ class _HomeScreenState extends State<HomeScreen>
 
     _loadCurrentWallpaper();
     _loadSettings();
+    _ensureBackgroundWorkerAndAutoSync();
+  }
+
+  Future<void> _ensureBackgroundWorkerAndAutoSync() async {
+    try {
+      // 1. Pre-cache physical screen dimensions for background isolates
+      await ImageUtils.getScreenResolution();
+
+      // 2. Register periodic background WorkManager task
+      await WallpaperWorker.registerPeriodicSync();
+
+      // 3. Check if today's wallpaper needs automatic sync
+      final now = DateTime.now();
+      final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final lastSync = await Settings.getLastSyncDate();
+
+      if (lastSync != todayStr) {
+        print('HomeScreen: New day detected ($lastSync -> $todayStr). Auto-applying today wallpaper...');
+        WallpaperService.syncWallpaper().then((success) {
+          if (success && mounted) {
+            _loadCurrentWallpaper();
+          }
+        }).catchError((e) {
+          print('HomeScreen: Auto-sync on launch notice: $e');
+        });
+      }
+    } catch (e) {
+      print('HomeScreen: Error initializing background sync: $e');
+    }
   }
 
   @override
@@ -873,6 +902,7 @@ class _HomeScreenState extends State<HomeScreen>
               itemBuilder: (context, index) {
                 final pin = _pins.isNotEmpty ? _pins[index] : null;
                 final imageUrl = pin != null ? (pin['image_url'] as String?) : _currentImageUrl;
+                final fallbackUrl = pin != null ? (pin['fallback_url'] as String?) : null;
 
                 if (imageUrl == null) {
                   return _buildEmptyOrErrorGuide();
@@ -883,6 +913,10 @@ class _HomeScreenState extends State<HomeScreen>
                   children: [
                     Image.network(
                       imageUrl,
+                      headers: const {
+                        'User-Agent':
+                            'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36'
+                      },
                       fit: BoxFit.cover,
                       loadingBuilder: (ctx, child, progress) {
                         if (progress == null) return child;
@@ -893,18 +927,42 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         );
                       },
-                      errorBuilder: (ctx, err, stack) => Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.broken_image_rounded,
-                                color: Colors.white.withOpacity(0.3), size: 48),
-                            const SizedBox(height: 12),
-                            Text('Failed to load image',
-                                style: TextStyle(color: Colors.white.withOpacity(0.4))),
-                          ],
-                        ),
-                      ),
+                      errorBuilder: (ctx, err, stack) {
+                        if (fallbackUrl != null && fallbackUrl != imageUrl) {
+                          return Image.network(
+                            fallbackUrl,
+                            headers: const {
+                              'User-Agent':
+                                  'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36'
+                            },
+                            fit: BoxFit.cover,
+                            errorBuilder: (ctx2, err2, stack2) => Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.broken_image_rounded,
+                                      color: Colors.white.withOpacity(0.3), size: 48),
+                                  const SizedBox(height: 12),
+                                  Text('Failed to load image',
+                                      style: TextStyle(color: Colors.white.withOpacity(0.4))),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.broken_image_rounded,
+                                  color: Colors.white.withOpacity(0.3), size: 48),
+                              const SizedBox(height: 12),
+                              Text('Failed to load image',
+                                  style: TextStyle(color: Colors.white.withOpacity(0.4))),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                     // Gradient shading for readability
                     Container(
@@ -1504,13 +1562,14 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildSyncButton() {
+    final bool isBusy = _isSyncing || _isApplyingPin;
     return Row(
       children: [
         Expanded(
           child: SizedBox(
             height: 60,
             child: ElevatedButton(
-              onPressed: _isSyncing ? null : _skipNow,
+              onPressed: isBusy ? null : _skipNow,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xB31E293B),
                 foregroundColor: Colors.white,
@@ -1545,9 +1604,16 @@ class _HomeScreenState extends State<HomeScreen>
                   colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
                 ),
                 borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: ElevatedButton(
-                onPressed: _isSyncing ? null : _syncNow,
+                onPressed: isBusy ? null : _onSetWallpaperPressed,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
@@ -1557,7 +1623,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                   elevation: 0,
                 ),
-                child: _isSyncing
+                child: isBusy
                     ? const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -1569,16 +1635,21 @@ class _HomeScreenState extends State<HomeScreen>
                               strokeWidth: 2.5,
                             ),
                           ),
+                          SizedBox(width: 12),
+                          Text(
+                            'Setting...',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                          ),
                         ],
                       )
                     : const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.sync_rounded, size: 22),
-                          SizedBox(width: 12),
+                          Icon(Icons.wallpaper_rounded, size: 22),
+                          SizedBox(width: 10),
                           Text(
-                            'Sync Now',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            'Set as Wallpaper',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                           ),
                         ],
                       ),
@@ -1588,6 +1659,14 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ],
     );
+  }
+
+  Future<void> _onSetWallpaperPressed() async {
+    if (_pins.isNotEmpty && _currentIndex < _pins.length) {
+      await _applyCurrentPinWallpaper(targetOverride: _screenTarget, notify: true);
+    } else {
+      await _syncNow();
+    }
   }
 
   Widget _buildStatsCard() {

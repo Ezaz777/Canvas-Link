@@ -49,17 +49,20 @@ class WallpaperWorker {
       return;
     }
 
-    // Cancel old tasks to replace them cleanly. WorkManager's replace policy 
-    // sometimes behaves unexpectedly if the frequency changes significantly.
+    // Cancel old tasks to replace them cleanly.
     await cancelAll();
 
+    // Register periodic sync without restrictive battery gates that prevent Android background execution
     await Workmanager().registerPeriodicTask(
       wallpaperSyncTaskTag,
       wallpaperSyncTaskName,
       frequency: Duration(hours: hours),
       constraints: Constraints(
         networkType: NetworkType.connected,
-        requiresBatteryNotLow: true,
+        requiresBatteryNotLow: false,
+        requiresCharging: false,
+        requiresDeviceIdle: false,
+        requiresStorageNotLow: false,
       ),
       existingWorkPolicy: ExistingWorkPolicy.replace,
       backoffPolicy: BackoffPolicy.exponential,

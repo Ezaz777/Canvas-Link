@@ -61,7 +61,7 @@ class WallpaperService {
     }
 
     // 4. Get screen dimensions and center-crop
-    final screenRes = ImageUtils.getScreenResolution();
+    final screenRes = await ImageUtils.getScreenResolution();
     final croppedPath = await ImageUtils.centerCrop(
       imagePath,
       screenRes['width']!,
@@ -80,6 +80,11 @@ class WallpaperService {
           500);
     }
 
+    // Record last sync date
+    if (data['date'] != null) {
+      await Settings.setLastSyncDate(data['date'] as String);
+    }
+
     print('WallpaperSync: Wallpaper applied successfully!');
     return true;
   }
@@ -93,7 +98,7 @@ class WallpaperService {
       throw ApiException('Failed to download image from Pinterest.', 500);
     }
 
-    final screenRes = ImageUtils.getScreenResolution();
+    final screenRes = await ImageUtils.getScreenResolution();
     final croppedPath = await ImageUtils.centerCrop(
       imagePath,
       screenRes['width']!,
@@ -144,34 +149,53 @@ class WallpaperService {
     }
   }
 
-  /// Download an image from URL to a temporary file.
+  /// Download an image from URL to a temporary file with retry fallbacks.
   static Future<String?> _downloadImage(String url) async {
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode != 200) {
-        return null;
-      }
+    final candidateUrls = <String>[url];
 
-      final tempDir = await getTemporaryDirectory();
-      
-      // Clean up old cached wallpapers to save space
-      try {
-        final files = tempDir.listSync();
-        for (var file in files) {
-          if (file.path.contains('wallpaper_')) {
-            file.deleteSync();
-          }
-        }
-      } catch (_) {}
-
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '${tempDir.path}/wallpaper_download_$timestamp.jpg';
-      final file = File(filePath);
-      await file.writeAsBytes(response.bodyBytes);
-      return filePath;
-    } catch (e) {
-      print('WallpaperSync: Download error - $e');
-      return null;
+    // Build fallback URLs for Pinterest CDN variants
+    if (url.contains('/originals/')) {
+      candidateUrls.add(url.replaceAll('/originals/', '/1200x/'));
+      candidateUrls.add(url.replaceAll('/originals/', '/736x/'));
+      candidateUrls.add(url.replaceAll('/originals/', '/600x/'));
+    } else if (url.contains('/1200x/')) {
+      candidateUrls.add(url.replaceAll('/1200x/', '/736x/'));
+      candidateUrls.add(url.replaceAll('/1200x/', '/600x/'));
     }
+
+    final headers = {
+      'User-Agent':
+          'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+      'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+    };
+
+    for (final candidate in candidateUrls) {
+      try {
+        final response = await http.get(Uri.parse(candidate), headers: headers);
+        if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+          final tempDir = await getTemporaryDirectory();
+          
+          // Clean up old cached wallpapers to save space
+          try {
+            final files = tempDir.listSync();
+            for (var file in files) {
+              if (file.path.contains('wallpaper_')) {
+                file.deleteSync();
+              }
+            }
+          } catch (_) {}
+
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final filePath = '${tempDir.path}/wallpaper_download_$timestamp.jpg';
+          final file = File(filePath);
+          await file.writeAsBytes(response.bodyBytes);
+          return filePath;
+        }
+      } catch (e) {
+        print('WallpaperSync: Download attempt failed for $candidate: $e');
+      }
+    }
+
+    return null;
   }
 }
