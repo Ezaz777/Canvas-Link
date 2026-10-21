@@ -118,6 +118,15 @@ class PinterestTheme {
     );
   }
 
+  // Soft ambient overlay shadow for buttons, pills and floating dialogs
+  static List<BoxShadow> get overlayShadow => [
+    BoxShadow(
+      color: Colors.black.withOpacity(0.08),
+      blurRadius: 8,
+      offset: const Offset(0, 2),
+    ),
+  ];
+
   // Large Modal Decoration (White, 32px radius, soft ambient shadow)
   static BoxDecoration modalDecoration() {
     return BoxDecoration(
