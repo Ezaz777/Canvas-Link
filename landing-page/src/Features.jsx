@@ -1,141 +1,160 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { 
+  Zap, 
   FastForward, 
-  Zap,
-  Sparkles,
-  Cloud,
-  Code2,
-  HeartHandshake
+  Cloud, 
+  Code2, 
+  ShieldCheck, 
+  CheckCircle2, 
+  ArrowLeft, 
+  Download,
+  Calendar,
+  Layers,
+  Sparkles
 } from 'lucide-react';
 
-const Features = () => {
-  const fadeInUp = {
-    initial: { opacity: 0, y: 30 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6 }
-  };
-
-  const stagger = {
-    animate: {
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
-  };
-
+const Features = ({ onOpenDownloadModal }) => {
   return (
-    <div style={{ paddingTop: '80px', minHeight: '100vh' }}>
-      <section className="hero" style={{ padding: '6rem 0 3rem 0', minHeight: 'auto' }}>
-        <div className="hero-bg-blob-1" style={{ opacity: 0.5 }}></div>
-        <div className="hero-bg-blob-2" style={{ opacity: 0.5 }}></div>
-        
-        <div className="container">
-          <motion.div 
-            className="hero-content"
-            initial="initial"
-            animate="animate"
-            variants={stagger}
-            style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}
+    <div style={{ backgroundColor: 'var(--color-surface-soft)', minHeight: '100vh', paddingBottom: '64px' }}>
+      {/* Editorial Header */}
+      <section style={{ backgroundColor: 'var(--color-canvas)', borderBottom: '1px solid var(--color-hairline)', padding: '64px 0 48px 0' }}>
+        <div className="container" style={{ maxWidth: '880px', textAlign: 'center' }}>
+          <Link 
+            to="/" 
+            className="btn-tertiary" 
+            style={{ marginBottom: '24px', display: 'inline-flex' }}
           >
-            <motion.div variants={fadeInUp} style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
-              <div style={{ 
-                background: 'rgba(139, 92, 246, 0.2)', 
-                padding: '1rem', 
-                borderRadius: '20px',
-                display: 'inline-block'
-              }}>
-                <Sparkles size={40} className="text-gradient" />
-              </div>
-            </motion.div>
-            <motion.h1 className="hero-title" variants={fadeInUp} style={{ fontSize: '3rem' }}>
-              Canvas Link <span className="text-gradient">Features</span>
-            </motion.h1>
-            <motion.p className="hero-subtitle" variants={fadeInUp} style={{ fontSize: '1.2rem' }}>
-              Discover the magic that powers your cross-platform wallpaper experience.
-            </motion.p>
-          </motion.div>
+            <ArrowLeft size={16} />
+            <span>Back to Discovery Feed</span>
+          </Link>
+
+          <span style={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '12px' }}>
+            System Architecture & Features
+          </span>
+          <h1 className="display-lg">
+            Built for photographers, art collectors, and wallpaper enthusiasts.
+          </h1>
+          <p className="hero-subheading" style={{ margin: '16px auto 32px auto' }}>
+            Discover the mathematics, security model, and background orchestration powering your seamless wallpaper sync.
+          </p>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+            <button 
+              className="btn-primary"
+              onClick={() => onOpenDownloadModal && onOpenDownloadModal('all')}
+            >
+              <Download size={16} />
+              <span>Download Free Client</span>
+            </button>
+            <Link to="/installation" className="btn-secondary">
+              <span>Setup Guide</span>
+            </Link>
+          </div>
         </div>
       </section>
 
-      <section className="section" style={{ paddingTop: '2rem' }}>
-        <div className="container" style={{ maxWidth: '900px' }}>
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            style={{ display: 'flex', flexDirection: 'column', gap: '3rem', paddingBottom: '4rem' }}
-          >
-            {/* How It Works */}
-            <div className="glass-panel" style={{ padding: '3rem', borderRadius: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <Zap size={28} className="text-gradient" />
-                <h2 style={{ fontSize: '2rem', margin: 0 }}>The Stateless Deterministic Shuffle</h2>
-              </div>
-              <p style={{ fontSize: '1.1rem', lineHeight: '1.8', color: 'rgba(255,255,255,0.8)', marginBottom: '1.5rem' }}>
-                Canvas Link uses a highly advanced algorithm to select your daily wallpapers. 
-                Instead of randomly picking an image (which inevitably leads to seeing the same image twice), the app builds a 
-                mathematical cycle based on the exact number of pins on your board.
-              </p>
-              <ul style={{ fontSize: '1.1rem', lineHeight: '1.8', color: 'rgba(255,255,255,0.8)', paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
-                <li style={{ marginBottom: '0.5rem' }}><strong>No Repeats Guarantee:</strong> If you have 50 pins, it guarantees you will see 50 unique wallpapers over 50 days before the cycle restarts.</li>
-                <li style={{ marginBottom: '0.5rem' }}><strong>Dynamic Scaling:</strong> If you add 5 more pins to your Pinterest board, the algorithm instantly detects it and expands your cycle to 55 days dynamically!</li>
-                <li style={{ marginBottom: '0.5rem' }}><strong>Perfect Sync:</strong> Because it relies purely on mathematics and dates, your PC and Mobile phone calculate the exact same image on the same day without needing to constantly talk to each other, saving your battery.</li>
-              </ul>
-            </div>
+      {/* Main Feature Cards */}
+      <div className="container" style={{ maxWidth: '880px', paddingTop: '48px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
-            {/* Skipping */}
-            <div className="glass-panel" style={{ padding: '3rem', borderRadius: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <FastForward size={28} className="text-gradient" />
-                <h2 style={{ fontSize: '2rem', margin: 0 }}>The "Skip" Feature</h2>
+          {/* Feature 1: Deterministic Cycle */}
+          <div className="feature-card-box" style={{ border: '1px solid var(--color-hairline-soft)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: 'var(--rounded-full)', backgroundColor: 'var(--color-surface-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+                <Zap size={20} />
               </div>
-              <p style={{ fontSize: '1.1rem', lineHeight: '1.8', color: 'rgba(255,255,255,0.8)', marginBottom: '1.5rem' }}>
-                Not feeling today's vibe? You can easily skip it without breaking the cycle.
-              </p>
-              <p style={{ fontSize: '1.1rem', lineHeight: '1.8', color: 'rgba(255,255,255,0.8)' }}>
-                When you click <strong>"Skip Wallpaper"</strong> on either your PC or Mobile app, the backend securely increments a personalized offset for your account. 
-                This literally fast-forwards your timeline by one day! Your current device will instantly refresh with tomorrow's image, and your other devices 
-                will automatically jump ahead the next time they sync in the background.
-              </p>
+              <h2 className="heading-xl">The Stateless Deterministic Shuffle</h2>
             </div>
+            
+            <p className="body-md" style={{ color: 'var(--color-body)', marginBottom: '20px', lineHeight: '1.6' }}>
+              Instead of picking wallpapers at random (which frequently serves duplicate images), Canvas Link implements a deterministic cyclical permutation based on the exact pin count of your chosen board and calendar day.
+            </p>
 
-            {/* Cloud Backend */}
-            <div className="glass-panel" style={{ padding: '3rem', borderRadius: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <Cloud size={28} className="text-gradient" />
-                <h2 style={{ fontSize: '2rem', margin: 0 }}>Secure Cloud Backend</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+              <div style={{ padding: '16px', backgroundColor: 'var(--color-surface-card)', borderRadius: 'var(--rounded-md)' }}>
+                <p className="body-strong" style={{ marginBottom: '6px' }}>No Repeat Guarantee</p>
+                <p className="body-sm">If your Pinterest board has 60 pins, you are guaranteed 60 unique daily wallpapers before the cycle resets.</p>
               </div>
-              <p style={{ fontSize: '1.1rem', lineHeight: '1.8', color: 'rgba(255,255,255,0.8)' }}>
-                Powered by Cloudflare Workers and D1 Serverless SQL databases, the Canvas Link backend is built for speed and security. Your Pinterest OAuth tokens are heavily encrypted using AES-GCM before being stored, ensuring that your Pinterest account remains completely safe and private.
-              </p>
-            </div>
 
-            {/* Open Source */}
-            <div className="glass-panel" style={{ padding: '3rem', borderRadius: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <Code2 size={28} className="text-gradient" />
-                <h2 style={{ fontSize: '2rem', margin: 0 }}>100% Free & Open Source</h2>
+              <div style={{ padding: '16px', backgroundColor: 'var(--color-surface-card)', borderRadius: 'var(--rounded-md)' }}>
+                <p className="body-strong" style={{ marginBottom: '6px' }}>Dynamic Board Expansion</p>
+                <p className="body-sm">Whenever you save new pins to your board, the cycle automatically recalculates and extends without resetting your progress.</p>
               </div>
-              <p style={{ fontSize: '1.1rem', lineHeight: '1.8', color: 'rgba(255,255,255,0.8)' }}>
-                Unlike other wallpaper apps filled with subscriptions and ads, Canvas Link is totally free and open-source. Anyone can view the code, verify its security, or contribute to making the project even better on GitHub.
-              </p>
-            </div>
 
-            {/* One-Time Purchase */}
-            <div className="glass-panel" style={{ padding: '3rem', borderRadius: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <HeartHandshake size={28} className="text-gradient" />
-                <h2 style={{ fontSize: '2rem', margin: 0 }}>One-Time Store Purchase</h2>
+              <div style={{ padding: '16px', backgroundColor: 'var(--color-surface-card)', borderRadius: 'var(--rounded-md)' }}>
+                <p className="body-strong" style={{ marginBottom: '6px' }}>Zero Peer Communication</p>
+                <p className="body-sm">Both your Windows PC and Android phone derive the exact same wallpaper independently, saving network calls and battery.</p>
               </div>
-              <p style={{ fontSize: '1.1rem', lineHeight: '1.8', color: 'rgba(255,255,255,0.8)' }}>
-                No annoying in-app subscriptions, hidden fees, or advertisements. You purchase the app once via the Google Play Store and enjoy uninterrupted, unlimited daily wallpaper synchronization forever.
-              </p>
             </div>
+          </div>
 
-          </motion.div>
+          {/* Feature 2: Fast-forward Skip */}
+          <div className="feature-card-box" style={{ border: '1px solid var(--color-hairline-soft)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: 'var(--rounded-full)', backgroundColor: 'var(--color-surface-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+                <FastForward size={20} />
+              </div>
+              <h2 className="heading-xl">Instant Timeline Fast-Forward</h2>
+            </div>
+            
+            <p className="body-md" style={{ color: 'var(--color-body)', marginBottom: '16px', lineHeight: '1.6' }}>
+              Not in the mood for today's wallpaper? Clicking <strong>"Skip Wallpaper"</strong> on your desktop widget or mobile app safely increments your account's offset cursor.
+            </p>
+            <p className="body-md" style={{ color: 'var(--color-mute)', lineHeight: '1.6' }}>
+              Your current device updates immediately with the next pin in sequence, and all other paired devices naturally transition to the new timeline on their next scheduled refresh.
+            </p>
+          </div>
+
+          {/* Feature 3: Cloudflare Edge Backend */}
+          <div className="feature-card-box" style={{ border: '1px solid var(--color-hairline-soft)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: 'var(--rounded-full)', backgroundColor: 'var(--color-surface-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+                <Cloud size={20} />
+              </div>
+              <h2 className="heading-xl">Cloudflare Edge & Serverless D1</h2>
+            </div>
+            
+            <p className="body-md" style={{ color: 'var(--color-body)', lineHeight: '1.6', marginBottom: '16px' }}>
+              Built on Cloudflare Workers deployed across 300+ edge locations worldwide. Responses take milliseconds, and your OAuth session tokens are heavily protected using AES-GCM 256-bit encryption before hitting persistent storage.
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <span className="pin-overlay-pill" style={{ position: 'static' }}>Cloudflare Workers</span>
+              <span className="pin-overlay-pill" style={{ position: 'static' }}>D1 Serverless SQLite</span>
+              <span className="pin-overlay-pill" style={{ position: 'static' }}>AES-GCM Encryption</span>
+              <span className="pin-overlay-pill" style={{ position: 'static' }}>Sub-50ms Latency</span>
+            </div>
+          </div>
+
+          {/* Feature 4: Open Source Integrity */}
+          <div className="feature-card-box" style={{ border: '1px solid var(--color-hairline-soft)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: 'var(--rounded-full)', backgroundColor: 'var(--color-surface-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+                <Code2 size={20} />
+              </div>
+              <h2 className="heading-xl">100% Free & Open Source</h2>
+            </div>
+            
+            <p className="body-md" style={{ color: 'var(--color-body)', lineHeight: '1.6', marginBottom: '20px' }}>
+              Canvas Link is licensed under the permissive MIT license. You can inspect every single line of code, run your own private server if desired, or contribute enhancements via GitHub pull requests.
+            </p>
+
+            <a 
+              href="https://github.com/Ezaz777/Canvas-Link" 
+              target="_blank" 
+              rel="noreferrer"
+              className="btn-secondary"
+              style={{ display: 'inline-flex' }}
+            >
+              <span>Explore GitHub Repository</span>
+              <Code2 size={16} />
+            </a>
+          </div>
+
         </div>
-      </section>
+      </div>
     </div>
   );
 };

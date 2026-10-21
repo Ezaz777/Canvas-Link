@@ -11,6 +11,7 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../workers/wallpaper_worker.dart';
 import '../utils/image_utils.dart';
+import '../utils/pinterest_theme.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -196,7 +197,6 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _statusMessage = '';
         });
       }
     }
@@ -206,10 +206,13 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: const Color(0xFF1E293B),
+        content: Text(message, style: const TextStyle(color: PinterestTheme.ink)),
+        backgroundColor: PinterestTheme.canvas,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
+          side: const BorderSide(color: PinterestTheme.hairlineSoft),
+        ),
       ),
     );
   }
@@ -220,21 +223,34 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Text('Developer Token Entry', style: TextStyle(color: Colors.white, fontSize: 16)),
+        backgroundColor: PinterestTheme.canvas,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(PinterestTheme.radiusLg),
+        ),
+        title: const Text('Developer Token Entry', style: TextStyle(color: PinterestTheme.ink, fontSize: 18, fontWeight: FontWeight.bold)),
         content: TextField(
           controller: controller,
-          style: const TextStyle(color: Colors.white, fontSize: 13, fontFamily: 'monospace'),
+          style: const TextStyle(color: PinterestTheme.ink, fontSize: 13, fontFamily: 'monospace'),
           maxLines: 3,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: 'Paste JWT token here...',
-            hintStyle: TextStyle(color: Colors.white38),
+            hintStyle: const TextStyle(color: PinterestTheme.ash),
+            filled: true,
+            fillColor: PinterestTheme.surfaceCard,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
+              borderSide: const BorderSide(color: PinterestTheme.ash),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
+              borderSide: const BorderSide(color: PinterestTheme.ink, width: 2),
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: PinterestTheme.mute)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -244,6 +260,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 _submitToken(token);
               }
             },
+            style: PinterestTheme.primaryButtonStyle(height: 40),
             child: const Text('Activate'),
           ),
         ],
@@ -254,223 +271,179 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Deep sleek background
-      body: Stack(
-        children: [
-          // Background ambient gradient glow
-          Positioned(
-            top: -100,
-            right: -100,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF8B5CF6).withOpacity(0.18),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -80,
-            left: -80,
-            child: Container(
-              width: 280,
-              height: 280,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFE60023).withOpacity(0.12),
-              ),
-            ),
-          ),
-
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Canvas Link Logo
-                    GestureDetector(
-                      onLongPress: _showManualTokenDialog,
-                      child: Container(
-                        width: 90,
-                        height: 90,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(26),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF8B5CF6).withOpacity(0.35),
-                              blurRadius: 30,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(26),
-                          child: Image.asset(
-                            'assets/logo.png',
-                            width: 90,
-                            height: 90,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: const Color(0xFF8B5CF6),
-                              child: const Icon(Icons.wallpaper_rounded, color: Colors.white, size: 48),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // App Title
-                    Text(
-                      'Canvas Link',
-                      style: GoogleFonts.outfit(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: -0.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Tagline
-                    Text(
-                      'Daily Pinterest Wallpapers for your phone',
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
-                        color: const Color(0xFF94A3B8),
-                        fontWeight: FontWeight.w400,
-                        height: 1.4,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 36),
-
-                    // Feature Highlights Card
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: const Color(0x661E293B),
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: Colors.white.withOpacity(0.08)),
-                      ),
-                      child: Column(
-                        children: [
-                          _buildFeatureRow(
-                            icon: Icons.auto_awesome_rounded,
-                            iconColor: const Color(0xFFF59E0B),
-                            title: 'Automatic Daily Wallpapers',
-                            subtitle: 'Fresh lock & home screens automatically',
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: Divider(color: Colors.white10, height: 1),
-                          ),
-                          _buildFeatureRow(
-                            icon: Icons.collections_bookmark_rounded,
-                            iconColor: const Color(0xFF8B5CF6),
-                            title: 'Sync from Pinterest Boards',
-                            subtitle: 'Choose any of your aesthetic boards',
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: Divider(color: Colors.white10, height: 1),
-                          ),
-                          _buildFeatureRow(
-                            icon: Icons.phone_android_rounded,
-                            iconColor: const Color(0xFF10B981),
-                            title: 'Home & Lock Screen Control',
-                            subtitle: 'Perfect vertical crop tailored to your device',
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 36),
-
-                    // Primary Action: Connect with Pinterest Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 58,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _connectWithPinterest,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE60023), // Authentic Pinterest Red
-                          foregroundColor: Colors.white,
-                          elevation: 8,
-                          shadowColor: const Color(0xFFE60023).withOpacity(0.4),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2.5,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Text(
-                                    _statusMessage.isNotEmpty
-                                        ? _statusMessage
-                                        : 'Connecting...',
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.link_rounded, size: 24),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    'Connect with Pinterest',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.2,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Seamless explanation note
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.verified_user_outlined,
-                            size: 14, color: Colors.white.withOpacity(0.4)),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Opens Pinterest in-app. Log in to connect automatically.',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.4),
-                            fontSize: 12,
-                          ),
+      backgroundColor: PinterestTheme.surfaceSoft,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Canvas Link Logo / Pinterest Badge
+                GestureDetector(
+                  onLongPress: _showManualTokenDialog,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: PinterestTheme.primary,
+                      borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
+                      boxShadow: [
+                        BoxShadow(
+                          color: PinterestTheme.primary.withOpacity(0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 6),
                         ),
                       ],
                     ),
+                    child: Center(
+                      child: Text(
+                        'P',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 44,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // App Title
+                Text(
+                  'Canvas Link',
+                  style: GoogleFonts.inter(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w700,
+                    color: PinterestTheme.ink,
+                    letterSpacing: -1.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+
+                // Tagline
+                Text(
+                  'Your daily Pinterest wallpapers, synchronized.',
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    color: PinterestTheme.mute,
+                    fontWeight: FontWeight.w400,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+
+                // Feature Highlights Card (Warm cream surface card, 16px radius per DESIGN.md)
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: PinterestTheme.cardDecoration(soft: true),
+                  child: Column(
+                    children: [
+                      _buildFeatureRow(
+                        icon: Icons.auto_awesome_rounded,
+                        iconColor: PinterestTheme.primary,
+                        title: 'Automatic Daily Sync',
+                        subtitle: 'Fresh wallpaper applies silently every morning',
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(color: PinterestTheme.hairlineSoft, height: 1),
+                      ),
+                      _buildFeatureRow(
+                        icon: Icons.collections_bookmark_rounded,
+                        iconColor: PinterestTheme.primary,
+                        title: 'Curated Pinterest Boards',
+                        subtitle: 'Directly syncs high-resolution pins you save',
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(color: PinterestTheme.hairlineSoft, height: 1),
+                      ),
+                      _buildFeatureRow(
+                        icon: Icons.battery_charging_full_rounded,
+                        iconColor: PinterestTheme.primary,
+                        title: 'Battery & WorkManager Friendly',
+                        subtitle: 'Zero idle background battery or CPU drain',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Primary Action: Connect with Pinterest Button per DESIGN.md
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _connectWithPinterest,
+                    style: PinterestTheme.primaryButtonStyle(height: 48),
+                    child: _isLoading
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.2,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                _statusMessage.isNotEmpty
+                                    ? _statusMessage
+                                    : 'Connecting...',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.link_rounded, size: 20),
+                              SizedBox(width: 10),
+                              Text(
+                                'Connect with Pinterest',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Seamless explanation note
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.verified_user_outlined,
+                        size: 14, color: PinterestTheme.mute),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Official OAuth 2.0. No passwords stored.',
+                      style: GoogleFonts.inter(
+                        color: PinterestTheme.mute,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
-              ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -484,13 +457,14 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     return Row(
       children: [
         Container(
-          width: 40,
-          height: 40,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12),
+            color: PinterestTheme.canvas,
+            borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
+            border: Border.all(color: PinterestTheme.hairlineSoft),
           ),
-          child: Icon(icon, color: iconColor, size: 20),
+          child: Icon(icon, color: iconColor, size: 18),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -499,8 +473,8 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: GoogleFonts.inter(
+                  color: PinterestTheme.ink,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -508,9 +482,10 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.45),
+                style: GoogleFonts.inter(
+                  color: PinterestTheme.mute,
                   fontSize: 12,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -520,3 +495,4 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     );
   }
 }
+

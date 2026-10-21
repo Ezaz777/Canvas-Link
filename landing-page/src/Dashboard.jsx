@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Monitor, Smartphone, CheckCircle, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Monitor, Smartphone, CheckCircle, RefreshCw, LogOut, ArrowLeft, ExternalLink, ShieldCheck } from 'lucide-react';
 
 const API_BASE_URL = 'https://wallpaper-sync-api.canvaslink.workers.dev';
 
@@ -79,150 +80,160 @@ export default function Dashboard() {
 
   if (!token) {
     return (
-      <section className="section" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center' }}>
-        <div className="container" style={{ maxWidth: '500px', width: '100%' }}>
-          <motion.div 
-            className="glass-panel" 
-            style={{ padding: '2.5rem', textAlign: 'center' }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <h2 style={{ marginBottom: '1.5rem', fontSize: '2rem' }}>Welcome Back</h2>
-            <p className="feature-desc" style={{ marginBottom: '2rem' }}>
-              Paste your JWT token to access your Canvas Link dashboard and manage your Pinterest boards.
-            </p>
-            <form onSubmit={handleLogin}>
-              <input
-                type="text"
-                value={inputToken}
-                onChange={(e) => setInputToken(e.target.value)}
-                placeholder="eyJh..."
-                style={{
-                  width: '100%',
-                  padding: '1rem',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  background: 'rgba(0,0,0,0.2)',
-                  color: '#fff',
-                  fontFamily: 'monospace',
-                  marginBottom: '1.5rem',
-                  outline: 'none'
-                }}
-              />
-              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                Access Dashboard
-              </button>
-            </form>
-          </motion.div>
-        </div>
-      </section>
+      <div style={{ backgroundColor: 'var(--color-surface-soft)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 24px' }}>
+        <motion.div 
+          className="feature-card-box" 
+          style={{ maxWidth: '480px', width: '100%', border: '1px solid var(--color-hairline-soft)', textAlign: 'center' }}
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="brand-badge-p" style={{ width: '48px', height: '48px', fontSize: '24px', margin: '0 auto 16px auto' }}>
+            P
+          </div>
+          <h1 className="heading-xl" style={{ marginBottom: '8px' }}>Sync Dashboard</h1>
+          <p className="body-sm" style={{ color: 'var(--color-mute)', marginBottom: '24px' }}>
+            Enter your Canvas Link session token to view and manage device board associations.
+          </p>
+
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <input
+              type="text"
+              value={inputToken}
+              onChange={(e) => setInputToken(e.target.value)}
+              placeholder="Paste session token (eyJhbGci...)"
+              className="text-input"
+              style={{ fontFamily: 'monospace', fontSize: '14px' }}
+            />
+            <button type="submit" className="btn-primary" style={{ width: '100%', height: '44px' }}>
+              Access Dashboard
+            </button>
+          </form>
+
+          <div style={{ marginTop: '24px', borderTop: '1px solid var(--color-hairline-soft)', paddingTop: '16px' }}>
+            <Link to="/" className="link-inline" style={{ fontSize: '14px' }}>
+              ← Return to Discovery Feed
+            </Link>
+          </div>
+        </motion.div>
+      </div>
     );
   }
 
   return (
-    <section className="section" style={{ minHeight: '80vh', paddingTop: '8rem' }}>
+    <div style={{ backgroundColor: 'var(--color-surface-soft)', minHeight: '100vh', padding: '48px 0 64px 0' }}>
       <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+        {/* Top Header Bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Your <span className="text-gradient">Boards</span></h1>
-            <p className="feature-desc">Select which Pinterest board syncs to which device.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <span className="caption-sm" style={{ color: 'var(--color-primary)', fontWeight: 700, textTransform: 'uppercase' }}>
+                Active Session
+              </span>
+            </div>
+            <h1 className="display-lg">Your Pinterest Boards</h1>
+            <p className="body-md" style={{ color: 'var(--color-mute)' }}>
+              Choose which Pinterest board synchronizes with your PC and Android screens.
+            </p>
           </div>
-          <button onClick={handleLogout} className="btn btn-secondary">
-            Logout
-          </button>
+
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button onClick={fetchBoards} className="btn-secondary">
+              <RefreshCw size={16} />
+              <span>Refresh</span>
+            </button>
+            <button onClick={handleLogout} className="btn-secondary">
+              <LogOut size={16} />
+              <span>Log out</span>
+            </button>
+          </div>
         </div>
 
         {error && (
-          <div style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', padding: '1rem', borderRadius: '12px', color: '#fca5a5', marginBottom: '2rem' }}>
-            {error}
+          <div style={{ backgroundColor: 'var(--color-surface-card)', borderLeft: '4px solid var(--color-error)', padding: '16px', borderRadius: 'var(--rounded-sm)', color: 'var(--color-error)', marginBottom: '24px' }}>
+            <p className="body-strong">{error}</p>
           </div>
         )}
 
         {isLoading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '96px 0' }}>
             <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
-              <RefreshCw size={32} className="text-gradient" />
+              <RefreshCw size={36} color="var(--color-primary)" />
             </motion.div>
           </div>
         ) : boards.length === 0 ? (
-          <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
-            <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>No Pinterest Boards Found</h3>
-            <p className="feature-desc" style={{ marginBottom: '2rem' }}>
-              Your Pinterest account does not have any boards yet. Create a board on Pinterest, pin wallpapers to it, and link it here!
+          <div className="feature-card-box" style={{ maxWidth: '640px', margin: '48px auto', textAlign: 'center', border: '1px solid var(--color-hairline-soft)' }}>
+            <h3 className="heading-lg" style={{ marginBottom: '12px' }}>No Pinterest Boards Found</h3>
+            <p className="body-md" style={{ color: 'var(--color-mute)', marginBottom: '24px' }}>
+              Your connected Pinterest account does not have any boards with pins yet. Create a board on Pinterest, pin wallpapers to it, and refresh this page.
             </p>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <a 
                 href="https://www.pinterest.com" 
                 target="_blank" 
                 rel="noreferrer" 
-                className="btn btn-primary"
+                className="btn-primary"
               >
-                Open Pinterest
+                <span>Open Pinterest</span>
+                <ExternalLink size={14} />
               </a>
-              <button onClick={fetchBoards} className="btn btn-secondary">
+              <button onClick={fetchBoards} className="btn-secondary">
                 Refresh Boards
               </button>
             </div>
           </div>
         ) : (
-          <div className="features-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
             {boards.map((board) => {
               const isMobile = selectedBoards.mobile === board.id || (selectedBoards.mobile == null && selectedBoards.fallback === board.id);
               const isDesktop = selectedBoards.desktop === board.id || (selectedBoards.desktop == null && selectedBoards.fallback === board.id);
 
               return (
-                <motion.div 
+                <div 
                   key={board.id} 
-                  className="feature-card glass-panel" 
-                  style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  className="feature-card-box" 
+                  style={{ border: '1px solid var(--color-hairline-soft)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                 >
-                  <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: '600' }}>{board.name}</h3>
+                  <div style={{ marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                      <h3 className="heading-md" style={{ color: 'var(--color-ink)' }}>{board.name}</h3>
+                      <span className="caption-sm">{board.pin_count ? `${board.pin_count} pins` : 'Board'}</span>
+                    </div>
+                    <p className="body-sm" style={{ color: 'var(--color-mute)' }}>
+                      {board.description || 'Pinterest wallpaper collection'}
+                    </p>
+                  </div>
                   
-                  <div style={{ marginTop: 'auto', display: 'flex', gap: '1rem', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <button 
                       onClick={() => setBoard(isMobile ? null : board.id, 'mobile')}
-                      title={isMobile ? 'Click to deactivate for Mobile' : 'Set for Mobile'}
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                        padding: '0.75rem', borderRadius: '10px',
-                        background: isMobile ? 'rgba(124, 58, 237, 0.3)' : 'rgba(255,255,255,0.05)',
-                        border: isMobile ? '1px solid #7c3aed' : '1px solid rgba(255,255,255,0.1)',
-                        color: isMobile ? '#fff' : 'rgba(255,255,255,0.7)',
-                        cursor: 'pointer', transition: 'all 0.2s',
-                        fontWeight: '600'
-                      }}
+                      className={isMobile ? "btn-primary" : "btn-secondary"}
+                      style={{ width: '100%', justifyContent: 'space-between' }}
                     >
-                      <Smartphone size={18} />
-                      {isMobile ? 'Active on Mobile • Click to Remove' : 'Set for Mobile'}
-                      {isMobile && <CheckCircle size={16} color="#34d399" />}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Smartphone size={16} />
+                        <span>{isMobile ? 'Active for Android' : 'Assign to Android'}</span>
+                      </div>
+                      {isMobile && <CheckCircle size={16} />}
                     </button>
 
                     <button 
                       onClick={() => setBoard(isDesktop ? null : board.id, 'desktop')}
-                      title={isDesktop ? 'Click to deactivate for PC' : 'Set for PC'}
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                        padding: '0.75rem', borderRadius: '10px',
-                        background: isDesktop ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.05)',
-                        border: isDesktop ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
-                        color: isDesktop ? '#fff' : 'rgba(255,255,255,0.7)',
-                        cursor: 'pointer', transition: 'all 0.2s',
-                        fontWeight: '600'
-                      }}
+                      className={isDesktop ? "btn-primary" : "btn-secondary"}
+                      style={{ width: '100%', justifyContent: 'space-between' }}
                     >
-                      <Monitor size={18} />
-                      {isDesktop ? 'Active on PC • Click to Remove' : 'Set for PC'}
-                      {isDesktop && <CheckCircle size={16} color="#34d399" />}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Monitor size={16} />
+                        <span>{isDesktop ? 'Active for PC' : 'Assign to Windows PC'}</span>
+                      </div>
+                      {isDesktop && <CheckCircle size={16} />}
                     </button>
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }

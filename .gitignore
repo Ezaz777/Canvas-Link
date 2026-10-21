@@ -5,6 +5,7 @@
 .dev.vars
 *.dev.vars
 .DS_Store
+build_output/
 
 # ==============================================================================
 # Backend (Cloudflare Workers / TypeScript)

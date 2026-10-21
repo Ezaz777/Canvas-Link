@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../utils/pinterest_theme.dart';
 import 'login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -80,9 +81,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Icon(
                   isDeactivated
-                      ? Icons.remove_circle_rounded
+                      ? Icons.remove_circle_outline_rounded
                       : Icons.check_circle_rounded,
-                  color: Colors.white,
+                  color: PinterestTheme.canvas,
                   size: 20,
                 ),
                 const SizedBox(width: 10),
@@ -91,8 +92,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     isDeactivated
                         ? 'Board removed from $deviceName.'
                         : 'Board activated for $deviceName!',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: GoogleFonts.inter(
+                      color: PinterestTheme.canvas,
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -100,14 +101,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ],
             ),
-            backgroundColor: isDeactivated
-                ? const Color(0xFFE11D48)
-                : const Color(0xFF10B981),
-            duration: const Duration(seconds: 3),
+            backgroundColor: PinterestTheme.charcoal,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
           ),
         );
       }
@@ -115,9 +111,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update board: $e'),
-            backgroundColor: const Color(0xFFEF4444),
+            content: Text('Failed to update board: $e', style: const TextStyle(color: PinterestTheme.canvas)),
+            backgroundColor: PinterestTheme.error,
             behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
           ),
         );
       }
@@ -136,20 +133,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: PinterestTheme.surfaceSoft,
       appBar: AppBar(
         title: Text(
           'Your Boards',
-          style: GoogleFonts.outfit(
-            color: Colors.white,
+          style: GoogleFonts.inter(
+            color: PinterestTheme.ink,
             fontWeight: FontWeight.w700,
+            fontSize: 18,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_rounded, color: PinterestTheme.ink),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: PinterestTheme.surfaceSoft,
         elevation: 0,
       ),
       body: _buildBody(),
@@ -160,48 +158,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(
-          color: Color(0xFF8B5CF6),
+          color: PinterestTheme.primary,
+          strokeWidth: 2.5,
         ),
       );
     }
 
     if (_errorMessage != null) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline_rounded,
-                color: Color(0xFFEF4444), size: 48),
-            const SizedBox(height: 16),
-            Text(
-              'Failed to load boards',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _errorMessage!,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.4),
-                fontSize: 12,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _loadBoards,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xB31E293B),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline_rounded,
+                  color: PinterestTheme.error, size: 44),
+              const SizedBox(height: 16),
+              Text(
+                'Failed to load boards',
+                style: GoogleFonts.inter(
+                  color: PinterestTheme.ink,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              child: const Text('Retry'),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage!,
+                style: GoogleFonts.inter(
+                  color: PinterestTheme.mute,
+                  fontSize: 13,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _loadBoards,
+                style: PinterestTheme.secondaryButtonStyle(height: 40),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -214,34 +211,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 80,
-                height: 80,
+                width: 72,
+                height: 72,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE60023).withOpacity(0.15),
+                  color: PinterestTheme.surfaceCard,
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFE60023).withOpacity(0.3)),
+                  border: Border.all(color: PinterestTheme.hairline),
                 ),
                 child: const Icon(
                   Icons.collections_bookmark_rounded,
-                  color: Color(0xFFE60023),
-                  size: 40,
+                  color: PinterestTheme.primary,
+                  size: 32,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               Text(
                 'No Pinterest Boards Found',
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontSize: 22,
+                style: GoogleFonts.inter(
+                  color: PinterestTheme.ink,
+                  fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Text(
                 'You don\'t have any boards in your Pinterest account yet. Create a board on Pinterest, save some wallpapers into it, and come back here to link it!',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
+                style: GoogleFonts.inter(
+                  color: PinterestTheme.mute,
                   fontSize: 14,
                   height: 1.5,
                 ),
@@ -250,35 +247,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 28),
               SizedBox(
                 width: double.infinity,
-                height: 52,
+                height: 44,
                 child: ElevatedButton.icon(
                   onPressed: () => launchUrl(
                     Uri.parse('https://www.pinterest.com'),
                     mode: LaunchMode.externalApplication,
                   ),
-                  icon: const Icon(Icons.open_in_new_rounded, size: 20),
-                  label: const Text('Open Pinterest', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE60023),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    elevation: 0,
-                  ),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: const Text('Open Pinterest'),
+                  style: PinterestTheme.primaryButtonStyle(height: 44),
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
-                height: 50,
-                child: OutlinedButton.icon(
+                height: 44,
+                child: ElevatedButton.icon(
                   onPressed: _loadBoards,
-                  icon: const Icon(Icons.refresh_rounded, size: 20),
-                  label: const Text('Refresh Boards', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white70,
-                    side: BorderSide(color: Colors.white.withOpacity(0.15)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Refresh Boards'),
+                  style: PinterestTheme.secondaryButtonStyle(height: 44),
                 ),
               ),
             ],
@@ -289,121 +277,104 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadBoards,
-      color: const Color(0xFF8B5CF6),
-      backgroundColor: const Color(0xFF1E293B),
-      child: ListView.separated(
-        padding: const EdgeInsets.all(20),
+      color: PinterestTheme.primary,
+      backgroundColor: PinterestTheme.canvas,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         itemCount: _boards.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 20),
         itemBuilder: (context, index) {
           final board = _boards[index];
-          return _buildBoardCard(board);
-        },
-      ),
-    );
-  }
+          final boardId = board['id'] as String;
+          final boardName = board['name'] as String;
+          final pinCount = board['pin_count'] as int?;
 
-  Widget _buildBoardCard(dynamic board) {
-    final String boardId = board['id'];
-    final bool isMobile = _selectedBoards['mobile'] == boardId ||
-        (_selectedBoards['mobile'] == null &&
-            _selectedBoards['fallback'] == boardId);
-    final bool isDesktop = _selectedBoards['desktop'] == boardId ||
-        (_selectedBoards['desktop'] == null &&
-            _selectedBoards['fallback'] == boardId);
+          final isMobile = _selectedBoards['mobile'] == boardId ||
+              (_selectedBoards['mobile'] == null && _selectedBoards['fallback'] == boardId);
+          final isDesktop = _selectedBoards['desktop'] == boardId ||
+              (_selectedBoards['desktop'] == null && _selectedBoards['fallback'] == boardId);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xB31E293B),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            board['name'] ?? 'Unknown Board',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 20),
-          _buildDeviceButton(
-            label: isMobile ? 'Active on Mobile • Tap to Remove' : 'Set for Mobile',
-            icon: Icons.smartphone_rounded,
-            isActive: isMobile,
-            onPressed: () => _setBoard(isMobile ? null : boardId, 'mobile'),
-          ),
-          const SizedBox(height: 12),
-          _buildDeviceButton(
-            label: isDesktop ? 'Active on PC • Tap to Remove' : 'Set for PC',
-            icon: Icons.monitor_rounded,
-            isActive: isDesktop,
-            onPressed: () => _setBoard(isDesktop ? null : boardId, 'desktop'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDeviceButton({
-    required String label,
-    required IconData icon,
-    required bool isActive,
-    required VoidCallback onPressed,
-  }) {
-    final Color activeColor = icon == Icons.smartphone_rounded
-        ? const Color(0xFF8B5CF6)
-        : const Color(0xFF10B981);
-
-    return SizedBox(
-      width: double.infinity,
-      height: 48,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor:
-              isActive ? activeColor.withOpacity(0.18) : const Color(0x0CFFFFFF),
-          foregroundColor: isActive ? Colors.white : Colors.white.withOpacity(0.7),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: isActive ? activeColor : Colors.white.withOpacity(0.1),
-            ),
-          ),
-          elevation: 0,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 20, color: isActive ? activeColor : null),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                ),
-                overflow: TextOverflow.ellipsis,
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: PinterestTheme.cardDecoration(soft: false),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          boardName,
+                          style: GoogleFonts.inter(
+                            color: PinterestTheme.ink,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      if (pinCount != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: PinterestTheme.surfaceCard,
+                            borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
+                          ),
+                          child: Text(
+                            '$pinCount pins',
+                            style: GoogleFonts.inter(
+                              color: PinterestTheme.mute,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _setBoard(isMobile ? null : boardId, 'mobile'),
+                          icon: Icon(
+                            isMobile ? Icons.check_circle_rounded : Icons.smartphone_rounded,
+                            size: 16,
+                          ),
+                          label: Text(
+                            isMobile ? 'Mobile Active' : 'Set for Mobile',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          style: isMobile
+                              ? PinterestTheme.primaryButtonStyle(height: 38)
+                              : PinterestTheme.secondaryButtonStyle(height: 38),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _setBoard(isDesktop ? null : boardId, 'desktop'),
+                          icon: Icon(
+                            isDesktop ? Icons.check_circle_rounded : Icons.monitor_rounded,
+                            size: 16,
+                          ),
+                          label: Text(
+                            isDesktop ? 'PC Active' : 'Set for PC',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          style: isDesktop
+                              ? PinterestTheme.primaryButtonStyle(height: 38)
+                              : PinterestTheme.secondaryButtonStyle(height: 38),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            if (isActive) ...[
-              const SizedBox(width: 8),
-              Icon(Icons.check_circle_rounded, size: 18, color: activeColor),
-            ],
-          ],
-        ),
+          );
+        },
       ),
     );
   }

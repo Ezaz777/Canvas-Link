@@ -1,120 +1,189 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { 
   Monitor, 
   Smartphone, 
-  ShieldCheck,
-  DownloadCloud
+  ShieldCheck, 
+  Download, 
+  ArrowLeft, 
+  Check, 
+  Copy,
+  Terminal,
+  ExternalLink
 } from 'lucide-react';
 
 const Installation = () => {
-  const fadeInUp = {
-    initial: { opacity: 0, y: 30 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6 }
-  };
+  const [copiedCode, setCopiedCode] = useState(false);
 
-  const stagger = {
-    animate: {
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
+  const handleCopy = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
   };
 
   return (
-    <div style={{ paddingTop: '80px', minHeight: '100vh' }}>
-      <section className="hero" style={{ padding: '6rem 0 3rem 0', minHeight: 'auto' }}>
-        <div className="hero-bg-blob-1" style={{ opacity: 0.5 }}></div>
-        <div className="hero-bg-blob-2" style={{ opacity: 0.5 }}></div>
-        
-        <div className="container">
-          <motion.div 
-            className="hero-content"
-            initial="initial"
-            animate="animate"
-            variants={stagger}
-            style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}
+    <div style={{ backgroundColor: 'var(--color-surface-soft)', minHeight: '100vh', paddingBottom: '64px' }}>
+      {/* Editorial Header */}
+      <section style={{ backgroundColor: 'var(--color-canvas)', borderBottom: '1px solid var(--color-hairline)', padding: '64px 0 48px 0' }}>
+        <div className="container" style={{ maxWidth: '880px', textAlign: 'center' }}>
+          <Link 
+            to="/" 
+            className="btn-tertiary" 
+            style={{ marginBottom: '24px', display: 'inline-flex' }}
           >
-            <motion.div variants={fadeInUp} style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
-              <div style={{ 
-                background: 'rgba(139, 92, 246, 0.2)', 
-                padding: '1rem', 
-                borderRadius: '20px',
-                display: 'inline-block'
-              }}>
-                <DownloadCloud size={40} className="text-gradient" />
-              </div>
-            </motion.div>
-            <motion.h1 className="hero-title" variants={fadeInUp} style={{ fontSize: '3rem' }}>
-              Installation <span className="text-gradient">Guide</span>
-            </motion.h1>
-            <motion.p className="hero-subtitle" variants={fadeInUp} style={{ fontSize: '1.2rem' }}>
-              Follow these simple steps to bring your Pinterest boards to your Windows and Android devices.
-            </motion.p>
-          </motion.div>
+            <ArrowLeft size={16} />
+            <span>Back to Discovery Feed</span>
+          </Link>
+
+          <span style={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '12px' }}>
+            Setup Documentation
+          </span>
+          <h1 className="display-lg">
+            Install and synchronize your screens in minutes.
+          </h1>
+          <p className="hero-subheading" style={{ margin: '16px auto 0 auto' }}>
+            Official guides for running the Windows Desktop Client and Android APK.
+          </p>
         </div>
       </section>
 
-      <section className="section" style={{ paddingTop: '2rem' }}>
-        <div className="container" style={{ maxWidth: '900px' }}>
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            style={{ display: 'flex', flexDirection: 'column', gap: '3rem', paddingBottom: '4rem' }}
-          >
+      {/* Main Content */}
+      <div className="container" style={{ maxWidth: '880px', paddingTop: '48px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
-            {/* Installation PC */}
-            <div className="glass-panel" style={{ padding: '3rem', borderRadius: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <Monitor size={28} className="text-gradient" />
-                <h2 style={{ fontSize: '2rem', margin: 0 }}>PC Client Setup</h2>
+          {/* Windows Setup Card */}
+          <div className="feature-card-box" style={{ border: '1px solid var(--color-hairline-soft)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: 'var(--rounded-full)', backgroundColor: 'var(--color-surface-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+                  <Monitor size={22} />
+                </div>
+                <div>
+                  <h2 className="heading-xl">Windows Desktop Client</h2>
+                  <span className="caption-sm">Supports Windows 10 & 11 (64-bit)</span>
+                </div>
               </div>
-              <div style={{ fontSize: '1.1rem', lineHeight: '1.8', color: 'rgba(255,255,255,0.8)' }}>
-                <ol style={{ paddingLeft: '1.5rem' }}>
-                  <li style={{ marginBottom: '1rem' }}>Download the <code>Canvas Link.exe</code> from your dashboard.</li>
-                  <li style={{ marginBottom: '1rem' }}>Run the executable. The Canvas Link Settings window will appear.</li>
-                  <li style={{ marginBottom: '1rem' }}>Click <strong>"Log In"</strong>. This will automatically open your web browser to securely authenticate with Pinterest.</li>
-                  <li style={{ marginBottom: '1rem' }}>Once you have successfully logged in, check the box to <strong>"Enable Daily Sync at"</strong> and select your preferred time from the dropdown (e.g., 09:00 for 9 AM).</li>
-                  <li style={{ marginBottom: '1rem' }}>That's it! The app will automatically inject a lightweight task into the Windows Task Scheduler. It will run silently in the background every day without draining resources or slowing down your PC.</li>
-                </ol>
+
+              <a 
+                href="https://github.com/Ezaz777/Canvas-Link/releases" 
+                target="_blank" 
+                rel="noreferrer"
+                className="btn-primary"
+              >
+                <Download size={16} />
+                <span>Download .EXE</span>
+              </a>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                <div className="step-number-badge" style={{ width: '32px', height: '32px', fontSize: '15px', flexShrink: 0 }}>1</div>
+                <div>
+                  <p className="body-strong">Download and Launch</p>
+                  <p className="body-sm">Download <code>Canvas Link.exe</code> from the official GitHub Releases and run it on your PC.</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                <div className="step-number-badge" style={{ width: '32px', height: '32px', fontSize: '15px', flexShrink: 0 }}>2</div>
+                <div>
+                  <p className="body-strong">Log in with Pinterest OAuth</p>
+                  <p className="body-sm">Click <strong>"Log In"</strong> in the settings window. A browser tab will open to safely grant read-only board access.</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                <div className="step-number-badge" style={{ width: '32px', height: '32px', fontSize: '15px', flexShrink: 0 }}>3</div>
+                <div>
+                  <p className="body-strong">Set Preferred Sync Hour</p>
+                  <p className="body-sm">Toggle <strong>"Enable Daily Sync at"</strong> and pick your time (e.g., 08:00 AM). Canvas Link creates a quiet Windows Task Scheduler trigger and closes.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Android Setup Card */}
+          <div className="feature-card-box" style={{ border: '1px solid var(--color-hairline-soft)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: 'var(--rounded-full)', backgroundColor: 'var(--color-surface-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+                  <Smartphone size={22} />
+                </div>
+                <div>
+                  <h2 className="heading-xl">Android Mobile App</h2>
+                  <span className="caption-sm">Android 8.0 (Oreo) and above</span>
+                </div>
+              </div>
+
+              <a 
+                href="https://github.com/Ezaz777/Canvas-Link/releases" 
+                target="_blank" 
+                rel="noreferrer"
+                className="btn-secondary"
+              >
+                <Download size={16} />
+                <span>Download .APK</span>
+              </a>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                <div className="step-number-badge" style={{ width: '32px', height: '32px', fontSize: '15px', flexShrink: 0 }}>1</div>
+                <div>
+                  <p className="body-strong">Install the APK</p>
+                  <p className="body-sm">Download and install the APK on your device, allowing installation from unknown sources if prompted.</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                <div className="step-number-badge" style={{ width: '32px', height: '32px', fontSize: '15px', flexShrink: 0 }}>2</div>
+                <div>
+                  <p className="body-strong">Connect Account</p>
+                  <p className="body-sm">Tap "Log in with Pinterest" to authenticate via the in-app secure browser.</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                <div className="step-number-badge" style={{ width: '32px', height: '32px', fontSize: '15px', flexShrink: 0 }}>3</div>
+                <div>
+                  <p className="body-strong">WorkManager Background Sync</p>
+                  <p className="body-sm">Under Sync Frequency, set it to 24 hours. Android's native <code>WorkManager</code> handles updates automatically whenever unmetered Wi-Fi or charging conditions are met.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Developers / CLI */}
+          <div className="feature-card-box" style={{ border: '1px solid var(--color-hairline-soft)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: 'var(--rounded-full)', backgroundColor: 'var(--color-surface-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-ink)' }}>
+                <Terminal size={22} />
+              </div>
+              <div>
+                <h2 className="heading-xl">Build From Source</h2>
+                <span className="caption-sm">Python 3.10+ & Flutter 3.x</span>
               </div>
             </div>
 
-            {/* Installation Mobile */}
-            <div className="glass-panel" style={{ padding: '3rem', borderRadius: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <Smartphone size={28} className="text-gradient" />
-                <h2 style={{ fontSize: '2rem', margin: 0 }}>Mobile App Setup</h2>
-              </div>
-              <div style={{ fontSize: '1.1rem', lineHeight: '1.8', color: 'rgba(255,255,255,0.8)' }}>
-                <ol style={{ paddingLeft: '1.5rem' }}>
-                  <li style={{ marginBottom: '1rem' }}>Install the Canvas Link Android app (APK available on the dashboard).</li>
-                  <li style={{ marginBottom: '1rem' }}>Launch the app and tap "Log in with Pinterest" to authenticate via the secure in-app browser.</li>
-                  <li style={{ marginBottom: '1rem' }}>Open the Settings menu by tapping the gear icon in the top right corner.</li>
-                  <li style={{ marginBottom: '1rem' }}>Under <strong>Auto-Sync Frequency</strong>, choose how often you want the app to check for and apply updates (e.g., Every 24 hours).</li>
-                  <li style={{ marginBottom: '1rem' }}>The app uses Android's native <code>WorkManager</code> technology. This ensures it completely respects your device's battery life and only syncs when your phone is in an optimal state.</li>
-                </ol>
-              </div>
-            </div>
-            
-            {/* Privacy */}
-            <div className="glass-panel" style={{ padding: '3rem', borderRadius: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <ShieldCheck size={28} className="text-gradient" />
-                <h2 style={{ fontSize: '2rem', margin: 0 }}>Privacy & Security Guarantee</h2>
-              </div>
-              <p style={{ fontSize: '1.1rem', lineHeight: '1.8', color: 'rgba(255,255,255,0.8)' }}>
-                We believe your data is exactly that—yours. Canvas Link is entirely open-source, allowing anyone to verify our code. 
-                Our backend relies on industry-standard AES-GCM encryption to safely store your OAuth tokens. We only request read-only 
-                access to your public boards and pins; we never track your browsing data, serve ads, or sell your personal information.
-              </p>
-            </div>
+            <p className="body-md" style={{ color: 'var(--color-mute)', marginBottom: '16px' }}>
+              You can clone and build the PC client locally using standard Python tooling:
+            </p>
 
-          </motion.div>
+            <div style={{ backgroundColor: 'var(--color-surface-card)', padding: '16px', borderRadius: 'var(--rounded-md)', position: 'relative', fontFamily: 'monospace', fontSize: '14px', color: 'var(--color-ink)' }}>
+              <code>git clone https://github.com/Ezaz777/Canvas-Link.git<br/>cd "Canvas-Link/pc-client"<br/>pip install -r requirements.txt<br/>python main.py</code>
+              <button 
+                onClick={() => handleCopy('git clone https://github.com/Ezaz777/Canvas-Link.git\ncd "Canvas-Link/pc-client"\npip install -r requirements.txt\npython main.py')}
+                style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--color-canvas)', border: '1px solid var(--color-hairline)', borderRadius: 'var(--rounded-sm)', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
+              >
+                {copiedCode ? <Check size={14} color="green" /> : <Copy size={14} />}
+                <span>{copiedCode ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+          </div>
+
         </div>
-      </section>
+      </div>
     </div>
   );
 };

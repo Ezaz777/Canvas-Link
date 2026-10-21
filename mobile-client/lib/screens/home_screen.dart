@@ -12,6 +12,7 @@ import 'package:async_wallpaper/async_wallpaper.dart';
 import 'board_screen.dart';
 import 'dashboard_screen.dart';
 import 'login_screen.dart';
+import '../utils/pinterest_theme.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -504,179 +505,128 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF0F172A),
-        ),
-        child: SafeArea(
-          child: FadeTransition(
-            opacity: CurvedAnimation(
-              parent: _animController,
-              curve: Curves.easeOut,
-            ),
-            child: Column(
-              children: [
-                // App Bar
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+      backgroundColor: PinterestTheme.surfaceSoft,
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: CurvedAnimation(
+            parent: _animController,
+            curve: Curves.easeOut,
+          ),
+          child: Column(
+            children: [
+              // Pinterest Style Header Bar
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: const BoxDecoration(
+                        color: PinterestTheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'P',
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
                           ),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(
-                          Icons.wallpaper_rounded,
-                          color: Colors.white,
-                          size: 22,
                         ),
                       ),
-                      const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Canvas Link',
-                            style: GoogleFonts.outfit(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const Text(
-                            'Daily Pinterest Magic',
-                            style: TextStyle(
-                              color: Color(0xFF94A3B8),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        onPressed: _showSettingsModal,
-                        icon: Icon(
-                          Icons.settings_rounded,
-                          color: Colors.white.withOpacity(0.6),
-                        ),
-                        tooltip: 'Settings',
-                      ),
-                      IconButton(
-                        onPressed: _logout,
-                        icon: Icon(
-                          Icons.logout_rounded,
-                          color: Colors.white.withOpacity(0.6),
-                        ),
-                        tooltip: 'Logout',
-                      ),
-                    ],
-                  ),
-                ),
-
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 8),
-
-                        // Wallpaper Preview Card
-                        _buildPreviewCard(),
-                        const SizedBox(height: 20),
-
-                        // Sync Button
-                        _buildSyncButton(),
-
-                        const SizedBox(height: 20),
-
-                        // Stats Card
-                        if (_totalPins != null) _buildStatsCard(),
-
-                        const SizedBox(height: 20),
-
-                        // View Board Gallery Button
-                        if (_totalPins != null)
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const BoardScreen(),
-                                  ),
-                                ).then((_) => _loadCurrentWallpaper());
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xB31E293B),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  side: BorderSide(
-                                      color: Colors.white.withOpacity(0.1)),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.photo_library_rounded, size: 22),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    'View Board Gallery',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                        Text(
+                          'Canvas Link',
+                          style: GoogleFonts.inter(
+                            color: PinterestTheme.ink,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.5,
                           ),
+                        ),
+                        Text(
+                          'Daily Pinterest Wallpapers',
+                          style: GoogleFonts.inter(
+                            color: PinterestTheme.mute,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: _showSettingsModal,
+                      icon: const Icon(
+                        Icons.settings_rounded,
+                        color: PinterestTheme.ink,
+                      ),
+                      tooltip: 'Settings',
+                    ),
+                    IconButton(
+                      onPressed: _logout,
+                      icon: const Icon(
+                        Icons.logout_rounded,
+                        color: PinterestTheme.mute,
+                      ),
+                      tooltip: 'Logout',
+                    ),
+                  ],
+                ),
+              ),
 
-                        const SizedBox(height: 16),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 4),
 
-                        // Manage Boards Dashboard Button
+                      // Wallpaper Preview Card
+                      _buildPreviewCard(),
+                      const SizedBox(height: 16),
+
+                      // Sync Button
+                      _buildSyncButton(),
+
+                      const SizedBox(height: 16),
+
+                      // Stats Card
+                      if (_totalPins != null) _buildStatsCard(),
+
+                      const SizedBox(height: 16),
+
+                      // View Board Gallery Button per DESIGN.md
+                      if (_totalPins != null)
                         SizedBox(
                           width: double.infinity,
-                          height: 56,
+                          height: 48,
                           child: ElevatedButton(
                             onPressed: () {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (_) => const DashboardScreen(),
+                                  builder: (_) => const BoardScreen(),
                                 ),
                               ).then((_) => _loadCurrentWallpaper());
                             },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0x0CFFFFFF),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: BorderSide(
-                                    color: Colors.white.withOpacity(0.1)),
-                              ),
-                              elevation: 0,
-                            ),
+                            style: PinterestTheme.secondaryButtonStyle(height: 48),
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.dashboard_customize_rounded, size: 22),
-                                SizedBox(width: 12),
+                                Icon(Icons.photo_library_rounded, size: 20),
+                                SizedBox(width: 10),
                                 Text(
-                                  'Manage Boards',
+                                  'View Board Gallery',
                                   style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ],
@@ -684,13 +634,44 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         ),
 
-                        const SizedBox(height: 32),
-                      ],
-                    ),
+                      const SizedBox(height: 12),
+
+                      // Manage Boards Dashboard Button per DESIGN.md
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const DashboardScreen(),
+                              ),
+                            ).then((_) => _loadCurrentWallpaper());
+                          },
+                          style: PinterestTheme.secondaryButtonStyle(height: 48),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.dashboard_customize_rounded, size: 20),
+                              SizedBox(width: 10),
+                              Text(
+                                'Manage Boards',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 28),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -701,9 +682,9 @@ class _HomeScreenState extends State<HomeScreen>
     HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: PinterestTheme.canvas,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(PinterestTheme.radiusLg)),
       ),
       builder: (context) {
         return SafeArea(
@@ -718,25 +699,25 @@ class _HomeScreenState extends State<HomeScreen>
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: PinterestTheme.hairline,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Set as Wallpaper',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                  style: GoogleFonts.inter(
+                    color: PinterestTheme.ink,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Choose where to apply this wallpaper on your device',
-                  style: TextStyle(
-                    color: Color(0xFF94A3B8),
+                  style: GoogleFonts.inter(
+                    color: PinterestTheme.mute,
                     fontSize: 13,
                   ),
                 ),
@@ -783,48 +764,48 @@ class _HomeScreenState extends State<HomeScreen>
     final isCurrent = _screenTarget == target;
     return Container(
       decoration: BoxDecoration(
-        color: isCurrent ? const Color(0x268B5CF6) : const Color(0x0CFFFFFF),
-        borderRadius: BorderRadius.circular(16),
+        color: isCurrent ? PinterestTheme.canvas : PinterestTheme.surfaceCard,
+        borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
         border: Border.all(
           color: isCurrent
-              ? const Color(0xFF8B5CF6).withOpacity(0.6)
-              : Colors.white.withOpacity(0.08),
+              ? PinterestTheme.ink
+              : Colors.transparent,
+          width: 1.5,
         ),
       ),
       child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
         leading: Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: isCurrent
-                ? const Color(0xFF8B5CF6).withOpacity(0.3)
-                : Colors.white.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(12),
+            color: PinterestTheme.canvas,
+            borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
+            border: Border.all(color: PinterestTheme.hairlineSoft),
           ),
           child: Icon(
             icon,
-            color: isCurrent ? const Color(0xFFC4B5FD) : Colors.white70,
-            size: 22,
+            color: isCurrent ? PinterestTheme.primary : PinterestTheme.ink,
+            size: 20,
           ),
         ),
         title: Text(
           title,
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: isCurrent ? FontWeight.bold : FontWeight.w600,
-            fontSize: 15,
+          style: GoogleFonts.inter(
+            color: PinterestTheme.ink,
+            fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w600,
+            fontSize: 14,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
+          style: GoogleFonts.inter(
+            color: PinterestTheme.mute,
             fontSize: 12,
           ),
         ),
         trailing: isCurrent
-            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF8B5CF6), size: 22)
+            ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary, size: 20)
             : null,
         onTap: () {
           Navigator.pop(context);
@@ -839,14 +820,10 @@ class _HomeScreenState extends State<HomeScreen>
       return Container(
         width: double.infinity,
         height: 440,
-        decoration: BoxDecoration(
-          color: const Color(0xB31E293B),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
-        ),
+        decoration: PinterestTheme.cardDecoration(soft: true),
         child: const Center(
           child: CircularProgressIndicator(
-            color: Color(0xFF8B5CF6),
+            color: PinterestTheme.primary,
             strokeWidth: 2.5,
           ),
         ),
@@ -857,11 +834,7 @@ class _HomeScreenState extends State<HomeScreen>
       return Container(
         width: double.infinity,
         constraints: const BoxConstraints(minHeight: 380),
-        decoration: BoxDecoration(
-          color: const Color(0xB31E293B),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
-        ),
+        decoration: PinterestTheme.cardDecoration(soft: true),
         child: _buildEmptyOrErrorGuide(),
       );
     }
@@ -873,26 +846,17 @@ class _HomeScreenState extends State<HomeScreen>
       width: double.infinity,
       height: 440,
       decoration: BoxDecoration(
-        color: const Color(0xB31E293B),
-        borderRadius: BorderRadius.circular(24),
+        color: PinterestTheme.surfaceCard,
+        borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
         border: Border.all(
           color: isActive
-              ? const Color(0xFF10B981).withOpacity(0.5)
-              : Colors.white.withOpacity(0.12),
-          width: isActive ? 1.5 : 1.0,
+              ? PinterestTheme.primary
+              : PinterestTheme.hairlineSoft,
+          width: isActive ? 2.0 : 1.0,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: isActive
-                ? const Color(0xFF10B981).withOpacity(0.18)
-                : Colors.black.withOpacity(0.3),
-            blurRadius: 30,
-            offset: const Offset(0, 15),
-          ),
-        ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -928,7 +892,7 @@ class _HomeScreenState extends State<HomeScreen>
                         if (progress == null) return child;
                         return const Center(
                           child: CircularProgressIndicator(
-                            color: Color(0xFF8B5CF6),
+                            color: PinterestTheme.primary,
                             strokeWidth: 2.5,
                           ),
                         );
@@ -947,10 +911,10 @@ class _HomeScreenState extends State<HomeScreen>
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(Icons.broken_image_rounded,
-                                      color: Colors.white.withOpacity(0.3), size: 48),
+                                      color: PinterestTheme.mute, size: 48),
                                   const SizedBox(height: 12),
                                   Text('Failed to load image',
-                                      style: TextStyle(color: Colors.white.withOpacity(0.4))),
+                                      style: TextStyle(color: PinterestTheme.mute)),
                                 ],
                               ),
                             ),
@@ -961,28 +925,28 @@ class _HomeScreenState extends State<HomeScreen>
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.broken_image_rounded,
-                                  color: Colors.white.withOpacity(0.3), size: 48),
+                                  color: PinterestTheme.mute, size: 48),
                               const SizedBox(height: 12),
                               Text('Failed to load image',
-                                  style: TextStyle(color: Colors.white.withOpacity(0.4))),
+                                  style: TextStyle(color: PinterestTheme.mute)),
                             ],
                           ),
                         );
                       },
                     ),
-                    // Gradient shading for readability
+                    // Subtle bottom gradient for readability
                     Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.black.withOpacity(0.6),
+                            Colors.black.withOpacity(0.35),
                             Colors.transparent,
                             Colors.transparent,
-                            Colors.black.withOpacity(0.8),
+                            Colors.black.withOpacity(0.5),
                           ],
-                          stops: const [0.0, 0.22, 0.65, 1.0],
+                          stops: const [0.0, 0.2, 0.7, 1.0],
                         ),
                       ),
                     ),
@@ -991,7 +955,7 @@ class _HomeScreenState extends State<HomeScreen>
               },
             ),
 
-            // Top Header: Date badge on left, Active indicator on right
+            // Top Header: Date badge on left, Active indicator on right (Pills on image per DESIGN.md)
             Positioned(
               top: 14,
               left: 14,
@@ -1000,42 +964,31 @@ class _HomeScreenState extends State<HomeScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.65),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.12)),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: PinterestTheme.pillOnImageDecoration(),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.calendar_today_rounded,
-                            color: Color(0xFF8B5CF6), size: 13),
+                        const Icon(
+                          Icons.calendar_today_rounded,
+                          color: PinterestTheme.ink,
+                          size: 13,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           _currentDate ?? 'Today',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: GoogleFonts.inter(
+                            color: PinterestTheme.ink,
                             fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? const Color(0xFF10B981).withOpacity(0.25)
-                          : Colors.black.withOpacity(0.65),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isActive
-                            ? const Color(0xFF10B981).withOpacity(0.6)
-                            : Colors.white.withOpacity(0.12),
-                      ),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: PinterestTheme.pillOnImageDecoration(),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -1044,8 +997,8 @@ class _HomeScreenState extends State<HomeScreen>
                               ? Icons.check_circle_rounded
                               : Icons.collections_rounded,
                           color: isActive
-                              ? const Color(0xFF34D399)
-                              : const Color(0xFF94A3B8),
+                              ? PinterestTheme.primary
+                              : PinterestTheme.mute,
                           size: 14,
                         ),
                         const SizedBox(width: 6),
@@ -1053,10 +1006,10 @@ class _HomeScreenState extends State<HomeScreen>
                           isActive
                               ? 'Active on Device'
                               : '${_currentIndex + 1} of $totalCount',
-                          style: TextStyle(
-                            color: isActive ? Colors.white : const Color(0xFFE2E8F0),
+                          style: GoogleFonts.inter(
+                            color: isActive ? PinterestTheme.primary : PinterestTheme.ink,
                             fontSize: 12,
-                            fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+                            fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
                           ),
                         ),
                       ],
@@ -1070,7 +1023,7 @@ class _HomeScreenState extends State<HomeScreen>
             if (totalCount > 1) ...[
               if (_currentIndex > 0)
                 Positioned(
-                  left: 10,
+                  left: 12,
                   top: 0,
                   bottom: 0,
                   child: Center(
@@ -1085,19 +1038,20 @@ class _HomeScreenState extends State<HomeScreen>
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
+                          color: Colors.white.withOpacity(0.92),
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white.withOpacity(0.15)),
+                          border: Border.all(color: PinterestTheme.hairlineSoft),
+                          boxShadow: PinterestTheme.overlayShadow,
                         ),
                         child: const Icon(Icons.chevron_left_rounded,
-                            color: Colors.white, size: 24),
+                            color: PinterestTheme.ink, size: 22),
                       ),
                     ),
                   ),
                 ),
               if (_currentIndex < totalCount - 1)
                 Positioned(
-                  right: 10,
+                  right: 12,
                   top: 0,
                   bottom: 0,
                   child: Center(
@@ -1112,12 +1066,13 @@ class _HomeScreenState extends State<HomeScreen>
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
+                          color: Colors.white.withOpacity(0.92),
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white.withOpacity(0.15)),
+                          border: Border.all(color: PinterestTheme.hairlineSoft),
+                          boxShadow: PinterestTheme.overlayShadow,
                         ),
                         child: const Icon(Icons.chevron_right_rounded,
-                            color: Colors.white, size: 24),
+                            color: PinterestTheme.ink, size: 22),
                       ),
                     ),
                   ),
@@ -1140,15 +1095,9 @@ class _HomeScreenState extends State<HomeScreen>
                           onPressed: (_isApplyingPin || _pins.isEmpty)
                               ? null
                               : () => _showSetWallpaperSheet(_pins[_currentIndex]),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF8B5CF6),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            elevation: 6,
-                            shadowColor: const Color(0xFF8B5CF6).withOpacity(0.6),
+                          style: PinterestTheme.primaryButtonStyle(
+                            height: 46,
+                            radius: PinterestTheme.radiusFull,
                           ),
                           child: _isApplyingPin
                               ? const SizedBox(
@@ -1162,22 +1111,22 @@ class _HomeScreenState extends State<HomeScreen>
                               : Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.flash_on_rounded, size: 18),
+                                    const Icon(Icons.wallpaper_rounded, size: 18, color: Colors.white),
                                     const SizedBox(width: 8),
-                                    const Text(
+                                    Text(
                                       'Set as Wallpaper',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.3,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
                                       ),
                                     ),
                                     const SizedBox(width: 8),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(8),
+                                        color: Colors.white.withOpacity(0.25),
+                                        borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
@@ -1188,13 +1137,14 @@ class _HomeScreenState extends State<HomeScreen>
                                                 : _screenTarget == 'lock'
                                                     ? 'Lock'
                                                     : 'Both',
-                                            style: const TextStyle(
+                                            style: GoogleFonts.inter(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w700,
+                                              color: Colors.white,
                                             ),
                                           ),
                                           const SizedBox(width: 2),
-                                          const Icon(Icons.arrow_drop_down_rounded, size: 16),
+                                          const Icon(Icons.arrow_drop_down_rounded, size: 16, color: Colors.white),
                                         ],
                                       ),
                                     ),
@@ -1205,23 +1155,19 @@ class _HomeScreenState extends State<HomeScreen>
                     : Center(
                         key: const ValueKey('active_pill'),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
-                          ),
-                          child: const Row(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                          decoration: PinterestTheme.pillOnImageDecoration(),
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 16),
-                              SizedBox(width: 8),
+                              const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary, size: 18),
+                              const SizedBox(width: 8),
                               Text(
                                 'Current Wallpaper',
-                                style: TextStyle(
-                                  color: Colors.white,
+                                style: GoogleFonts.inter(
+                                  color: PinterestTheme.ink,
                                   fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ],
@@ -1231,7 +1177,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
 
-            // Satisfying Central Burst Animation on Wallpaper Set
+            // Central Burst Notification on Wallpaper Set
             Center(
               child: AnimatedBuilder(
                 animation: _burstAnimController,
@@ -1244,18 +1190,12 @@ class _HomeScreenState extends State<HomeScreen>
                     child: ScaleTransition(
                       scale: _burstScaleAnimation,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
                         decoration: BoxDecoration(
-                          color: const Color(0xF00F172A),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(color: const Color(0xFF10B981), width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF10B981).withOpacity(0.4),
-                              blurRadius: 30,
-                              spreadRadius: 4,
-                            ),
-                          ],
+                          color: PinterestTheme.canvas,
+                          borderRadius: BorderRadius.circular(PinterestTheme.radiusLg),
+                          border: Border.all(color: PinterestTheme.hairline, width: 1.5),
+                          boxShadow: PinterestTheme.overlayShadow,
                         ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -1264,25 +1204,25 @@ class _HomeScreenState extends State<HomeScreen>
                               width: 52,
                               height: 52,
                               decoration: const BoxDecoration(
-                                color: Color(0xFF10B981),
+                                color: PinterestTheme.primary,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.check_rounded, color: Colors.white, size: 34),
+                              child: const Icon(Icons.check_rounded, color: Colors.white, size: 32),
                             ),
                             const SizedBox(height: 12),
-                            const Text(
+                            Text(
                               'Wallpaper Set!',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                              style: GoogleFonts.inter(
+                                color: PinterestTheme.ink,
+                                fontWeight: FontWeight.w800,
                                 fontSize: 18,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               Settings.getScreenTargetDisplayString(_screenTarget),
-                              style: const TextStyle(
-                                color: Color(0xFF94A3B8),
+                              style: GoogleFonts.inter(
+                                color: PinterestTheme.mute,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -1309,25 +1249,24 @@ class _HomeScreenState extends State<HomeScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE60023).withOpacity(0.15),
+              width: 56,
+              height: 56,
+              decoration: const BoxDecoration(
+                color: PinterestTheme.primary,
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFE60023).withOpacity(0.3)),
               ),
               child: const Icon(
                 Icons.collections_bookmark_rounded,
-                color: Color(0xFFE60023),
-                size: 32,
+                color: Colors.white,
+                size: 28,
               ),
             ),
             const SizedBox(height: 16),
             Text(
               'No Wallpapers in Board',
-              style: GoogleFonts.outfit(
-                color: Colors.white,
-                fontSize: 20,
+              style: GoogleFonts.inter(
+                color: PinterestTheme.ink,
+                fontSize: 18,
                 fontWeight: FontWeight.w700,
               ),
               textAlign: TextAlign.center,
@@ -1335,8 +1274,8 @@ class _HomeScreenState extends State<HomeScreen>
             const SizedBox(height: 8),
             Text(
               'You haven\'t saved any wallpapers in this Pinterest board yet! Follow these quick steps to get started:',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
+              style: GoogleFonts.inter(
+                color: PinterestTheme.mute,
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -1345,11 +1284,7 @@ class _HomeScreenState extends State<HomeScreen>
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0x0CFFFFFF),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withOpacity(0.08)),
-              ),
+              decoration: PinterestTheme.cardDecoration(soft: false),
               child: Column(
                 children: [
                   _buildGuideStep('1', 'Open Pinterest & search for wallpapers you love'),
@@ -1370,29 +1305,18 @@ class _HomeScreenState extends State<HomeScreen>
                       mode: LaunchMode.externalApplication,
                     ),
                     icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                    label: const Text('Open Pinterest', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE60023),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      elevation: 0,
-                    ),
+                    label: const Text('Open Pinterest', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                    style: PinterestTheme.primaryButtonStyle(height: 44),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: OutlinedButton(
+                  child: ElevatedButton(
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const DashboardScreen()),
                     ).then((_) => _loadCurrentWallpaper()),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white70,
-                      side: BorderSide(color: Colors.white.withOpacity(0.2)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text('Change Board', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    style: PinterestTheme.secondaryButtonStyle(height: 44),
+                    child: const Text('Change Board', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                   ),
                 ),
               ],
@@ -1409,25 +1333,24 @@ class _HomeScreenState extends State<HomeScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: const Color(0xFF8B5CF6).withOpacity(0.15),
+              width: 56,
+              height: 56,
+              decoration: const BoxDecoration(
+                color: PinterestTheme.primary,
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
               ),
               child: const Icon(
                 Icons.dashboard_customize_rounded,
-                color: Color(0xFF8B5CF6),
-                size: 32,
+                color: Colors.white,
+                size: 28,
               ),
             ),
             const SizedBox(height: 16),
             Text(
               'No Board Selected',
-              style: GoogleFonts.outfit(
-                color: Colors.white,
-                fontSize: 20,
+              style: GoogleFonts.inter(
+                color: PinterestTheme.ink,
+                fontSize: 18,
                 fontWeight: FontWeight.w700,
               ),
               textAlign: TextAlign.center,
@@ -1435,8 +1358,8 @@ class _HomeScreenState extends State<HomeScreen>
             const SizedBox(height: 8),
             Text(
               'You haven\'t linked a Pinterest board to your Mobile yet. Choose a board so Canvas Link can automatically change daily wallpapers on your phone.',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
+              style: GoogleFonts.inter(
+                color: PinterestTheme.mute,
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -1451,13 +1374,8 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const DashboardScreen()),
                 ).then((_) => _loadCurrentWallpaper()),
                 icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                label: const Text('Choose a Board', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B5CF6),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
+                label: const Text('Choose a Board', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                style: PinterestTheme.primaryButtonStyle(height: 48),
               ),
             ),
           ],
@@ -1471,30 +1389,26 @@ class _HomeScreenState extends State<HomeScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.lock_clock_rounded, color: Color(0xFFEF4444), size: 48),
+            const Icon(Icons.lock_clock_rounded, color: PinterestTheme.primary, size: 48),
             const SizedBox(height: 16),
             Text(
               'Session Expired',
-              style: GoogleFonts.outfit(
-                color: Colors.white,
-                fontSize: 20,
+              style: GoogleFonts.inter(
+                color: PinterestTheme.ink,
+                fontSize: 18,
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Your Pinterest connection has expired. Please log in again to continue syncing wallpapers.',
-              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+              style: GoogleFonts.inter(color: PinterestTheme.mute, fontSize: 13),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _logout,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEF4444),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+              style: PinterestTheme.primaryButtonStyle(height: 48),
               child: const Text('Log In Again'),
             ),
           ],
@@ -1508,11 +1422,11 @@ class _HomeScreenState extends State<HomeScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.collections_bookmark_outlined, color: Colors.white.withOpacity(0.2), size: 52),
+          const Icon(Icons.collections_bookmark_outlined, color: PinterestTheme.mute, size: 52),
           const SizedBox(height: 16),
           Text(
             _errorMessage ?? 'No wallpaper loaded yet',
-            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, fontWeight: FontWeight.w500),
+            style: GoogleFonts.inter(color: PinterestTheme.ink, fontSize: 15, fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
@@ -1520,11 +1434,7 @@ class _HomeScreenState extends State<HomeScreen>
             onPressed: _loadCurrentWallpaper,
             icon: const Icon(Icons.refresh_rounded, size: 18),
             label: const Text('Try Again'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xB31E293B),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
+            style: PinterestTheme.secondaryButtonStyle(height: 44),
           ),
         ],
       ),
@@ -1539,14 +1449,14 @@ class _HomeScreenState extends State<HomeScreen>
           width: 20,
           height: 20,
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: const Color(0xFFE60023).withOpacity(0.2),
+          decoration: const BoxDecoration(
+            color: PinterestTheme.primary,
             shape: BoxShape.circle,
           ),
           child: Text(
             number,
             style: const TextStyle(
-              color: Color(0xFFE60023),
+              color: Colors.white,
               fontSize: 11,
               fontWeight: FontWeight.bold,
             ),
@@ -1556,8 +1466,8 @@ class _HomeScreenState extends State<HomeScreen>
         Expanded(
           child: Text(
             text,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+            style: GoogleFonts.inter(
+              color: PinterestTheme.ink,
               fontSize: 12,
               height: 1.3,
             ),
@@ -1573,26 +1483,18 @@ class _HomeScreenState extends State<HomeScreen>
       children: [
         Expanded(
           child: SizedBox(
-            height: 60,
+            height: 52,
             child: ElevatedButton(
               onPressed: isBusy ? null : _skipNow,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xB31E293B),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  side: BorderSide(color: Colors.white.withOpacity(0.1)),
-                ),
-                elevation: 0,
-              ),
+              style: PinterestTheme.secondaryButtonStyle(height: 52),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.skip_next_rounded, size: 22),
+                  Icon(Icons.skip_next_rounded, size: 20),
                   SizedBox(width: 8),
                   Text(
                     'Skip',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                 ],
               ),
@@ -1603,63 +1505,40 @@ class _HomeScreenState extends State<HomeScreen>
         Expanded(
           flex: 2,
           child: SizedBox(
-            height: 60,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
-                ),
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ElevatedButton(
-                onPressed: isBusy ? null : _onSetWallpaperPressed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  elevation: 0,
-                ),
-                child: isBusy
-                    ? const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
+            height: 52,
+            child: ElevatedButton(
+              onPressed: isBusy ? null : _onSetWallpaperPressed,
+              style: PinterestTheme.primaryButtonStyle(height: 52),
+              child: isBusy
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
                           ),
-                          SizedBox(width: 12),
-                          Text(
-                            'Setting...',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      )
-                    : const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.wallpaper_rounded, size: 22),
-                          SizedBox(width: 10),
-                          Text(
-                            'Set as Wallpaper',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                          ),
-                        ],
-                      ),
-              ),
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          'Setting...',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    )
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.wallpaper_rounded, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Set as Wallpaper',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
             ),
           ),
         ),
@@ -1679,11 +1558,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xB31E293B),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
+      decoration: PinterestTheme.cardDecoration(soft: true),
       child: Row(
         children: [
           // 1. Board Pins: Clickable, opens BoardScreen
@@ -1694,7 +1569,7 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const BoardScreen()),
                 ).then((_) => _loadCurrentWallpaper());
               },
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: _buildStat(
@@ -1707,14 +1582,14 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           Container(
             width: 1,
-            height: 40,
-            color: Colors.white.withOpacity(0.08),
+            height: 36,
+            color: PinterestTheme.hairline,
           ),
           // 2. Screen Target: Clickable, opens Screen Target modal
           Expanded(
             child: InkWell(
               onTap: _showScreenTargetModal,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: _buildStat(
@@ -1735,18 +1610,18 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           Container(
             width: 1,
-            height: 40,
-            color: Colors.white.withOpacity(0.08),
+            height: 36,
+            color: PinterestTheme.hairline,
           ),
           // 3. Change Timer: Clickable, opens Frequency modal
           Expanded(
             child: InkWell(
               onTap: _showFrequencyModal,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: _buildStat(
-                  'Change Timer',
+                  'Timer',
                   Settings.getFrequencyShortString(_syncFrequency),
                   Icons.schedule_rounded,
                 ),
@@ -1762,12 +1637,12 @@ class _HomeScreenState extends State<HomeScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: const Color(0xFF8B5CF6), size: 20),
+        Icon(icon, color: PinterestTheme.primary, size: 20),
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
+          style: GoogleFonts.inter(
+            color: PinterestTheme.ink,
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
@@ -1777,9 +1652,10 @@ class _HomeScreenState extends State<HomeScreen>
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.4),
+          style: GoogleFonts.inter(
+            color: PinterestTheme.mute,
             fontSize: 11,
+            fontWeight: FontWeight.w500,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -1791,33 +1667,44 @@ class _HomeScreenState extends State<HomeScreen>
   void _showScreenTargetModal() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: PinterestTheme.canvas,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(PinterestTheme.radiusLg)),
       ),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Wallpaper Screen Target',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: PinterestTheme.hairline,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
+                    const SizedBox(height: 16),
+                    Text(
+                      'Wallpaper Screen Target',
+                      style: GoogleFonts.inter(
+                        color: PinterestTheme.ink,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
                       'Choose which screen(s) new wallpapers are applied to',
-                      style: TextStyle(
-                        color: Color(0xFF94A3B8),
+                      style: GoogleFonts.inter(
+                        color: PinterestTheme.mute,
                         fontSize: 12,
                       ),
                     ),
@@ -1832,17 +1719,17 @@ class _HomeScreenState extends State<HomeScreen>
                               : target == 'home'
                                   ? Icons.home_rounded
                                   : Icons.lock_outline_rounded,
-                          color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF94A3B8),
+                          color: isSelected ? PinterestTheme.primary : PinterestTheme.mute,
                         ),
                         title: Text(
                           Settings.getScreenTargetDisplayString(target),
-                          style: TextStyle(
-                            color: isSelected ? const Color(0xFF8B5CF6) : Colors.white,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          style: GoogleFonts.inter(
+                            color: PinterestTheme.ink,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                           ),
                         ),
                         trailing: isSelected
-                            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF8B5CF6))
+                            ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
                             : null,
                         onTap: () async {
                           await Settings.setScreenTarget(target);
@@ -1877,33 +1764,44 @@ class _HomeScreenState extends State<HomeScreen>
   void _showFrequencyModal() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: PinterestTheme.canvas,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(PinterestTheme.radiusLg)),
       ),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Wallpaper Change Frequency',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: PinterestTheme.hairline,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
+                    const SizedBox(height: 16),
+                    Text(
+                      'Wallpaper Change Frequency',
+                      style: GoogleFonts.inter(
+                        color: PinterestTheme.ink,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
                       'Choose how often Canvas Link automatically changes your wallpaper',
-                      style: TextStyle(
-                        color: Color(0xFF94A3B8),
+                      style: GoogleFonts.inter(
+                        color: PinterestTheme.mute,
                         fontSize: 12,
                       ),
                     ),
@@ -1922,17 +1820,17 @@ class _HomeScreenState extends State<HomeScreen>
                                       : freq == 24
                                           ? Icons.calendar_today_rounded
                                           : Icons.pause_circle_outline_rounded,
-                          color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF94A3B8),
+                          color: isSelected ? PinterestTheme.primary : PinterestTheme.mute,
                         ),
                         title: Text(
                           Settings.getFrequencyDisplayString(freq),
-                          style: TextStyle(
-                            color: isSelected ? const Color(0xFF8B5CF6) : Colors.white,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          style: GoogleFonts.inter(
+                            color: PinterestTheme.ink,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                           ),
                         ),
                         trailing: isSelected
-                            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF8B5CF6))
+                            ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
                             : null,
                         onTap: () async {
                           await Settings.setSyncFrequency(freq);
@@ -1969,33 +1867,44 @@ class _HomeScreenState extends State<HomeScreen>
   void _showSettingsModal() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: PinterestTheme.canvas,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(PinterestTheme.radiusLg)),
       ),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Wallpaper Screen Target',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: PinterestTheme.hairline,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
+                    const SizedBox(height: 16),
+                    Text(
+                      'Wallpaper Screen Target',
+                      style: GoogleFonts.inter(
+                        color: PinterestTheme.ink,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
                       'Choose which screen(s) new wallpapers are applied to',
-                      style: TextStyle(
-                        color: Color(0xFF94A3B8),
+                      style: GoogleFonts.inter(
+                        color: PinterestTheme.mute,
                         fontSize: 12,
                       ),
                     ),
@@ -2010,17 +1919,17 @@ class _HomeScreenState extends State<HomeScreen>
                               : target == 'home'
                                   ? Icons.home_rounded
                                   : Icons.lock_outline_rounded,
-                          color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF94A3B8),
+                          color: isSelected ? PinterestTheme.primary : PinterestTheme.mute,
                         ),
                         title: Text(
                           Settings.getScreenTargetDisplayString(target),
-                          style: TextStyle(
-                            color: isSelected ? const Color(0xFF8B5CF6) : Colors.white,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          style: GoogleFonts.inter(
+                            color: PinterestTheme.ink,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                           ),
                         ),
                         trailing: isSelected
-                            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF8B5CF6))
+                            ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
                             : null,
                         onTap: () async {
                           await Settings.setScreenTarget(target);
@@ -2033,20 +1942,20 @@ class _HomeScreenState extends State<HomeScreen>
                         },
                       );
                     }).toList(),
-                    const Divider(color: Color(0x1FFFFFFF), height: 32),
-                    const Text(
+                    const Divider(color: PinterestTheme.hairline, height: 32),
+                    Text(
                       'Wallpaper Change Frequency',
-                      style: TextStyle(
-                        color: Colors.white,
+                      style: GoogleFonts.inter(
+                        color: PinterestTheme.ink,
                         fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
+                    const SizedBox(height: 4),
+                    Text(
                       'Choose how often Canvas Link automatically changes your wallpaper',
-                      style: TextStyle(
-                        color: Color(0xFF94A3B8),
+                      style: GoogleFonts.inter(
+                        color: PinterestTheme.mute,
                         fontSize: 12,
                       ),
                     ),
@@ -2057,13 +1966,13 @@ class _HomeScreenState extends State<HomeScreen>
                         contentPadding: EdgeInsets.zero,
                         title: Text(
                           Settings.getFrequencyDisplayString(freq),
-                          style: TextStyle(
-                            color: isSelected ? const Color(0xFF8B5CF6) : Colors.white,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          style: GoogleFonts.inter(
+                            color: PinterestTheme.ink,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                           ),
                         ),
                         trailing: isSelected
-                            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF8B5CF6))
+                            ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
                             : null,
                         onTap: () async {
                           await Settings.setSyncFrequency(freq);

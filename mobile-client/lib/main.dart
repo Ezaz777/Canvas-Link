@@ -1,6 +1,3 @@
-/// WallpaperSync — Main Entry Point
-/// Initializes WorkManager, checks auth state, and routes to appropriate screen.
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,17 +5,18 @@ import 'services/auth_service.dart';
 import 'workers/wallpaper_worker.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'utils/pinterest_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Set system UI overlay style for premium feel
+  // Set system UI overlay style matching Pinterest design
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Color(0xFF0F172A),
-      systemNavigationBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: PinterestTheme.surfaceSoft,
+      systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
 
@@ -48,25 +46,34 @@ class WallpaperSyncApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        brightness: Brightness.dark,
-        colorSchemeSeed: const Color(0xFF8B5CF6),
-        scaffoldBackgroundColor: const Color(0xFF0F172A),
-        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
+        brightness: Brightness.light,
+        colorSchemeSeed: PinterestTheme.primary,
+        scaffoldBackgroundColor: PinterestTheme.surfaceSoft,
+        canvasColor: PinterestTheme.canvas,
+        cardColor: PinterestTheme.surfaceCard,
+        dividerColor: PinterestTheme.hairline,
+        textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme).apply(
+          bodyColor: PinterestTheme.body,
+          displayColor: PinterestTheme.ink,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: PinterestTheme.surfaceSoft,
+          foregroundColor: PinterestTheme.ink,
           elevation: 0,
-          systemOverlayStyle: SystemUiOverlayStyle.light,
+          centerTitle: true,
+          systemOverlayStyle: SystemUiOverlayStyle.dark,
+          titleTextStyle: GoogleFonts.inter(
+            color: PinterestTheme.ink,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
+          style: PinterestTheme.primaryButtonStyle(),
         ),
       ),
       home: isLoggedIn ? const HomeScreen() : const LoginScreen(),
     );
   }
 }
+
