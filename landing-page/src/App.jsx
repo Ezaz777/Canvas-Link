@@ -383,7 +383,7 @@ function Home({ onOpenDownloadModal }) {
                 </li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', color: 'var(--color-ink)' }}>
                   <CheckCircle2 size={18} color="var(--color-primary)" />
-                  <span>100% Free & Open-source client</span>
+                  <span>Lightweight, native client performance</span>
                 </li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', color: 'var(--color-ink)' }}>
                   <Battery size={18} color="var(--color-primary)" />
@@ -533,9 +533,9 @@ function Home({ onOpenDownloadModal }) {
             </div>
 
             <div className="faq-card">
-              <h3 className="heading-md" style={{ marginBottom: '8px' }}>Is Canvas Link free and open source?</h3>
+              <h3 className="heading-md" style={{ marginBottom: '8px' }}>How does licensing and access work?</h3>
               <p className="body-md" style={{ color: 'var(--color-mute)' }}>
-                Yes! The entire project — the Windows client, Android client, and backend worker — is 100% open source under the MIT license on GitHub.
+                Canvas Link offers premium cross-platform sync. Once set up, you enjoy automated daily wallpaper rotation from your selected Pinterest boards with full control over sync timing and zero advertisements.
               </p>
             </div>
           </div>
@@ -550,7 +550,7 @@ function Home({ onOpenDownloadModal }) {
               Ready to wake up to your favorite Pinterest inspiration?
             </h2>
             <p style={{ color: 'var(--color-on-dark-mute)', marginTop: '8px', fontSize: '16px' }}>
-              Download the free client today for Windows and Android.
+              Get the official client today for Windows and Android.
             </p>
           </div>
           <button 
@@ -558,7 +558,7 @@ function Home({ onOpenDownloadModal }) {
             style={{ height: '48px', padding: '8px 24px', fontSize: '16px' }}
             onClick={() => onOpenDownloadModal('all')}
           >
-            <span>Get Started for Free</span>
+            <span>Get Started</span>
             <ArrowRight size={18} />
           </button>
         </div>
@@ -719,7 +719,7 @@ function App() {
             <div>
               <h4 className="footer-col-header">Technology</h4>
               <ul className="footer-links-list">
-                <li><a href="https://github.com/Ezaz777/Canvas-Link" target="_blank" rel="noreferrer">Open Source (MIT)</a></li>
+                <li><span>Cross-Platform Sync Engine</span></li>
                 <li><span>Cloudflare Workers Backend</span></li>
                 <li><span>Pinterest REST API</span></li>
                 <li><span>Local SQLite Storage</span></li>
@@ -743,7 +743,7 @@ function App() {
               <span style={{ fontWeight: 700, color: 'var(--color-ink)', fontSize: '14px' }}>Canvas Link</span>
             </div>
             <p className="caption-sm">
-              © {new Date().getFullYear()} Canvas Link. Open source project inspired by Pinterest design system.
+              © {new Date().getFullYear()} Canvas Link. All rights reserved. Inspired by Pinterest design system.
             </p>
           </div>
         </div>
@@ -801,16 +801,15 @@ function App() {
                   <span>Download Windows Client (.exe)</span>
                 </a>
 
-                <a 
-                  href="https://github.com/Ezaz777/Canvas-Link/releases/latest/download/CanvasLink.apk" 
-                  target="_blank" 
-                  rel="noreferrer"
+                <Link 
+                  to="/installation" 
                   className="btn-secondary"
                   style={{ height: '44px', textDecoration: 'none' }}
+                  onClick={closeDownloadModal}
                 >
                   <Smartphone size={18} />
-                  <span>Download Android App (.apk)</span>
-                </a>
+                  <span>Get Android App (.apk)</span>
+                </Link>
 
                 <Link 
                   to="/installation" 
@@ -825,7 +824,7 @@ function App() {
 
               <div style={{ textAlign: 'center', marginTop: '20px', borderTop: '1px solid var(--color-hairline-soft)', paddingTop: '16px' }}>
                 <p className="caption-sm">
-                  100% Free & Open Source · No Ads · Secure OAuth
+                  Verified Clean · No Ads · Secure OAuth 2.0
                 </p>
               </div>
             </motion.div>

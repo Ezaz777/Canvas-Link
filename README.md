@@ -63,9 +63,6 @@ The high-performance edge API built on **Cloudflare Workers**.
 3. Execute locally: `python main.py`
 4. Build Executable: Run `build.bat` to create a standalone `.exe`.
 
-## 🤝 Contributing
-Contributions, issues, and feature requests are welcome!
-Feel free to check out the [issues page](../../issues) to get started.
-
-## 📄 License
-This project is open-source and available under the [MIT License](LICENSE).
+## 📄 License & Access
+Copyright © 2026 Canvas-Link. All rights reserved.
+This software and associated documentation files are proprietary and confidential. Unauthorized copying, modification, distribution, or commercial use without prior written consent is strictly prohibited. For licensing inquiries and access options, contact the maintainers.

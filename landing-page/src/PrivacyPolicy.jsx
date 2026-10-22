@@ -70,9 +70,9 @@ function PrivacyPolicy() {
             </section>
 
             <section>
-              <h2 className="heading-md" style={{ marginBottom: '8px' }}>5. Open Source Transparency</h2>
+              <h2 className="heading-md" style={{ marginBottom: '8px' }}>5. Security & Data Protection</h2>
               <p className="body-md" style={{ color: 'var(--color-mute)' }}>
-                Canvas Link is an open-source project licensed under the MIT License. You can independently inspect all source code on GitHub to verify our security and privacy practices.
+                Canvas Link adheres to industry-standard security practices. All authentication credentials are encrypted using platform security vaults (Windows Credential Locker and Android KeyStore), and we never sell, monetize, or track your personal usage data.
               </p>
             </section>
           </div>

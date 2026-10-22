@@ -12,7 +12,8 @@ import {
   Download,
   Calendar,
   Layers,
-  Sparkles
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
 
 const Features = ({ onOpenDownloadModal }) => {
@@ -46,7 +47,7 @@ const Features = ({ onOpenDownloadModal }) => {
               onClick={() => onOpenDownloadModal && onOpenDownloadModal('all')}
             >
               <Download size={16} />
-              <span>Download Free Client</span>
+              <span>Get Canvas Link</span>
             </button>
             <Link to="/installation" className="btn-secondary">
               <span>Setup Guide</span>
@@ -128,29 +129,27 @@ const Features = ({ onOpenDownloadModal }) => {
             </div>
           </div>
 
-          {/* Feature 4: Open Source Integrity */}
+          {/* Feature 4: Privacy & Security */}
           <div className="feature-card-box" style={{ border: '1px solid var(--color-hairline-soft)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--rounded-full)', backgroundColor: 'var(--color-surface-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
-                <Code2 size={20} />
+                <ShieldCheck size={20} />
               </div>
-              <h2 className="heading-xl">100% Free & Open Source</h2>
+              <h2 className="heading-xl">Enterprise-Grade Privacy & Security</h2>
             </div>
             
             <p className="body-md" style={{ color: 'var(--color-body)', lineHeight: '1.6', marginBottom: '20px' }}>
-              Canvas Link is licensed under the permissive MIT license. You can inspect every single line of code, run your own private server if desired, or contribute enhancements via GitHub pull requests.
+              Your Pinterest credentials and personal boards remain strictly protected. We utilize official OAuth 2.0 authentication with encrypted local token vaults, ensuring zero telemetry, no tracking, and total privacy across all your devices.
             </p>
 
-            <a 
-              href="https://github.com/Ezaz777/Canvas-Link" 
-              target="_blank" 
-              rel="noreferrer"
+            <Link 
+              to="/privacy" 
               className="btn-secondary"
               style={{ display: 'inline-flex' }}
             >
-              <span>Explore GitHub Repository</span>
-              <Code2 size={16} />
-            </a>
+              <span>Read Security & Privacy Details</span>
+              <ChevronRight size={16} />
+            </Link>
           </div>
 
         </div>
