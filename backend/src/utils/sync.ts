@@ -109,3 +109,95 @@ export function getTodayDateString(): string {
   const now = new Date();
   return now.toISOString().split('T')[0];
 }
+
+/**
+ * Result of the smart image flagging and selection algorithm.
+ */
+export interface PinSelectionResult {
+  selectedPin: any;
+  flaggedPinIds: string[];
+  isUnflaggedCycle: boolean;
+  unflaggedPinId: string | null;
+  totalPins: number;
+  flaggedCount: number;
+  unflaggedCount: number;
+}
+
+/**
+ * Smart Priority Flagging Algorithm:
+ * 1. Flags images that have been selected before and NEVER re-selects a flagged image
+ *    before all images on the board have been shown.
+ * 2. If the user later adds new images to the board, the new (unflagged) images get immediate priority.
+ * 3. When all images on the board have been flagged (no unflagged images remaining):
+ *    Unflags images ONE BY ONE, starting with the very first image that was flagged among them (FIFO),
+ *    shows it, and continues the cycle. If new images are added at any point during this,
+ *    they immediately jump ahead in priority.
+ *
+ * @param allPins - All pins currently existing in the Pinterest board
+ * @param currentFlaggedIds - List of pin IDs currently flagged, in chronological order [oldest, ..., newest]
+ * @param seedOrOffset - Number for deterministic tie-breaking among multiple unflagged candidates
+ */
+export function selectNextPin(
+  allPins: any[],
+  currentFlaggedIds: string[],
+  seedOrOffset: number = 0
+): PinSelectionResult {
+  if (!allPins || allPins.length === 0) {
+    throw new Error('No pins available for selection');
+  }
+
+  // 1. Build a map of valid pins currently on the board
+  const validPinMap = new Map<string, any>();
+  for (const pin of allPins) {
+    if (pin && pin.id) {
+      validPinMap.set(String(pin.id), pin);
+    }
+  }
+
+  // 2. Prune any flagged IDs that no longer exist on the board (e.g. deleted by user on Pinterest)
+  let activeFlagged = currentFlaggedIds
+    .map(id => String(id))
+    .filter(id => validPinMap.has(id));
+
+  // 3. Find unflagged pins (never shown, or newly added by user to board)
+  const flaggedSet = new Set(activeFlagged);
+  const unflaggedPins = allPins.filter(pin => !flaggedSet.has(String(pin.id)));
+
+  // Priority check: Newly added or unflagged pins get absolute priority
+  if (unflaggedPins.length > 0) {
+    const pickIndex = Math.abs(seedOrOffset) % unflaggedPins.length;
+    const selected = unflaggedPins[pickIndex];
+    const selectedId = String(selected.id);
+
+    // Flag this pin: append to the end of the flagged queue
+    activeFlagged.push(selectedId);
+
+    return {
+      selectedPin: selected,
+      flaggedPinIds: activeFlagged,
+      isUnflaggedCycle: false,
+      unflaggedPinId: null,
+      totalPins: allPins.length,
+      flaggedCount: activeFlagged.length,
+      unflaggedCount: unflaggedPins.length - 1,
+    };
+  }
+
+  // 4. All pins on the board are currently flagged!
+  // Unflag images ONE BY ONE: unflag the first (oldest) flagged image of the board
+  const unflaggedId = activeFlagged.shift()!;
+  const selected = validPinMap.get(unflaggedId) || allPins[0];
+
+  // Re-flag it at the end of the queue so it won't be picked again until all others cycle through
+  activeFlagged.push(String(selected.id));
+
+  return {
+    selectedPin: selected,
+    flaggedPinIds: activeFlagged,
+    isUnflaggedCycle: true,
+    unflaggedPinId: unflaggedId,
+    totalPins: allPins.length,
+    flaggedCount: activeFlagged.length,
+    unflaggedCount: 0,
+  };
+}

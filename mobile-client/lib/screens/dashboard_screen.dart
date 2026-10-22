@@ -74,6 +74,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) {
         final deviceName = deviceType == 'mobile' ? 'Mobile' : 'PC';
         final isDeactivated = boardId == null;
+        final snackBarBg = PinterestTheme.isDark(context)
+            ? const Color(0xFF262622)
+            : PinterestTheme.charcoal;
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -83,7 +86,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   isDeactivated
                       ? Icons.remove_circle_outline_rounded
                       : Icons.check_circle_rounded,
-                  color: PinterestTheme.canvas,
+                  color: Colors.white,
                   size: 20,
                 ),
                 const SizedBox(width: 10),
@@ -93,7 +96,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ? 'Board removed from $deviceName.'
                         : 'Board activated for $deviceName!',
                     style: GoogleFonts.inter(
-                      color: PinterestTheme.canvas,
+                      color: Colors.white,
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -101,7 +104,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ],
             ),
-            backgroundColor: PinterestTheme.charcoal,
+            backgroundColor: snackBarBg,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
           ),
@@ -111,7 +114,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update board: $e', style: const TextStyle(color: PinterestTheme.canvas)),
+            content: Text('Failed to update board: $e', style: const TextStyle(color: Colors.white)),
             backgroundColor: PinterestTheme.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
@@ -133,21 +136,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: PinterestTheme.surfaceSoft,
+      backgroundColor: PinterestTheme.getSurfaceSoft(context),
       appBar: AppBar(
         title: Text(
           'Your Boards',
           style: GoogleFonts.inter(
-            color: PinterestTheme.ink,
+            color: PinterestTheme.getInk(context),
             fontWeight: FontWeight.w700,
             fontSize: 18,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: PinterestTheme.ink),
+          icon: Icon(Icons.arrow_back_rounded, color: PinterestTheme.getInk(context)),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        backgroundColor: PinterestTheme.surfaceSoft,
+        backgroundColor: PinterestTheme.getSurfaceSoft(context),
         elevation: 0,
       ),
       body: _buildBody(),
@@ -177,7 +180,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 'Failed to load boards',
                 style: GoogleFonts.inter(
-                  color: PinterestTheme.ink,
+                  color: PinterestTheme.getInk(context),
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
@@ -186,7 +189,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 _errorMessage!,
                 style: GoogleFonts.inter(
-                  color: PinterestTheme.mute,
+                  color: PinterestTheme.getMute(context),
                   fontSize: 13,
                 ),
                 textAlign: TextAlign.center,
@@ -194,7 +197,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _loadBoards,
-                style: PinterestTheme.secondaryButtonStyle(height: 40),
+                style: PinterestTheme.secondaryButtonStyle(context: context, height: 40),
                 child: const Text('Retry'),
               ),
             ],
@@ -214,9 +217,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: PinterestTheme.surfaceCard,
+                  color: PinterestTheme.getSurfaceCard(context),
                   shape: BoxShape.circle,
-                  border: Border.all(color: PinterestTheme.hairline),
+                  border: Border.all(color: PinterestTheme.getHairline(context)),
                 ),
                 child: const Icon(
                   Icons.collections_bookmark_rounded,
@@ -228,7 +231,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 'No Pinterest Boards Found',
                 style: GoogleFonts.inter(
-                  color: PinterestTheme.ink,
+                  color: PinterestTheme.getInk(context),
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
@@ -238,7 +241,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 'You don\'t have any boards in your Pinterest account yet. Create a board on Pinterest, save some wallpapers into it, and come back here to link it!',
                 style: GoogleFonts.inter(
-                  color: PinterestTheme.mute,
+                  color: PinterestTheme.getMute(context),
                   fontSize: 14,
                   height: 1.5,
                 ),
@@ -255,7 +258,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   icon: const Icon(Icons.open_in_new_rounded, size: 18),
                   label: const Text('Open Pinterest'),
-                  style: PinterestTheme.primaryButtonStyle(height: 44),
+                  style: PinterestTheme.primaryButtonStyle(context: context, height: 44),
                 ),
               ),
               const SizedBox(height: 12),
@@ -266,7 +269,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   onPressed: _loadBoards,
                   icon: const Icon(Icons.refresh_rounded, size: 18),
                   label: const Text('Refresh Boards'),
-                  style: PinterestTheme.secondaryButtonStyle(height: 44),
+                  style: PinterestTheme.secondaryButtonStyle(context: context, height: 44),
                 ),
               ),
             ],
@@ -278,7 +281,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return RefreshIndicator(
       onRefresh: _loadBoards,
       color: PinterestTheme.primary,
-      backgroundColor: PinterestTheme.canvas,
+      backgroundColor: PinterestTheme.getCanvas(context),
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         itemCount: _boards.length,
@@ -295,7 +298,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
-            decoration: PinterestTheme.cardDecoration(soft: false),
+            decoration: PinterestTheme.cardDecoration(context: context, soft: false),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -308,7 +311,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Text(
                           boardName,
                           style: GoogleFonts.inter(
-                            color: PinterestTheme.ink,
+                            color: PinterestTheme.getInk(context),
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
@@ -318,13 +321,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: PinterestTheme.surfaceCard,
+                            color: PinterestTheme.getSurfaceCard(context),
                             borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
+                            border: Border.all(color: PinterestTheme.getHairline(context)),
                           ),
                           child: Text(
                             '$pinCount pins',
                             style: GoogleFonts.inter(
-                              color: PinterestTheme.mute,
+                              color: PinterestTheme.getMute(context),
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
@@ -347,8 +351,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             style: const TextStyle(fontSize: 13),
                           ),
                           style: isMobile
-                              ? PinterestTheme.primaryButtonStyle(height: 38)
-                              : PinterestTheme.secondaryButtonStyle(height: 38),
+                              ? PinterestTheme.primaryButtonStyle(context: context, height: 38)
+                              : PinterestTheme.secondaryButtonStyle(context: context, height: 38),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -364,8 +368,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             style: const TextStyle(fontSize: 13),
                           ),
                           style: isDesktop
-                              ? PinterestTheme.primaryButtonStyle(height: 38)
-                              : PinterestTheme.secondaryButtonStyle(height: 38),
+                              ? PinterestTheme.primaryButtonStyle(context: context, height: 38)
+                              : PinterestTheme.secondaryButtonStyle(context: context, height: 38),
                         ),
                       ),
                     ],
@@ -379,3 +383,5 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
+
+

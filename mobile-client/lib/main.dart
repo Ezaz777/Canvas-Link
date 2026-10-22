@@ -10,13 +10,10 @@ import 'utils/pinterest_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Set system UI overlay style matching Pinterest design
+  // Set transparent status bar to allow theme-based adaptive icons
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: PinterestTheme.surfaceSoft,
-      systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
 
@@ -44,34 +41,9 @@ class WallpaperSyncApp extends StatelessWidget {
     return MaterialApp(
       title: 'Canvas Link',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        colorSchemeSeed: PinterestTheme.primary,
-        scaffoldBackgroundColor: PinterestTheme.surfaceSoft,
-        canvasColor: PinterestTheme.canvas,
-        cardColor: PinterestTheme.surfaceCard,
-        dividerColor: PinterestTheme.hairline,
-        textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme).apply(
-          bodyColor: PinterestTheme.body,
-          displayColor: PinterestTheme.ink,
-        ),
-        appBarTheme: AppBarTheme(
-          backgroundColor: PinterestTheme.surfaceSoft,
-          foregroundColor: PinterestTheme.ink,
-          elevation: 0,
-          centerTitle: true,
-          systemOverlayStyle: SystemUiOverlayStyle.dark,
-          titleTextStyle: GoogleFonts.inter(
-            color: PinterestTheme.ink,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: PinterestTheme.primaryButtonStyle(),
-        ),
-      ),
+      theme: PinterestTheme.lightTheme,
+      darkTheme: PinterestTheme.darkTheme,
+      themeMode: ThemeMode.system, // Automatically matches user's system default
       home: isLoggedIn ? const HomeScreen() : const LoginScreen(),
     );
   }

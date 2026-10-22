@@ -9,7 +9,7 @@
 import { IRequest } from 'itty-router';
 import { extractBearerToken, verifyToken } from '../middleware/auth';
 import { decrypt, encrypt } from '../utils/crypto';
-import { getSeededIndex, getTodayDateString } from '../utils/sync';
+import { getSeededIndex, getTodayDateString, selectNextPin } from '../utils/sync';
 import { refreshAccessToken, getBoardPins, deletePin } from '../services/pinterest';
 import { Env } from '../index';
 
@@ -181,17 +181,78 @@ export function registerWallpaperRoutes(router: any) {
         );
       }
 
-      // 4. Deterministic selection: date + userId + interval = consistent wallpaper for the active interval
+      // 4. Ensure priority state table exists
+      await env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS board_wallpaper_state (
+          user_id TEXT NOT NULL,
+          board_id TEXT NOT NULL,
+          flagged_pins TEXT NOT NULL DEFAULT '[]',
+          active_pin_id TEXT,
+          active_interval_key TEXT,
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          PRIMARY KEY (user_id, board_id)
+        )
+      `).run();
+
       const today = getTodayDateString();
-      const selectedIndex = getSeededIndex(
-        today,
-        userId,
-        pins.length,
-        user.skip_offset || 0,
-        frequencyParam,
-        currentHour
-      );
-      const selectedPin = pins[selectedIndex];
+      const freq = (frequencyParam > 0 && frequencyParam <= 24) ? frequencyParam : 24;
+      const intervalIndex = Math.floor(currentHour / freq);
+      const intervalKey = `${today}_int${intervalIndex}_skip${user.skip_offset || 0}`;
+
+      const state = await env.DB.prepare(
+        'SELECT user_id, board_id, flagged_pins, active_pin_id, active_interval_key FROM board_wallpaper_state WHERE user_id = ? AND board_id = ?'
+      ).bind(userId, targetBoardId).first<{
+        user_id: string;
+        board_id: string;
+        flagged_pins: string;
+        active_pin_id: string | null;
+        active_interval_key: string | null;
+      }>();
+
+      let currentFlagged: string[] = [];
+      try {
+        if (state?.flagged_pins) {
+          currentFlagged = JSON.parse(state.flagged_pins);
+        }
+      } catch (_) {
+        currentFlagged = [];
+      }
+
+      let selectedPin: any = null;
+      let isUnflaggedCycle = false;
+      let unflaggedPinId: string | null = null;
+
+      // Check if current interval is already active and pin still exists on board
+      if (state && state.active_interval_key === intervalKey && state.active_pin_id) {
+        selectedPin = pins.find(p => String(p.id) === String(state.active_pin_id));
+      }
+
+      // If no active pin for this interval, run the smart priority flagging algorithm:
+      // - Prioritizes new/unflagged pins over all flagged pins
+      // - Never repeats flagged pins until all pins have been shown
+      // - Unflags pins one-by-one (FIFO) once all have been shown
+      if (!selectedPin) {
+        const seed = (user.skip_offset || 0) + intervalIndex;
+        const result = selectNextPin(pins, currentFlagged, seed);
+        selectedPin = result.selectedPin;
+        currentFlagged = result.flaggedPinIds;
+        isUnflaggedCycle = result.isUnflaggedCycle;
+        unflaggedPinId = result.unflaggedPinId;
+
+        await env.DB.prepare(`
+          INSERT INTO board_wallpaper_state (user_id, board_id, flagged_pins, active_pin_id, active_interval_key, updated_at)
+          VALUES (?, ?, ?, ?, ?, datetime('now'))
+          ON CONFLICT (user_id, board_id) DO UPDATE SET
+            flagged_pins = excluded.flagged_pins,
+            active_pin_id = excluded.active_pin_id,
+            active_interval_key = excluded.active_interval_key,
+            updated_at = datetime('now')
+        `).bind(userId, targetBoardId, JSON.stringify(currentFlagged), String(selectedPin.id), intervalKey).run();
+      }
+
+      const activeFlaggedSet = new Set(currentFlagged.map(id => String(id)));
+      const flaggedCount = pins.filter(p => activeFlaggedSet.has(String(p.id))).length;
+      const unflaggedCount = Math.max(0, pins.length - flaggedCount);
 
       // 6. Extract the best resolution URL (prioritize fast CDN-optimized 1200x, then orig)
       const images = selectedPin.media?.images || {};
@@ -217,7 +278,10 @@ export function registerWallpaperRoutes(router: any) {
         title: selectedPin.title || null,
         date: today,
         total_pins: pins.length,
-        selected_index: selectedIndex,
+        flagged_count: flaggedCount,
+        unflagged_count: unflaggedCount,
+        is_unflagged_cycle: isUnflaggedCycle,
+        unflagged_pin_id: unflaggedPinId,
       });
     } catch (err: any) {
       console.error('Wallpaper engine error:', err);
@@ -349,7 +413,7 @@ export function registerWallpaperRoutes(router: any) {
         throw new Error(`Failed to fetch boards: ${await response.text()}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as any;
       
       // Inject user's selected boards into the response cleanly
       data.selected_boards = {
@@ -415,6 +479,17 @@ export function registerWallpaperRoutes(router: any) {
     try {
       const pins = await getCachedBoardPins(userId, user.encrypted_refresh_token, targetBoardId, env);
 
+      let flaggedSet = new Set<string>();
+      try {
+        const state = await env.DB.prepare(
+          'SELECT flagged_pins FROM board_wallpaper_state WHERE user_id = ? AND board_id = ?'
+        ).bind(userId, targetBoardId).first<{ flagged_pins: string }>();
+        if (state?.flagged_pins) {
+          const arr = JSON.parse(state.flagged_pins);
+          flaggedSet = new Set(arr.map((id: any) => String(id)));
+        }
+      } catch (_) {}
+
       // Map pins to simpler format and extract highest available resolution safely
       const formattedPins = pins.map(pin => {
         const images = pin.media?.images || {};
@@ -432,10 +507,18 @@ export function registerWallpaperRoutes(router: any) {
           title: pin.title,
           image_url: primaryUrl,
           fallback_url: fallbackUrl,
+          is_flagged: flaggedSet.has(String(pin.id)),
         };
       }).filter(pin => pin.image_url);
 
-      return Response.json({ pins: formattedPins });
+      const flaggedCount = formattedPins.filter(p => p.is_flagged).length;
+
+      return Response.json({
+        pins: formattedPins,
+        total_pins: formattedPins.length,
+        flagged_count: flaggedCount,
+        unflagged_count: Math.max(0, formattedPins.length - flaggedCount),
+      });
     } catch (err: any) {
       console.error('Failed to get board pins:', err);
       return Response.json({ error: 'Failed to fetch board pins', details: err.message }, { status: 500 });

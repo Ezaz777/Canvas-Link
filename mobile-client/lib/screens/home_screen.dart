@@ -42,6 +42,9 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> _pins = [];
   int _currentIndex = 0;
   int _activeWallpaperIndex = 0;
+  int? _flaggedCount;
+  int? _unflaggedCount;
+  bool _isUnflaggedCycle = false;
 
   @override
   void initState() {
@@ -170,6 +173,9 @@ class _HomeScreenState extends State<HomeScreen>
         _currentPinId = currentPin;
         _currentDate = data['date'];
         _totalPins = data['total_pins'] ?? loadedPins.length;
+        _flaggedCount = data['flagged_count'] as int?;
+        _unflaggedCount = data['unflagged_count'] as int?;
+        _isUnflaggedCycle = data['is_unflagged_cycle'] as bool? ?? false;
         _pins = loadedPins;
         _activeWallpaperIndex = activeIdx;
         _currentIndex = activeIdx;
@@ -504,8 +510,13 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = PinterestTheme.isDark(context);
+    final inkColor = PinterestTheme.getInk(context);
+    final muteColor = PinterestTheme.getMute(context);
+    final surfaceSoft = PinterestTheme.getSurfaceSoft(context);
+
     return Scaffold(
-      backgroundColor: PinterestTheme.surfaceSoft,
+      backgroundColor: surfaceSoft,
       body: SafeArea(
         child: FadeTransition(
           opacity: CurvedAnimation(
@@ -545,7 +556,7 @@ class _HomeScreenState extends State<HomeScreen>
                         Text(
                           'Canvas Link',
                           style: GoogleFonts.inter(
-                            color: PinterestTheme.ink,
+                            color: inkColor,
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.5,
@@ -554,7 +565,7 @@ class _HomeScreenState extends State<HomeScreen>
                         Text(
                           'Daily Pinterest Wallpapers',
                           style: GoogleFonts.inter(
-                            color: PinterestTheme.mute,
+                            color: muteColor,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -564,17 +575,17 @@ class _HomeScreenState extends State<HomeScreen>
                     const Spacer(),
                     IconButton(
                       onPressed: _showSettingsModal,
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.settings_rounded,
-                        color: PinterestTheme.ink,
+                        color: inkColor,
                       ),
                       tooltip: 'Settings',
                     ),
                     IconButton(
                       onPressed: _logout,
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.logout_rounded,
-                        color: PinterestTheme.mute,
+                        color: muteColor,
                       ),
                       tooltip: 'Logout',
                     ),
@@ -616,7 +627,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 ),
                               ).then((_) => _loadCurrentWallpaper());
                             },
-                            style: PinterestTheme.secondaryButtonStyle(height: 48),
+                            style: PinterestTheme.secondaryButtonStyle(context: context, height: 48),
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -648,7 +659,7 @@ class _HomeScreenState extends State<HomeScreen>
                               ),
                             ).then((_) => _loadCurrentWallpaper());
                           },
-                          style: PinterestTheme.secondaryButtonStyle(height: 48),
+                          style: PinterestTheme.secondaryButtonStyle(context: context, height: 48),
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -682,7 +693,7 @@ class _HomeScreenState extends State<HomeScreen>
     HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
-      backgroundColor: PinterestTheme.canvas,
+      backgroundColor: PinterestTheme.getSurfaceElevated(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(PinterestTheme.radiusLg)),
       ),
@@ -699,7 +710,7 @@ class _HomeScreenState extends State<HomeScreen>
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: PinterestTheme.hairline,
+                      color: PinterestTheme.getHairline(context),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -708,7 +719,7 @@ class _HomeScreenState extends State<HomeScreen>
                 Text(
                   'Set as Wallpaper',
                   style: GoogleFonts.inter(
-                    color: PinterestTheme.ink,
+                    color: PinterestTheme.getInk(context),
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
@@ -717,7 +728,7 @@ class _HomeScreenState extends State<HomeScreen>
                 Text(
                   'Choose where to apply this wallpaper on your device',
                   style: GoogleFonts.inter(
-                    color: PinterestTheme.mute,
+                    color: PinterestTheme.getMute(context),
                     fontSize: 13,
                   ),
                 ),
@@ -764,12 +775,12 @@ class _HomeScreenState extends State<HomeScreen>
     final isCurrent = _screenTarget == target;
     return Container(
       decoration: BoxDecoration(
-        color: isCurrent ? PinterestTheme.canvas : PinterestTheme.surfaceCard,
+        color: isCurrent ? PinterestTheme.getSurfaceCard(context) : PinterestTheme.getCanvas(context),
         borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
         border: Border.all(
           color: isCurrent
-              ? PinterestTheme.ink
-              : Colors.transparent,
+              ? PinterestTheme.primary
+              : PinterestTheme.getHairlineSoft(context),
           width: 1.5,
         ),
       ),
@@ -779,20 +790,20 @@ class _HomeScreenState extends State<HomeScreen>
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: PinterestTheme.canvas,
+            color: PinterestTheme.getSurfaceElevated(context),
             borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
-            border: Border.all(color: PinterestTheme.hairlineSoft),
+            border: Border.all(color: PinterestTheme.getHairlineSoft(context)),
           ),
           child: Icon(
             icon,
-            color: isCurrent ? PinterestTheme.primary : PinterestTheme.ink,
+            color: isCurrent ? PinterestTheme.primary : PinterestTheme.getInk(context),
             size: 20,
           ),
         ),
         title: Text(
           title,
           style: GoogleFonts.inter(
-            color: PinterestTheme.ink,
+            color: PinterestTheme.getInk(context),
             fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w600,
             fontSize: 14,
           ),
@@ -800,7 +811,7 @@ class _HomeScreenState extends State<HomeScreen>
         subtitle: Text(
           subtitle,
           style: GoogleFonts.inter(
-            color: PinterestTheme.mute,
+            color: PinterestTheme.getMute(context),
             fontSize: 12,
           ),
         ),
@@ -1486,7 +1497,7 @@ class _HomeScreenState extends State<HomeScreen>
             height: 52,
             child: ElevatedButton(
               onPressed: isBusy ? null : _skipNow,
-              style: PinterestTheme.secondaryButtonStyle(height: 52),
+              style: PinterestTheme.secondaryButtonStyle(context: context, height: 52),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -1557,77 +1568,119 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildStatsCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-      decoration: PinterestTheme.cardDecoration(soft: true),
-      child: Row(
+      padding: const EdgeInsets.all(16),
+      decoration: PinterestTheme.cardDecoration(context: context, soft: true),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // 1. Board Pins: Clickable, opens BoardScreen
-          Expanded(
-            child: InkWell(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const BoardScreen()),
-                ).then((_) => _loadCurrentWallpaper());
-              },
-              borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: _buildStat(
-                  'Board Pins',
-                  '$_totalPins',
-                  Icons.grid_view_rounded,
+          Row(
+            children: [
+              // 1. Board Pins: Clickable, opens BoardScreen
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const BoardScreen()),
+                    ).then((_) => _loadCurrentWallpaper());
+                  },
+                  borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: _buildStat(
+                      'Board Pins',
+                      '$_totalPins',
+                      Icons.grid_view_rounded,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          Container(
-            width: 1,
-            height: 36,
-            color: PinterestTheme.hairline,
-          ),
-          // 2. Screen Target: Clickable, opens Screen Target modal
-          Expanded(
-            child: InkWell(
-              onTap: _showScreenTargetModal,
-              borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: _buildStat(
-                  'Target',
-                  _screenTarget == 'home'
-                      ? 'Home'
-                      : _screenTarget == 'lock'
-                          ? 'Lock'
-                          : 'Both',
-                  _screenTarget == 'home'
-                      ? Icons.home_rounded
-                      : _screenTarget == 'lock'
-                          ? Icons.lock_outline_rounded
-                          : Icons.devices_rounded,
+              Container(
+                width: 1,
+                height: 36,
+                color: PinterestTheme.getHairline(context),
+              ),
+              // 2. Screen Target: Clickable, opens Screen Target modal
+              Expanded(
+                child: InkWell(
+                  onTap: _showScreenTargetModal,
+                  borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: _buildStat(
+                      'Target',
+                      _screenTarget == 'home'
+                          ? 'Home'
+                          : _screenTarget == 'lock'
+                              ? 'Lock'
+                              : 'Both',
+                      _screenTarget == 'home'
+                          ? Icons.home_rounded
+                          : _screenTarget == 'lock'
+                              ? Icons.lock_outline_rounded
+                              : Icons.devices_rounded,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          Container(
-            width: 1,
-            height: 36,
-            color: PinterestTheme.hairline,
-          ),
-          // 3. Change Timer: Clickable, opens Frequency modal
-          Expanded(
-            child: InkWell(
-              onTap: _showFrequencyModal,
-              borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: _buildStat(
-                  'Timer',
-                  Settings.getFrequencyShortString(_syncFrequency),
-                  Icons.schedule_rounded,
+              Container(
+                width: 1,
+                height: 36,
+                color: PinterestTheme.getHairline(context),
+              ),
+              // 3. Change Timer: Clickable, opens Frequency modal
+              Expanded(
+                child: InkWell(
+                  onTap: _showFrequencyModal,
+                  borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: _buildStat(
+                      'Timer',
+                      Settings.getFrequencyShortString(_syncFrequency),
+                      Icons.schedule_rounded,
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
+
+          // Smart Queue Status Bar (visual confirmation of the flagging & priority algorithm)
+          if (_flaggedCount != null && _totalPins != null) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: PinterestTheme.getSurfaceElevated(context),
+                borderRadius: BorderRadius.circular(PinterestTheme.radiusSm),
+                border: Border.all(color: PinterestTheme.getHairlineSoft(context)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    _isUnflaggedCycle ? Icons.restart_alt_rounded : Icons.flag_rounded,
+                    size: 16,
+                    color: _isUnflaggedCycle ? const Color(0xFF3B82F6) : PinterestTheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _isUnflaggedCycle
+                          ? 'All shown once · Unflagging sequence active'
+                          : (_unflaggedCount != null && _unflaggedCount! > 0)
+                              ? '$_flaggedCount of $_totalPins shown · $_unflaggedCount unflagged prioritized'
+                              : 'All $_totalPins shown · Cycling in queue order',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: PinterestTheme.getInk(context),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1642,7 +1695,7 @@ class _HomeScreenState extends State<HomeScreen>
         Text(
           value,
           style: GoogleFonts.inter(
-            color: PinterestTheme.ink,
+            color: PinterestTheme.getInk(context),
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
@@ -1653,7 +1706,7 @@ class _HomeScreenState extends State<HomeScreen>
         Text(
           label,
           style: GoogleFonts.inter(
-            color: PinterestTheme.mute,
+            color: PinterestTheme.getMute(context),
             fontSize: 11,
             fontWeight: FontWeight.w500,
           ),
@@ -1667,7 +1720,7 @@ class _HomeScreenState extends State<HomeScreen>
   void _showScreenTargetModal() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: PinterestTheme.canvas,
+      backgroundColor: PinterestTheme.getSurfaceElevated(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(PinterestTheme.radiusLg)),
       ),
@@ -1686,7 +1739,7 @@ class _HomeScreenState extends State<HomeScreen>
                         width: 36,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: PinterestTheme.hairline,
+                          color: PinterestTheme.getHairline(context),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -1695,7 +1748,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Text(
                       'Wallpaper Screen Target',
                       style: GoogleFonts.inter(
-                        color: PinterestTheme.ink,
+                        color: PinterestTheme.getInk(context),
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1704,7 +1757,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Text(
                       'Choose which screen(s) new wallpapers are applied to',
                       style: GoogleFonts.inter(
-                        color: PinterestTheme.mute,
+                        color: PinterestTheme.getMute(context),
                         fontSize: 12,
                       ),
                     ),
@@ -1719,12 +1772,12 @@ class _HomeScreenState extends State<HomeScreen>
                               : target == 'home'
                                   ? Icons.home_rounded
                                   : Icons.lock_outline_rounded,
-                          color: isSelected ? PinterestTheme.primary : PinterestTheme.mute,
+                          color: isSelected ? PinterestTheme.primary : PinterestTheme.getMute(context),
                         ),
                         title: Text(
                           Settings.getScreenTargetDisplayString(target),
                           style: GoogleFonts.inter(
-                            color: PinterestTheme.ink,
+                            color: PinterestTheme.getInk(context),
                             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                           ),
                         ),
@@ -1764,7 +1817,7 @@ class _HomeScreenState extends State<HomeScreen>
   void _showFrequencyModal() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: PinterestTheme.canvas,
+      backgroundColor: PinterestTheme.getSurfaceElevated(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(PinterestTheme.radiusLg)),
       ),
@@ -1783,7 +1836,7 @@ class _HomeScreenState extends State<HomeScreen>
                         width: 36,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: PinterestTheme.hairline,
+                          color: PinterestTheme.getHairline(context),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -1792,7 +1845,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Text(
                       'Wallpaper Change Frequency',
                       style: GoogleFonts.inter(
-                        color: PinterestTheme.ink,
+                        color: PinterestTheme.getInk(context),
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1801,7 +1854,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Text(
                       'Choose how often Canvas Link automatically changes your wallpaper',
                       style: GoogleFonts.inter(
-                        color: PinterestTheme.mute,
+                        color: PinterestTheme.getMute(context),
                         fontSize: 12,
                       ),
                     ),
@@ -1820,12 +1873,12 @@ class _HomeScreenState extends State<HomeScreen>
                                       : freq == 24
                                           ? Icons.calendar_today_rounded
                                           : Icons.pause_circle_outline_rounded,
-                          color: isSelected ? PinterestTheme.primary : PinterestTheme.mute,
+                          color: isSelected ? PinterestTheme.primary : PinterestTheme.getMute(context),
                         ),
                         title: Text(
                           Settings.getFrequencyDisplayString(freq),
                           style: GoogleFonts.inter(
-                            color: PinterestTheme.ink,
+                            color: PinterestTheme.getInk(context),
                             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                           ),
                         ),
@@ -1867,7 +1920,7 @@ class _HomeScreenState extends State<HomeScreen>
   void _showSettingsModal() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: PinterestTheme.canvas,
+      backgroundColor: PinterestTheme.getSurfaceElevated(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(PinterestTheme.radiusLg)),
       ),
@@ -1886,7 +1939,7 @@ class _HomeScreenState extends State<HomeScreen>
                         width: 36,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: PinterestTheme.hairline,
+                          color: PinterestTheme.getHairline(context),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -1895,7 +1948,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Text(
                       'Wallpaper Screen Target',
                       style: GoogleFonts.inter(
-                        color: PinterestTheme.ink,
+                        color: PinterestTheme.getInk(context),
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1904,7 +1957,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Text(
                       'Choose which screen(s) new wallpapers are applied to',
                       style: GoogleFonts.inter(
-                        color: PinterestTheme.mute,
+                        color: PinterestTheme.getMute(context),
                         fontSize: 12,
                       ),
                     ),
@@ -1919,12 +1972,12 @@ class _HomeScreenState extends State<HomeScreen>
                               : target == 'home'
                                   ? Icons.home_rounded
                                   : Icons.lock_outline_rounded,
-                          color: isSelected ? PinterestTheme.primary : PinterestTheme.mute,
+                          color: isSelected ? PinterestTheme.primary : PinterestTheme.getMute(context),
                         ),
                         title: Text(
                           Settings.getScreenTargetDisplayString(target),
                           style: GoogleFonts.inter(
-                            color: PinterestTheme.ink,
+                            color: PinterestTheme.getInk(context),
                             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                           ),
                         ),
@@ -1942,11 +1995,11 @@ class _HomeScreenState extends State<HomeScreen>
                         },
                       );
                     }).toList(),
-                    const Divider(color: PinterestTheme.hairline, height: 32),
+                    Divider(color: PinterestTheme.getHairline(context), height: 32),
                     Text(
                       'Wallpaper Change Frequency',
                       style: GoogleFonts.inter(
-                        color: PinterestTheme.ink,
+                        color: PinterestTheme.getInk(context),
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1955,7 +2008,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Text(
                       'Choose how often Canvas Link automatically changes your wallpaper',
                       style: GoogleFonts.inter(
-                        color: PinterestTheme.mute,
+                        color: PinterestTheme.getMute(context),
                         fontSize: 12,
                       ),
                     ),
@@ -1967,7 +2020,7 @@ class _HomeScreenState extends State<HomeScreen>
                         title: Text(
                           Settings.getFrequencyDisplayString(freq),
                           style: GoogleFonts.inter(
-                            color: PinterestTheme.ink,
+                            color: PinterestTheme.getInk(context),
                             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                           ),
                         ),

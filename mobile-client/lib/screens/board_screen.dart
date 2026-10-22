@@ -66,21 +66,21 @@ class _BoardScreenState extends State<BoardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: PinterestTheme.surfaceSoft,
+      backgroundColor: PinterestTheme.getSurfaceSoft(context),
       appBar: AppBar(
         title: Text(
           'Board Gallery',
           style: GoogleFonts.inter(
-            color: PinterestTheme.ink,
+            color: PinterestTheme.getInk(context),
             fontWeight: FontWeight.w700,
             fontSize: 18,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: PinterestTheme.ink),
+          icon: Icon(Icons.arrow_back_rounded, color: PinterestTheme.getInk(context)),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        backgroundColor: PinterestTheme.surfaceSoft,
+        backgroundColor: PinterestTheme.getSurfaceSoft(context),
         elevation: 0,
       ),
       body: _buildBody(),
@@ -111,9 +111,9 @@ class _BoardScreenState extends State<BoardScreen> {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: PinterestTheme.surfaceCard,
+                  color: PinterestTheme.getSurfaceCard(context),
                   shape: BoxShape.circle,
-                  border: Border.all(color: PinterestTheme.hairline),
+                  border: Border.all(color: PinterestTheme.getHairline(context)),
                 ),
                 child: const Icon(
                   Icons.collections_bookmark_rounded,
@@ -125,7 +125,7 @@ class _BoardScreenState extends State<BoardScreen> {
               Text(
                 isNoPins ? 'No Wallpapers in Board' : isNoBoard ? 'No Board Selected' : 'Failed to Load Gallery',
                 style: GoogleFonts.inter(
-                  color: PinterestTheme.ink,
+                  color: PinterestTheme.getInk(context),
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
@@ -137,7 +137,7 @@ class _BoardScreenState extends State<BoardScreen> {
                     ? 'Your selected Pinterest board has no saved wallpapers or images yet. Save some pins on Pinterest and check back!'
                     : _errorMessage ?? 'Please choose a Pinterest board in Your Boards first.',
                 style: GoogleFonts.inter(
-                  color: PinterestTheme.mute,
+                  color: PinterestTheme.getMute(context),
                   fontSize: 14,
                   height: 1.5,
                 ),
@@ -155,7 +155,7 @@ class _BoardScreenState extends State<BoardScreen> {
                     ),
                     icon: const Icon(Icons.open_in_new_rounded, size: 18),
                     label: const Text('Open Pinterest'),
-                    style: PinterestTheme.primaryButtonStyle(height: 44),
+                    style: PinterestTheme.primaryButtonStyle(context: context, height: 44),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -169,7 +169,7 @@ class _BoardScreenState extends State<BoardScreen> {
                   ).then((_) => _loadPins()),
                   icon: const Icon(Icons.dashboard_customize_rounded, size: 18),
                   label: const Text('Manage Boards'),
-                  style: PinterestTheme.secondaryButtonStyle(height: 44),
+                  style: PinterestTheme.secondaryButtonStyle(context: context, height: 44),
                 ),
               ),
               const SizedBox(height: 12),
@@ -177,7 +177,7 @@ class _BoardScreenState extends State<BoardScreen> {
                 onPressed: _loadPins,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('Retry'),
-                style: TextButton.styleFrom(foregroundColor: PinterestTheme.mute),
+                style: TextButton.styleFrom(foregroundColor: PinterestTheme.getMute(context)),
               ),
             ],
           ),
@@ -203,13 +203,16 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   Widget _buildPinCard(Map<String, dynamic> pin) {
+    final isFlagged = pin['is_flagged'] == true;
+
     return InkWell(
       onTap: () => _showPinOptions(pin),
       borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
       child: Container(
         decoration: BoxDecoration(
-          color: PinterestTheme.surfaceCard,
+          color: PinterestTheme.getSurfaceCard(context),
           borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
+          border: Border.all(color: PinterestTheme.getHairline(context)),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
@@ -255,6 +258,79 @@ class _BoardScreenState extends State<BoardScreen> {
                 },
               ),
 
+              // Priority / Flagged Status Badge matching DESIGN.md
+              Positioned(
+                top: 8,
+                left: 8,
+                child: isFlagged
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(vertical: 3.5, horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: (PinterestTheme.isDark(context) ? Colors.black : Colors.black87)
+                              .withOpacity(0.75),
+                          borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
+                          border: Border.all(
+                            color: PinterestTheme.isDark(context) ? PinterestTheme.hairlineDark : Colors.white24,
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              size: 11,
+                              color: Color(0xFF48BB78),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'SEEN',
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Container(
+                        padding: const EdgeInsets.symmetric(vertical: 3.5, horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: PinterestTheme.primary,
+                          borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
+                          boxShadow: [
+                            BoxShadow(
+                              color: PinterestTheme.primary.withOpacity(0.4),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 11,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'NEW',
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+              ),
+
               // Corner overlay pill matching DESIGN.md
               if (pin['title'] != null && pin['title'].toString().isNotEmpty)
                 Positioned(
@@ -264,8 +340,9 @@ class _BoardScreenState extends State<BoardScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                     decoration: BoxDecoration(
-                      color: PinterestTheme.canvas.withOpacity(0.92),
+                      color: PinterestTheme.getCanvas(context).withOpacity(0.92),
                       borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
+                      border: Border.all(color: PinterestTheme.getHairline(context)),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.08),
@@ -277,7 +354,7 @@ class _BoardScreenState extends State<BoardScreen> {
                     child: Text(
                       pin['title'],
                       style: GoogleFonts.inter(
-                        color: PinterestTheme.ink,
+                        color: PinterestTheme.getInk(context),
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
@@ -296,7 +373,7 @@ class _BoardScreenState extends State<BoardScreen> {
   void _showPinOptions(Map<String, dynamic> pin) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: PinterestTheme.canvas,
+      backgroundColor: PinterestTheme.getCanvas(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(PinterestTheme.radiusLg)),
       ),
@@ -313,7 +390,7 @@ class _BoardScreenState extends State<BoardScreen> {
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 20),
                     decoration: BoxDecoration(
-                      color: PinterestTheme.hairline,
+                      color: PinterestTheme.getHairline(context),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -323,18 +400,18 @@ class _BoardScreenState extends State<BoardScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: PinterestTheme.surfaceCard,
+                      color: PinterestTheme.getSurfaceCard(context),
                       borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
                     ),
                     child: const Icon(Icons.wallpaper_rounded, color: PinterestTheme.primary, size: 20),
                   ),
                   title: Text(
                     'Set as Wallpaper',
-                    style: GoogleFonts.inter(color: PinterestTheme.ink, fontWeight: FontWeight.w700),
+                    style: GoogleFonts.inter(color: PinterestTheme.getInk(context), fontWeight: FontWeight.w700),
                   ),
                   subtitle: Text(
                     'Choose Home, Lock, or Both screens',
-                    style: GoogleFonts.inter(color: PinterestTheme.mute, fontSize: 12),
+                    style: GoogleFonts.inter(color: PinterestTheme.getMute(context), fontSize: 12),
                   ),
                   trailing: const Icon(Icons.chevron_right_rounded, color: PinterestTheme.ash),
                   onTap: () {
@@ -342,13 +419,13 @@ class _BoardScreenState extends State<BoardScreen> {
                     _showSetTargetSheet(pin['image_url']);
                   },
                 ),
-                const Divider(color: PinterestTheme.hairlineSoft),
+                Divider(color: PinterestTheme.getHairline(context)),
                 ListTile(
                   leading: Container(
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: PinterestTheme.surfaceCard,
+                      color: PinterestTheme.getSurfaceCard(context),
                       borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
                     ),
                     child: const Icon(Icons.delete_outline_rounded, color: PinterestTheme.error, size: 20),
@@ -359,7 +436,7 @@ class _BoardScreenState extends State<BoardScreen> {
                   ),
                   subtitle: Text(
                     'Permanently remove from Pinterest',
-                    style: GoogleFonts.inter(color: PinterestTheme.mute, fontSize: 12),
+                    style: GoogleFonts.inter(color: PinterestTheme.getMute(context), fontSize: 12),
                   ),
                   onTap: () async {
                     Navigator.pop(context);
@@ -378,7 +455,7 @@ class _BoardScreenState extends State<BoardScreen> {
   void _showSetTargetSheet(String imageUrl) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: PinterestTheme.canvas,
+      backgroundColor: PinterestTheme.getCanvas(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(PinterestTheme.radiusLg)),
       ),
@@ -395,7 +472,7 @@ class _BoardScreenState extends State<BoardScreen> {
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: PinterestTheme.hairline,
+                      color: PinterestTheme.getHairline(context),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -404,7 +481,7 @@ class _BoardScreenState extends State<BoardScreen> {
                 Text(
                   'Set as Wallpaper',
                   style: GoogleFonts.inter(
-                    color: PinterestTheme.ink,
+                    color: PinterestTheme.getInk(context),
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                   ),
@@ -413,7 +490,7 @@ class _BoardScreenState extends State<BoardScreen> {
                 Text(
                   'Choose which screen to apply this wallpaper to',
                   style: GoogleFonts.inter(
-                    color: PinterestTheme.mute,
+                    color: PinterestTheme.getMute(context),
                     fontSize: 13,
                   ),
                 ),
@@ -463,8 +540,9 @@ class _BoardScreenState extends State<BoardScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: PinterestTheme.surfaceCard,
+        color: PinterestTheme.getSurfaceCard(context),
         borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
+        border: Border.all(color: PinterestTheme.getHairline(context)),
       ),
       child: ListTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
@@ -472,16 +550,16 @@ class _BoardScreenState extends State<BoardScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: PinterestTheme.canvas,
+            color: PinterestTheme.getCanvas(context),
             borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
-            border: Border.all(color: PinterestTheme.hairlineSoft),
+            border: Border.all(color: PinterestTheme.getHairline(context)),
           ),
-          child: Icon(icon, color: PinterestTheme.ink, size: 20),
+          child: Icon(icon, color: PinterestTheme.getInk(context), size: 20),
         ),
         title: Text(
           title,
           style: GoogleFonts.inter(
-            color: PinterestTheme.ink,
+            color: PinterestTheme.getInk(context),
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
@@ -489,7 +567,7 @@ class _BoardScreenState extends State<BoardScreen> {
         subtitle: Text(
           subtitle,
           style: GoogleFonts.inter(
-            color: PinterestTheme.mute,
+            color: PinterestTheme.getMute(context),
             fontSize: 12,
           ),
         ),
@@ -502,6 +580,10 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   Future<void> _applyWallpaper(String imageUrl, int location, String targetLabel) async {
+    final snackBarBg = PinterestTheme.isDark(context)
+        ? const Color(0xFF262622)
+        : PinterestTheme.charcoal;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -509,13 +591,13 @@ class _BoardScreenState extends State<BoardScreen> {
             const SizedBox(
               width: 16,
               height: 16,
-              child: CircularProgressIndicator(color: PinterestTheme.canvas, strokeWidth: 2),
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
             ),
             const SizedBox(width: 12),
-            Text('Setting wallpaper on $targetLabel...', style: const TextStyle(color: PinterestTheme.canvas)),
+            Text('Setting wallpaper on $targetLabel...', style: const TextStyle(color: Colors.white)),
           ],
         ),
-        backgroundColor: PinterestTheme.charcoal,
+        backgroundColor: snackBarBg,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
       ),
@@ -528,8 +610,8 @@ class _BoardScreenState extends State<BoardScreen> {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Wallpaper updated on $targetLabel!', style: const TextStyle(color: PinterestTheme.canvas)),
-              backgroundColor: PinterestTheme.charcoal,
+              content: Text('Wallpaper updated on $targetLabel!', style: const TextStyle(color: Colors.white)),
+              backgroundColor: snackBarBg,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
             ),
@@ -537,7 +619,7 @@ class _BoardScreenState extends State<BoardScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Failed to set wallpaper.', style: TextStyle(color: PinterestTheme.canvas)),
+              content: const Text('Failed to set wallpaper.', style: TextStyle(color: Colors.white)),
               backgroundColor: PinterestTheme.error,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
@@ -550,7 +632,7 @@ class _BoardScreenState extends State<BoardScreen> {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e', style: const TextStyle(color: PinterestTheme.canvas)),
+            content: Text('Error: $e', style: const TextStyle(color: Colors.white)),
             backgroundColor: PinterestTheme.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
@@ -564,20 +646,20 @@ class _BoardScreenState extends State<BoardScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: PinterestTheme.canvas,
+        backgroundColor: PinterestTheme.getCanvas(ctx),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusLg)),
-        title: Text('Delete Pin?', style: GoogleFonts.inter(color: PinterestTheme.ink, fontWeight: FontWeight.w700)),
-        content: Text('Are you sure you want to delete this pin from your Pinterest board?', style: GoogleFonts.inter(color: PinterestTheme.body)),
+        title: Text('Delete Pin?', style: GoogleFonts.inter(color: PinterestTheme.getInk(ctx), fontWeight: FontWeight.w700)),
+        content: Text('Are you sure you want to delete this pin from your Pinterest board?', style: GoogleFonts.inter(color: PinterestTheme.getMute(ctx))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel', style: TextStyle(color: PinterestTheme.mute)),
+            child: Text('Cancel', style: TextStyle(color: PinterestTheme.getMute(ctx))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: PinterestTheme.error,
-              foregroundColor: PinterestTheme.canvas,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
             ),
             child: const Text('Delete'),
@@ -599,10 +681,13 @@ class _BoardScreenState extends State<BoardScreen> {
       });
 
       if (mounted) {
+        final snackBarBg = PinterestTheme.isDark(context)
+            ? const Color(0xFF262622)
+            : PinterestTheme.charcoal;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Pin deleted from board.', style: TextStyle(color: PinterestTheme.canvas)),
-            backgroundColor: PinterestTheme.charcoal,
+            content: const Text('Pin deleted from board.', style: TextStyle(color: Colors.white)),
+            backgroundColor: snackBarBg,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
           ),
@@ -612,7 +697,7 @@ class _BoardScreenState extends State<BoardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to delete pin: $e', style: const TextStyle(color: PinterestTheme.canvas)),
+            content: Text('Failed to delete pin: $e', style: const TextStyle(color: Colors.white)),
             backgroundColor: PinterestTheme.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),

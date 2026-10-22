@@ -270,8 +270,13 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final inkColor = PinterestTheme.getInk(context);
+    final muteColor = PinterestTheme.getMute(context);
+    final surfaceSoft = PinterestTheme.getSurfaceSoft(context);
+    final hairlineSoft = PinterestTheme.getHairlineSoft(context);
+
     return Scaffold(
-      backgroundColor: PinterestTheme.surfaceSoft,
+      backgroundColor: surfaceSoft,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -317,7 +322,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                   style: GoogleFonts.inter(
                     fontSize: 32,
                     fontWeight: FontWeight.w700,
-                    color: PinterestTheme.ink,
+                    color: inkColor,
                     letterSpacing: -1.0,
                   ),
                   textAlign: TextAlign.center,
@@ -329,7 +334,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                   'Your daily Pinterest wallpapers, synchronized.',
                   style: GoogleFonts.inter(
                     fontSize: 15,
-                    color: PinterestTheme.mute,
+                    color: muteColor,
                     fontWeight: FontWeight.w400,
                     height: 1.4,
                   ),
@@ -337,10 +342,10 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 ),
                 const SizedBox(height: 32),
 
-                // Feature Highlights Card (Warm cream surface card, 16px radius per DESIGN.md)
+                // Feature Highlights Card (Theme adaptive surface card, 16px radius per DESIGN.md)
                 Container(
                   padding: const EdgeInsets.all(20),
-                  decoration: PinterestTheme.cardDecoration(soft: true),
+                  decoration: PinterestTheme.cardDecoration(context: context, soft: true),
                   child: Column(
                     children: [
                       _buildFeatureRow(
@@ -349,9 +354,9 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                         title: 'Automatic Daily Sync',
                         subtitle: 'Fresh wallpaper applies silently every morning',
                       ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Divider(color: PinterestTheme.hairlineSoft, height: 1),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(color: hairlineSoft, height: 1),
                       ),
                       _buildFeatureRow(
                         icon: Icons.collections_bookmark_rounded,
@@ -359,9 +364,9 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                         title: 'Curated Pinterest Boards',
                         subtitle: 'Directly syncs high-resolution pins you save',
                       ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Divider(color: PinterestTheme.hairlineSoft, height: 1),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(color: hairlineSoft, height: 1),
                       ),
                       _buildFeatureRow(
                         icon: Icons.battery_charging_full_rounded,
@@ -427,13 +432,13 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.verified_user_outlined,
-                        size: 14, color: PinterestTheme.mute),
+                    Icon(Icons.verified_user_outlined,
+                        size: 14, color: muteColor),
                     const SizedBox(width: 6),
                     Text(
                       'Official OAuth 2.0. No passwords stored.',
                       style: GoogleFonts.inter(
-                        color: PinterestTheme.mute,
+                        color: muteColor,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -460,9 +465,9 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: PinterestTheme.canvas,
+            color: PinterestTheme.getSurfaceElevated(context),
             borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
-            border: Border.all(color: PinterestTheme.hairlineSoft),
+            border: Border.all(color: PinterestTheme.getHairlineSoft(context)),
           ),
           child: Icon(icon, color: iconColor, size: 18),
         ),
@@ -474,7 +479,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
               Text(
                 title,
                 style: GoogleFonts.inter(
-                  color: PinterestTheme.ink,
+                  color: PinterestTheme.getInk(context),
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -483,7 +488,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
               Text(
                 subtitle,
                 style: GoogleFonts.inter(
-                  color: PinterestTheme.mute,
+                  color: PinterestTheme.getMute(context),
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
                 ),

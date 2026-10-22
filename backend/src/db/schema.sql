@@ -21,3 +21,15 @@ CREATE INDEX IF NOT EXISTS idx_users_pinterest_user_id ON users(pinterest_user_i
 
 -- Index for Stripe webhook lookups
 CREATE INDEX IF NOT EXISTS idx_users_stripe_customer_id ON users(stripe_customer_id);
+
+-- Board Wallpaper State & Priority Flagging Queue
+CREATE TABLE IF NOT EXISTS board_wallpaper_state (
+    user_id TEXT NOT NULL,
+    board_id TEXT NOT NULL,
+    flagged_pins TEXT NOT NULL DEFAULT '[]',
+    active_pin_id TEXT,
+    active_interval_key TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (user_id, board_id)
+);
+
