@@ -12,6 +12,8 @@ defaults:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -93,10 +95,28 @@ jobs:
           dart run patch_namespace.dart
 
       - name: Build APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/CanvasLink.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: CanvasLink-APK
-          path: mobile-client/build/app/outputs/flutter-apk/app-release.apk
+          path: mobile-client/build/app/outputs/flutter-apk/CanvasLink.apk
+          compression-level: 0
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+        with:
+          tag_name: latest
+          name: "Canvas Link Latest Android APK"
+          body: |
+            ### 📱 Canvas Link Android Release
+            Direct download of the official Canvas Link Android application.
+            - Tap **`CanvasLink.apk`** below to download and install directly on your Android device.
+            - No unzipping or extraction required!
+          files: mobile-client/build/app/outputs/flutter-apk/CanvasLink.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

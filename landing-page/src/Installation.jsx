@@ -117,7 +117,7 @@ const Installation = () => {
               </div>
 
               <a 
-                href="https://github.com/Ezaz777/Canvas-Link/releases" 
+                href="https://github.com/Ezaz777/Canvas-Link/releases/latest/download/CanvasLink.apk" 
                 target="_blank" 
                 rel="noreferrer"
                 className="btn-secondary"
