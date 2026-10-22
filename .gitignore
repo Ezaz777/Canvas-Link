@@ -6,6 +6,8 @@
 *.dev.vars
 .DS_Store
 build_output/
+*.apk
+*.zip
 
 # ==============================================================================
 # Backend (Cloudflare Workers / TypeScript)
