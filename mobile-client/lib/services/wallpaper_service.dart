@@ -2,39 +2,38 @@
 /// Handles the full wallpaper sync pipeline for the mobile client.
 
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:async_wallpaper/async_wallpaper.dart';
-import '../utils/image_utils.dart';
 import '../utils/settings.dart';
 import 'api_service.dart';
 import 'auth_service.dart';
 
 class WallpaperService {
-  /// Resolves the AsyncWallpaper target from user settings or direct override.
-  static Future<int> _resolveWallpaperLocation([int? location]) async {
-    if (location != null) return location;
-    final target = await Settings.getScreenTarget();
-    switch (target) {
-      case 'home':
-        return AsyncWallpaper.HOME_SCREEN;
-      case 'lock':
-        return AsyncWallpaper.LOCK_SCREEN;
-      case 'both':
-      default:
-        return AsyncWallpaper.BOTH_SCREENS;
+  static const MethodChannel _nativeChannel = MethodChannel('com.wallpapersync.app/wallpaper');
+
+  /// Resolves the screen target string ('both', 'home', 'lock').
+  static Future<String> _resolveTarget({String? target, int? location}) async {
+    if (target != null && (target == 'home' || target == 'lock' || target == 'both')) {
+      return target;
     }
+    if (location != null) {
+      if (location == AsyncWallpaper.HOME_SCREEN) return 'home';
+      if (location == AsyncWallpaper.LOCK_SCREEN) return 'lock';
+      return 'both';
+    }
+    return await Settings.getScreenTarget();
   }
 
   /// Full wallpaper sync pipeline:
   /// 1. Load auth token
   /// 2. Fetch wallpaper URL from backend based on frequency & current hour
   /// 3. Download the image
-  /// 4. Center-crop to device screen dimensions
-  /// 5. Set as wallpaper (Home, Lock, or Both based on settings)
+  /// 4. Set as wallpaper via native WallpaperManager (Home, Lock, or Both based on settings)
   ///
   /// Returns true on success, throws on failure.
-  static Future<bool> syncWallpaper({int? location, int? frequency, int? hour}) async {
+  static Future<bool> syncWallpaper({String? target, int? location, int? frequency, int? hour}) async {
     // 1. Get auth token
     final token = await AuthService.getToken();
     if (token == null) {
@@ -64,19 +63,9 @@ class WallpaperService {
           500);
     }
 
-    // 4. Get screen dimensions and center-crop
-    final screenRes = await ImageUtils.getScreenResolution();
-    final croppedPath = await ImageUtils.centerCrop(
-      imagePath,
-      screenRes['width']!,
-      screenRes['height']!,
-    );
-
-    print('WallpaperSync: Image cropped to ${screenRes['width']}x${screenRes['height']}');
-
-    // 5. Set as wallpaper (Home, Lock, or Both)
-    final wallpaperLocation = await _resolveWallpaperLocation(location);
-    final bool result = await _applyToDevice(croppedPath, wallpaperLocation);
+    // 4. Set as wallpaper (Home, Lock, or Both)
+    final resolvedTarget = await _resolveTarget(target: target, location: location);
+    final bool result = await _applyToDevice(imagePath, resolvedTarget);
     
     if (!result) {
       throw ApiException(
@@ -97,22 +86,15 @@ class WallpaperService {
 
   /// Instantly downloads and applies a specific image as the wallpaper.
   /// Bypasses the daily backend sync logic.
-  static Future<bool> setWallpaperFromUrl(String url, {int? location}) async {
+  static Future<bool> setWallpaperFromUrl(String url, {String? target, int? location}) async {
     print('WallpaperSync: Setting manual wallpaper...');
     final imagePath = await _downloadImage(url);
     if (imagePath == null) {
       throw ApiException('Failed to download image from Pinterest.', 500);
     }
 
-    final screenRes = await ImageUtils.getScreenResolution();
-    final croppedPath = await ImageUtils.centerCrop(
-      imagePath,
-      screenRes['width']!,
-      screenRes['height']!,
-    );
-
-    final wallpaperLocation = await _resolveWallpaperLocation(location);
-    final bool result = await _applyToDevice(croppedPath, wallpaperLocation);
+    final resolvedTarget = await _resolveTarget(target: target, location: location);
+    final bool result = await _applyToDevice(imagePath, resolvedTarget);
     
     if (!result) {
       throw ApiException('Failed to set wallpaper on device.', 500);
@@ -120,38 +102,59 @@ class WallpaperService {
     return true;
   }
 
-  /// Applies wallpaper to device, handling OEM-specific restrictions on lock screen.
-  static Future<bool> _applyToDevice(String croppedPath, int wallpaperLocation) async {
+  /// Applies wallpaper to device natively via WallpaperManager stream, with fallback to plugin.
+  static Future<bool> _applyToDevice(String filePath, String target) async {
+    // 1. Try native MethodChannel (100% crash-free, stream-based, background thread)
     try {
-      if (wallpaperLocation == AsyncWallpaper.BOTH_SCREENS) {
-        // Many Android OEM skins (Xiaomi HyperOS/MIUI, Samsung OneUI, ColorOS)
-        // ignore FLAG_LOCK when set concurrently with BOTH_SCREENS.
-        // Applying sequentially ensures both screens receive the update.
-        final homeResult = await AsyncWallpaper.setWallpaperFromFile(
-          filePath: croppedPath,
+      final result = await _nativeChannel.invokeMethod('setWallpaper', {
+        'filePath': filePath,
+        'location': target,
+      });
+      if (result == true) {
+        print('WallpaperSync: Wallpaper set successfully via native channel ($target)');
+        return true;
+      }
+    } catch (e) {
+      print('WallpaperSync: Native channel invocation exception: $e. Trying fallback...');
+    }
+
+    // 2. Fallback to async_wallpaper plugin
+    try {
+      int loc;
+      if (target == 'home') {
+        loc = AsyncWallpaper.HOME_SCREEN;
+      } else if (target == 'lock') {
+        loc = AsyncWallpaper.LOCK_SCREEN;
+      } else {
+        loc = AsyncWallpaper.BOTH_SCREENS;
+      }
+
+      if (loc == AsyncWallpaper.BOTH_SCREENS) {
+        final home = await AsyncWallpaper.setWallpaperFromFile(
+          filePath: filePath,
           wallpaperLocation: AsyncWallpaper.HOME_SCREEN,
           goToHome: false,
         ) ?? false;
 
-        await Future.delayed(const Duration(milliseconds: 250));
+        await Future.delayed(const Duration(milliseconds: 200));
 
-        final lockResult = await AsyncWallpaper.setWallpaperFromFile(
-          filePath: croppedPath,
+        final lock = await AsyncWallpaper.setWallpaperFromFile(
+          filePath: filePath,
           wallpaperLocation: AsyncWallpaper.LOCK_SCREEN,
           goToHome: false,
         ) ?? false;
 
-        return homeResult || lockResult;
+        return home || lock;
       } else {
         return await AsyncWallpaper.setWallpaperFromFile(
-          filePath: croppedPath,
-          wallpaperLocation: wallpaperLocation,
+          filePath: filePath,
+          wallpaperLocation: loc,
           goToHome: false,
         ) ?? false;
       }
-    } catch (e) {
-      print('WallpaperSync: Native error applying wallpaper: $e');
-      throw ApiException('Error applying wallpaper: $e', 500);
+    } catch (err) {
+      print('WallpaperSync: Fallback plugin also failed: $err');
+      throw ApiException('Error applying wallpaper: $err', 500);
     }
   }
 

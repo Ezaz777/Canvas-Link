@@ -70,6 +70,33 @@ class PinterestTheme {
   static const double spaceXl = 24.0;
   static const double spaceXxl = 32.0;
 
+  // Dynamic theme mode notifier for real-time reactivity across the app
+  static final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier<ThemeMode>(ThemeMode.system);
+
+  static ThemeMode stringToThemeMode(String mode) {
+    switch (mode) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      case 'system':
+      default:
+        return ThemeMode.system;
+    }
+  }
+
+  static String themeModeToString(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 'light';
+      case ThemeMode.dark:
+        return 'dark';
+      case ThemeMode.system:
+      default:
+        return 'system';
+    }
+  }
+
   // Context-aware Theme Helpers
   static bool isDark(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark;

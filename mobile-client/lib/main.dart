@@ -6,14 +6,23 @@ import 'workers/wallpaper_worker.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'utils/pinterest_theme.dart';
+import 'utils/settings.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Set transparent status bar to allow theme-based adaptive icons
+  // Load saved theme mode
+  try {
+    final savedMode = await Settings.getThemeMode();
+    PinterestTheme.themeModeNotifier.value = PinterestTheme.stringToThemeMode(savedMode);
+  } catch (_) {}
+
+  // Set transparent system navigation bar and status bar for edge-to-edge support
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
     ),
   );
 
@@ -38,13 +47,18 @@ class WallpaperSyncApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Canvas Link',
-      debugShowCheckedModeBanner: false,
-      theme: PinterestTheme.lightTheme,
-      darkTheme: PinterestTheme.darkTheme,
-      themeMode: ThemeMode.system, // Automatically matches user's system default
-      home: isLoggedIn ? const HomeScreen() : const LoginScreen(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: PinterestTheme.themeModeNotifier,
+      builder: (context, themeMode, _) {
+        return MaterialApp(
+          title: 'Canvas Link',
+          debugShowCheckedModeBanner: false,
+          theme: PinterestTheme.lightTheme,
+          darkTheme: PinterestTheme.darkTheme,
+          themeMode: themeMode,
+          home: isLoggedIn ? const HomeScreen() : const LoginScreen(),
+        );
+      },
     );
   }
 }

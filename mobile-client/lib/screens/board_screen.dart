@@ -185,9 +185,15 @@ class _BoardScreenState extends State<BoardScreen> {
       );
     }
 
-    // Tight 8px gutter Pinterest Masonry style grid
+    // Tight 8px gutter Pinterest Masonry style grid with 3-button navigation clearance
+    final bottomNavPadding = MediaQuery.of(context).padding.bottom;
     return GridView.builder(
-      padding: const EdgeInsets.all(PinterestTheme.spaceSm),
+      padding: EdgeInsets.fromLTRB(
+        PinterestTheme.spaceSm,
+        PinterestTheme.spaceSm,
+        PinterestTheme.spaceSm,
+        bottomNavPadding + 48,
+      ),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         mainAxisSpacing: PinterestTheme.spaceSm,
@@ -378,9 +384,12 @@ class _BoardScreenState extends State<BoardScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(PinterestTheme.radiusLg)),
       ),
       builder: (context) {
+        final bottomNavPadding = MediaQuery.of(context).padding.bottom;
         return SafeArea(
+          top: false,
+          bottom: true,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            padding: EdgeInsets.fromLTRB(20, 20, 20, bottomNavPadding + 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -460,9 +469,12 @@ class _BoardScreenState extends State<BoardScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(PinterestTheme.radiusLg)),
       ),
       builder: (context) {
+        final bottomNavPadding = MediaQuery.of(context).padding.bottom;
         return SafeArea(
+          top: false,
+          bottom: true,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            padding: EdgeInsets.fromLTRB(20, 20, 20, bottomNavPadding + 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -604,7 +616,14 @@ class _BoardScreenState extends State<BoardScreen> {
     );
 
     try {
-      final success = await WallpaperService.setWallpaperFromUrl(imageUrl, location: location);
+      String target = 'both';
+      if (location == AsyncWallpaper.HOME_SCREEN) target = 'home';
+      if (location == AsyncWallpaper.LOCK_SCREEN) target = 'lock';
+      final success = await WallpaperService.setWallpaperFromUrl(
+        imageUrl,
+        target: target,
+        location: location,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         if (success) {

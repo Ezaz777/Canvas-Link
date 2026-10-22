@@ -245,6 +245,7 @@ class _HomeScreenState extends State<HomeScreen>
 
       final success = await WallpaperService.setWallpaperFromUrl(
         pin['image_url'],
+        target: effectiveTarget,
         location: location,
       );
       if (!mounted) return;
@@ -302,8 +303,7 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() => _isSyncing = true);
 
     try {
-      await WallpaperWorker.runOnce();
-      await WallpaperService.syncWallpaper();
+      await WallpaperService.syncWallpaper(target: _screenTarget);
 
       if (!mounted) return;
 
@@ -508,12 +508,39 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Future<void> _toggleThemeQuickly() async {
+    final current = PinterestTheme.themeModeToString(PinterestTheme.themeModeNotifier.value);
+    String nextMode;
+    if (current == 'system') {
+      nextMode = 'light';
+    } else if (current == 'light') {
+      nextMode = 'dark';
+    } else {
+      nextMode = 'system';
+    }
+    await Settings.setThemeMode(nextMode);
+    PinterestTheme.themeModeNotifier.value = PinterestTheme.stringToThemeMode(nextMode);
+    HapticFeedback.selectionClick();
+    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Theme set to ${Settings.getThemeModeDisplayString(nextMode)}'),
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = PinterestTheme.isDark(context);
     final inkColor = PinterestTheme.getInk(context);
     final muteColor = PinterestTheme.getMute(context);
     final surfaceSoft = PinterestTheme.getSurfaceSoft(context);
+    final bottomNavPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: surfaceSoft,
@@ -573,6 +600,33 @@ class _HomeScreenState extends State<HomeScreen>
                       ],
                     ),
                     const Spacer(),
+                    ValueListenableBuilder<ThemeMode>(
+                      valueListenable: PinterestTheme.themeModeNotifier,
+                      builder: (context, themeMode, _) {
+                        IconData themeIcon;
+                        String themeTooltip;
+                        switch (themeMode) {
+                          case ThemeMode.light:
+                            themeIcon = Icons.light_mode_rounded;
+                            themeTooltip = 'Light Mode (Tap to toggle)';
+                            break;
+                          case ThemeMode.dark:
+                            themeIcon = Icons.dark_mode_rounded;
+                            themeTooltip = 'Dark Mode (Tap to toggle)';
+                            break;
+                          case ThemeMode.system:
+                          default:
+                            themeIcon = Icons.brightness_auto_rounded;
+                            themeTooltip = 'System Theme (Tap to toggle)';
+                            break;
+                        }
+                        return IconButton(
+                          onPressed: _toggleThemeQuickly,
+                          icon: Icon(themeIcon, color: inkColor),
+                          tooltip: themeTooltip,
+                        );
+                      },
+                    ),
                     IconButton(
                       onPressed: _showSettingsModal,
                       icon: Icon(
@@ -595,7 +649,7 @@ class _HomeScreenState extends State<HomeScreen>
 
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.fromLTRB(16, 4, 16, bottomNavPadding + 48),
                   child: Column(
                     children: [
                       const SizedBox(height: 4),
@@ -677,7 +731,7 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ),
 
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 12),
                     ],
                   ),
                 ),
@@ -698,9 +752,12 @@ class _HomeScreenState extends State<HomeScreen>
         borderRadius: BorderRadius.vertical(top: Radius.circular(PinterestTheme.radiusLg)),
       ),
       builder: (context) {
+        final bottomNavPadding = MediaQuery.of(context).padding.bottom;
         return SafeArea(
+          top: false,
+          bottom: true,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            padding: EdgeInsets.fromLTRB(20, 20, 20, bottomNavPadding + 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1727,84 +1784,89 @@ class _HomeScreenState extends State<HomeScreen>
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: PinterestTheme.getHairline(context),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Wallpaper Screen Target',
-                      style: GoogleFonts.inter(
-                        color: PinterestTheme.getInk(context),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Choose which screen(s) new wallpapers are applied to',
-                      style: GoogleFonts.inter(
-                        color: PinterestTheme.getMute(context),
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ...Settings.availableScreenTargets.map((target) {
-                      final isSelected = target == _screenTarget;
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(
-                          target == 'both'
-                              ? Icons.devices_rounded
-                              : target == 'home'
-                                  ? Icons.home_rounded
-                                  : Icons.lock_outline_rounded,
-                          color: isSelected ? PinterestTheme.primary : PinterestTheme.getMute(context),
-                        ),
-                        title: Text(
-                          Settings.getScreenTargetDisplayString(target),
-                          style: GoogleFonts.inter(
-                            color: PinterestTheme.getInk(context),
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            final bottomNavPadding = MediaQuery.of(context).padding.bottom;
+            return SafeArea(
+              top: false,
+              bottom: true,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(20, 20, 20, bottomNavPadding + 20),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: PinterestTheme.getHairline(context),
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                        trailing: isSelected
-                            ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
-                            : null,
-                        onTap: () async {
-                          await Settings.setScreenTarget(target);
-                          if (mounted) {
-                            setState(() {
-                              _screenTarget = target;
-                            });
-                          }
-                          setModalState(() {});
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Target updated to ${Settings.getScreenTargetDisplayString(target)}'),
-                              behavior: SnackBarBehavior.floating,
-                              duration: const Duration(seconds: 2),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Wallpaper Screen Target',
+                        style: GoogleFonts.inter(
+                          color: PinterestTheme.getInk(context),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Choose which screen(s) new wallpapers are applied to',
+                        style: GoogleFonts.inter(
+                          color: PinterestTheme.getMute(context),
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ...Settings.availableScreenTargets.map((target) {
+                        final isSelected = target == _screenTarget;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            target == 'both'
+                                ? Icons.devices_rounded
+                                : target == 'home'
+                                    ? Icons.home_rounded
+                                    : Icons.lock_outline_rounded,
+                            color: isSelected ? PinterestTheme.primary : PinterestTheme.getMute(context),
+                          ),
+                          title: Text(
+                            Settings.getScreenTargetDisplayString(target),
+                            style: GoogleFonts.inter(
+                              color: PinterestTheme.getInk(context),
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                             ),
-                          );
-                        },
-                      );
-                    }).toList(),
-                    const SizedBox(height: 16),
-                  ],
+                          ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
+                              : null,
+                          onTap: () async {
+                            await Settings.setScreenTarget(target);
+                            if (mounted) {
+                              setState(() {
+                                _screenTarget = target;
+                              });
+                            }
+                            setModalState(() {});
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Target updated to ${Settings.getScreenTargetDisplayString(target)}'),
+                                behavior: SnackBarBehavior.floating,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                        );
+                      }).toList(),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -1824,90 +1886,95 @@ class _HomeScreenState extends State<HomeScreen>
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: PinterestTheme.getHairline(context),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Wallpaper Change Frequency',
-                      style: GoogleFonts.inter(
-                        color: PinterestTheme.getInk(context),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Choose how often Canvas Link automatically changes your wallpaper',
-                      style: GoogleFonts.inter(
-                        color: PinterestTheme.getMute(context),
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ...Settings.availableFrequencies.map((freq) {
-                      final isSelected = freq == _syncFrequency;
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(
-                          freq == 1
-                              ? Icons.update_rounded
-                              : freq == 6
-                                  ? Icons.timelapse_rounded
-                                  : freq == 12
-                                      ? Icons.access_time_rounded
-                                      : freq == 24
-                                          ? Icons.calendar_today_rounded
-                                          : Icons.pause_circle_outline_rounded,
-                          color: isSelected ? PinterestTheme.primary : PinterestTheme.getMute(context),
-                        ),
-                        title: Text(
-                          Settings.getFrequencyDisplayString(freq),
-                          style: GoogleFonts.inter(
-                            color: PinterestTheme.getInk(context),
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            final bottomNavPadding = MediaQuery.of(context).padding.bottom;
+            return SafeArea(
+              top: false,
+              bottom: true,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(20, 20, 20, bottomNavPadding + 20),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: PinterestTheme.getHairline(context),
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                        trailing: isSelected
-                            ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
-                            : null,
-                        onTap: () async {
-                          await Settings.setSyncFrequency(freq);
-                          await WallpaperWorker.registerPeriodicSync();
-                          if (mounted) {
-                            setState(() {
-                              _syncFrequency = freq;
-                            });
-                          }
-                          setModalState(() {});
-                          Navigator.pop(context);
-                          _loadCurrentWallpaper();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Wallpaper change set to: ${Settings.getFrequencyDisplayString(freq)}'),
-                              behavior: SnackBarBehavior.floating,
-                              duration: const Duration(seconds: 2),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Wallpaper Change Frequency',
+                        style: GoogleFonts.inter(
+                          color: PinterestTheme.getInk(context),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Choose how often Canvas Link automatically changes your wallpaper',
+                        style: GoogleFonts.inter(
+                          color: PinterestTheme.getMute(context),
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ...Settings.availableFrequencies.map((freq) {
+                        final isSelected = freq == _syncFrequency;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            freq == 1
+                                ? Icons.update_rounded
+                                : freq == 6
+                                    ? Icons.timelapse_rounded
+                                    : freq == 12
+                                        ? Icons.access_time_rounded
+                                        : freq == 24
+                                            ? Icons.calendar_today_rounded
+                                            : Icons.pause_circle_outline_rounded,
+                            color: isSelected ? PinterestTheme.primary : PinterestTheme.getMute(context),
+                          ),
+                          title: Text(
+                            Settings.getFrequencyDisplayString(freq),
+                            style: GoogleFonts.inter(
+                              color: PinterestTheme.getInk(context),
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                             ),
-                          );
-                        },
-                      );
-                    }).toList(),
-                    const SizedBox(height: 16),
-                  ],
+                          ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
+                              : null,
+                          onTap: () async {
+                            await Settings.setSyncFrequency(freq);
+                            await WallpaperWorker.registerPeriodicSync();
+                            if (mounted) {
+                              setState(() {
+                                _syncFrequency = freq;
+                              });
+                            }
+                            setModalState(() {});
+                            Navigator.pop(context);
+                            _loadCurrentWallpaper();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Wallpaper change set to: ${Settings.getFrequencyDisplayString(freq)}'),
+                                behavior: SnackBarBehavior.floating,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                        );
+                      }).toList(),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -1927,122 +1994,190 @@ class _HomeScreenState extends State<HomeScreen>
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: PinterestTheme.getHairline(context),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Wallpaper Screen Target',
-                      style: GoogleFonts.inter(
-                        color: PinterestTheme.getInk(context),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Choose which screen(s) new wallpapers are applied to',
-                      style: GoogleFonts.inter(
-                        color: PinterestTheme.getMute(context),
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ...Settings.availableScreenTargets.map((target) {
-                      final isSelected = target == _screenTarget;
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(
-                          target == 'both'
-                              ? Icons.devices_rounded
-                              : target == 'home'
-                                  ? Icons.home_rounded
-                                  : Icons.lock_outline_rounded,
-                          color: isSelected ? PinterestTheme.primary : PinterestTheme.getMute(context),
-                        ),
-                        title: Text(
-                          Settings.getScreenTargetDisplayString(target),
-                          style: GoogleFonts.inter(
-                            color: PinterestTheme.getInk(context),
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            final bottomNavPadding = MediaQuery.of(context).padding.bottom;
+            return SafeArea(
+              top: false,
+              bottom: true,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(20, 20, 20, bottomNavPadding + 24),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: PinterestTheme.getHairline(context),
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                        trailing: isSelected
-                            ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
-                            : null,
-                        onTap: () async {
-                          await Settings.setScreenTarget(target);
-                          if (mounted) {
-                            setState(() {
-                              _screenTarget = target;
-                            });
-                          }
-                          setModalState(() {});
-                        },
-                      );
-                    }).toList(),
-                    Divider(color: PinterestTheme.getHairline(context), height: 32),
-                    Text(
-                      'Wallpaper Change Frequency',
-                      style: GoogleFonts.inter(
-                        color: PinterestTheme.getInk(context),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Choose how often Canvas Link automatically changes your wallpaper',
-                      style: GoogleFonts.inter(
-                        color: PinterestTheme.getMute(context),
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ...Settings.availableFrequencies.map((freq) {
-                      final isSelected = freq == _syncFrequency;
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(
-                          Settings.getFrequencyDisplayString(freq),
-                          style: GoogleFonts.inter(
-                            color: PinterestTheme.getInk(context),
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          ),
+                      const SizedBox(height: 16),
+
+                      // Theme / Appearance Section
+                      Text(
+                        'Appearance / Theme',
+                        style: GoogleFonts.inter(
+                          color: PinterestTheme.getInk(context),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
                         ),
-                        trailing: isSelected
-                            ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
-                            : null,
-                        onTap: () async {
-                          await Settings.setSyncFrequency(freq);
-                          await WallpaperWorker.registerPeriodicSync();
-                          if (mounted) {
-                            setState(() {
-                              _syncFrequency = freq;
-                            });
-                          }
-                          setModalState(() {});
-                          Navigator.pop(context);
-                          _loadCurrentWallpaper();
-                        },
-                      );
-                    }).toList(),
-                    const SizedBox(height: 16),
-                  ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Choose Light Mode, Dark Mode, or match your Phone Settings',
+                        style: GoogleFonts.inter(
+                          color: PinterestTheme.getMute(context),
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ...Settings.availableThemeModes.map((mode) {
+                        final currentModeStr = PinterestTheme.themeModeToString(PinterestTheme.themeModeNotifier.value);
+                        final isSelected = mode == currentModeStr;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            mode == 'light'
+                                ? Icons.light_mode_rounded
+                                : mode == 'dark'
+                                    ? Icons.dark_mode_rounded
+                                    : Icons.brightness_auto_rounded,
+                            color: isSelected ? PinterestTheme.primary : PinterestTheme.getMute(context),
+                          ),
+                          title: Text(
+                            Settings.getThemeModeDisplayString(mode),
+                            style: GoogleFonts.inter(
+                              color: PinterestTheme.getInk(context),
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                          ),
+                          subtitle: Text(
+                            mode == 'system'
+                                ? 'Automatically matches your device dark/light setting'
+                                : mode == 'light'
+                                    ? 'Clean white and warm-cream surfaces'
+                                    : 'Sleek dark theme per DESIGN.md',
+                            style: GoogleFonts.inter(
+                              color: PinterestTheme.getMute(context),
+                              fontSize: 11,
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
+                              : null,
+                          onTap: () async {
+                            await Settings.setThemeMode(mode);
+                            PinterestTheme.themeModeNotifier.value = PinterestTheme.stringToThemeMode(mode);
+                            setModalState(() {});
+                          },
+                        );
+                      }).toList(),
+
+                      Divider(color: PinterestTheme.getHairline(context), height: 32),
+
+                      Text(
+                        'Wallpaper Screen Target',
+                        style: GoogleFonts.inter(
+                          color: PinterestTheme.getInk(context),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Choose which screen(s) new wallpapers are applied to',
+                        style: GoogleFonts.inter(
+                          color: PinterestTheme.getMute(context),
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ...Settings.availableScreenTargets.map((target) {
+                        final isSelected = target == _screenTarget;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            target == 'both'
+                                ? Icons.devices_rounded
+                                : target == 'home'
+                                    ? Icons.home_rounded
+                                    : Icons.lock_outline_rounded,
+                            color: isSelected ? PinterestTheme.primary : PinterestTheme.getMute(context),
+                          ),
+                          title: Text(
+                            Settings.getScreenTargetDisplayString(target),
+                            style: GoogleFonts.inter(
+                              color: PinterestTheme.getInk(context),
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
+                              : null,
+                          onTap: () async {
+                            await Settings.setScreenTarget(target);
+                            if (mounted) {
+                              setState(() {
+                                _screenTarget = target;
+                              });
+                            }
+                            setModalState(() {});
+                          },
+                        );
+                      }).toList(),
+                      Divider(color: PinterestTheme.getHairline(context), height: 32),
+                      Text(
+                        'Wallpaper Change Frequency',
+                        style: GoogleFonts.inter(
+                          color: PinterestTheme.getInk(context),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Choose how often Canvas Link automatically changes your wallpaper',
+                        style: GoogleFonts.inter(
+                          color: PinterestTheme.getMute(context),
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ...Settings.availableFrequencies.map((freq) {
+                        final isSelected = freq == _syncFrequency;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            Settings.getFrequencyDisplayString(freq),
+                            style: GoogleFonts.inter(
+                              color: PinterestTheme.getInk(context),
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
+                              : null,
+                          onTap: () async {
+                            await Settings.setSyncFrequency(freq);
+                            await WallpaperWorker.registerPeriodicSync();
+                            if (mounted) {
+                              setState(() {
+                                _syncFrequency = freq;
+                              });
+                            }
+                            setModalState(() {});
+                            Navigator.pop(context);
+                            _loadCurrentWallpaper();
+                          },
+                        );
+                      }).toList(),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
             );

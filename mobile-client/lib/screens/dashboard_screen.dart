@@ -283,7 +283,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       color: PinterestTheme.primary,
       backgroundColor: PinterestTheme.getCanvas(context),
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(context).padding.bottom + 48),
         itemCount: _boards.length,
         itemBuilder: (context, index) {
           final board = _boards[index];

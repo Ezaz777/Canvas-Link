@@ -4,6 +4,7 @@ class Settings {
   static const _storage = FlutterSecureStorage();
   static const String _syncFrequencyKey = 'sync_frequency';
   static const String _screenTargetKey = 'wallpaper_screen_target';
+  static const String _themeModeKey = 'app_theme_mode';
   static const String _screenWidthKey = 'device_screen_width';
   static const String _screenHeightKey = 'device_screen_height';
   static const String _lastSyncDateKey = 'last_sync_date';
@@ -14,6 +15,9 @@ class Settings {
   // Screen targets: 'both', 'home', 'lock'
   static const List<String> availableTargets = ['both', 'home', 'lock'];
   static const List<String> availableScreenTargets = availableTargets;
+
+  // Theme modes: 'system', 'light', 'dark'
+  static const List<String> availableThemeModes = ['system', 'light', 'dark'];
 
   /// Cache device physical screen dimensions so background workers know exact resolution.
   static Future<void> saveScreenDimensions(int width, int height) async {
@@ -89,6 +93,35 @@ class Settings {
   static Future<void> setScreenTarget(String target) async {
     if (availableTargets.contains(target)) {
       await _storage.write(key: _screenTargetKey, value: target);
+    }
+  }
+
+  /// Get the configured theme mode ('system', 'light', 'dark'). Defaults to 'system'.
+  static Future<String> getThemeMode() async {
+    final value = await _storage.read(key: _themeModeKey);
+    if (value != null && availableThemeModes.contains(value)) {
+      return value;
+    }
+    return 'system';
+  }
+
+  /// Save the configured theme mode ('system', 'light', 'dark').
+  static Future<void> setThemeMode(String mode) async {
+    if (availableThemeModes.contains(mode)) {
+      await _storage.write(key: _themeModeKey, value: mode);
+    }
+  }
+
+  /// Convert theme mode to display string
+  static String getThemeModeDisplayString(String mode) {
+    switch (mode) {
+      case 'light':
+        return 'Light Mode';
+      case 'dark':
+        return 'Dark Mode';
+      case 'system':
+      default:
+        return 'System Default';
     }
   }
 
