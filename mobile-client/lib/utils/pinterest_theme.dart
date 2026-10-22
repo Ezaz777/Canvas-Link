@@ -110,13 +110,14 @@ class PinterestTheme {
 
   // Primary Button Style per DESIGN.md (Height 40-44, rounded 16px or custom pill, Pinterest Red)
   static ButtonStyle primaryButtonStyle({
+    BuildContext? context,
     double height = 44,
     double? radius,
     EdgeInsetsGeometry? padding,
   }) {
     return ElevatedButton.styleFrom(
       backgroundColor: primary,
-      foregroundColor: canvas,
+      foregroundColor: Colors.white,
       elevation: 0,
       shadowColor: Colors.transparent,
       minimumSize: Size(0, height),
