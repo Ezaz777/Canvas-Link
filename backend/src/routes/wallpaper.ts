@@ -376,6 +376,103 @@ export function registerWallpaperRoutes(router: any) {
   });
 
   /**
+   * POST /api/set-active-wallpaper
+   * Flags a pin as seen/used and sets it as the active wallpaper for the board.
+   */
+  router.post('/api/set-active-wallpaper', async (request: IRequest, env: Env) => {
+    const token = extractBearerToken(request as unknown as Request);
+    if (!token) {
+      return Response.json({ error: 'Missing authorization token' }, { status: 401 });
+    }
+
+    let userId: string;
+    try {
+      const auth = await verifyToken(token, env.JWT_SECRET);
+      userId = auth.userId;
+    } catch {
+      return Response.json({ error: 'Invalid or expired token' }, { status: 401 });
+    }
+
+    const body = await (request as unknown as Request).json() as { pin_id?: string; device_type?: string };
+    const pinId = body.pin_id ? String(body.pin_id) : null;
+    if (!pinId) {
+      return Response.json({ error: 'pin_id is required' }, { status: 400 });
+    }
+
+    const user = await env.DB.prepare(
+      'SELECT board_id, mobile_board_id, desktop_board_id FROM users WHERE id = ?'
+    ).bind(userId).first<UserRow>();
+
+    if (!user) {
+      return Response.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const deviceType = body.device_type || 'mobile';
+    let targetBoardId: string | null = null;
+    if (deviceType === 'mobile') {
+      targetBoardId = user.mobile_board_id || (user.desktop_board_id ? null : user.board_id);
+    } else if (deviceType === 'desktop') {
+      targetBoardId = user.desktop_board_id || (user.mobile_board_id ? null : user.board_id);
+    } else {
+      targetBoardId = user.board_id || user.mobile_board_id || user.desktop_board_id;
+    }
+
+    if (!targetBoardId) {
+      return Response.json({ success: true, message: 'No board configured' });
+    }
+
+    try {
+      // Ensure state table exists
+      await env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS board_wallpaper_state (
+          user_id TEXT NOT NULL,
+          board_id TEXT NOT NULL,
+          flagged_pins TEXT NOT NULL DEFAULT '[]',
+          active_pin_id TEXT,
+          active_interval_key TEXT,
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          PRIMARY KEY (user_id, board_id)
+        )
+      `).run();
+
+      const state = await env.DB.prepare(
+        'SELECT flagged_pins FROM board_wallpaper_state WHERE user_id = ? AND board_id = ?'
+      ).bind(userId, targetBoardId).first<{ flagged_pins: string }>();
+
+      let currentFlagged: string[] = [];
+      try {
+        if (state?.flagged_pins) {
+          currentFlagged = JSON.parse(state.flagged_pins);
+        }
+      } catch (_) {
+        currentFlagged = [];
+      }
+
+      if (!currentFlagged.includes(pinId)) {
+        currentFlagged.push(pinId);
+      }
+
+      await env.DB.prepare(`
+        INSERT INTO board_wallpaper_state (user_id, board_id, flagged_pins, active_pin_id, updated_at)
+        VALUES (?, ?, ?, ?, datetime('now'))
+        ON CONFLICT (user_id, board_id) DO UPDATE SET
+          flagged_pins = excluded.flagged_pins,
+          active_pin_id = excluded.active_pin_id,
+          updated_at = datetime('now')
+      `).bind(userId, targetBoardId, JSON.stringify(currentFlagged), pinId).run();
+
+      return Response.json({
+        success: true,
+        pin_id: pinId,
+        flagged_count: currentFlagged.length,
+      });
+    } catch (err: any) {
+      console.error('Failed to set active wallpaper pin:', err);
+      return Response.json({ error: 'Failed to update active wallpaper pin', details: err.message }, { status: 500 });
+    }
+  });
+
+  /**
    * GET /api/boards
    * Returns a list of the user's Pinterest boards.
    */
