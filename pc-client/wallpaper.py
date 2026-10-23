@@ -82,6 +82,32 @@ def skip_wallpaper_api(token: str) -> bool:
         return False
 
 
+def set_active_wallpaper_api(token: str, pin_id: str) -> bool:
+    """
+    Call the /api/set-active-wallpaper endpoint to report which pin was applied.
+    This flags the pin as 'seen' on the backend.
+    Returns True on success.
+    """
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/api/set-active-wallpaper",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
+            json={"pin_id": pin_id, "device_type": "desktop"},
+            timeout=30,
+        )
+        if response.status_code == 200:
+            logger.info(f"Successfully reported pin {pin_id} as active wallpaper.")
+            return True
+        logger.warning(f"Failed to report active wallpaper. Status: {response.status_code}")
+        return False
+    except requests.RequestException as e:
+        logger.warning(f"Network error while reporting active wallpaper (non-fatal): {e}")
+        return False
+
+
 def download_image(url: str) -> Image.Image | None:
     """Download an image from URL and return as a PIL Image."""
     try:
@@ -311,6 +337,10 @@ def sync_wallpaper(token: str) -> bool:
 
     if success:
         logger.info(f"Wallpaper updated! (Pin: {data.get('pin_id', 'unknown')})")
+        # Report to backend which pin was applied so it gets flagged as 'seen'
+        pin_id = data.get("pin_id")
+        if pin_id:
+            set_active_wallpaper_api(token, str(pin_id))
     else:
         logger.error("Failed to apply wallpaper.")
 

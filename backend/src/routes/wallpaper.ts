@@ -422,18 +422,6 @@ export function registerWallpaperRoutes(router: any) {
     }
 
     try {
-      // Ensure state table exists
-      await env.DB.prepare(`
-        CREATE TABLE IF NOT EXISTS board_wallpaper_state (
-          user_id TEXT NOT NULL,
-          board_id TEXT NOT NULL,
-          flagged_pins TEXT NOT NULL DEFAULT '[]',
-          active_pin_id TEXT,
-          active_interval_key TEXT,
-          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-          PRIMARY KEY (user_id, board_id)
-        )
-      `).run();
 
       const state = await env.DB.prepare(
         'SELECT flagged_pins FROM board_wallpaper_state WHERE user_id = ? AND board_id = ?'

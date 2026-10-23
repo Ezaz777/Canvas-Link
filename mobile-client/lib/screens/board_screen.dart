@@ -627,6 +627,25 @@ class _BoardScreenState extends State<BoardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         if (success) {
+          // Report the applied pin to backend so it gets flagged as 'seen'
+          final matchingPin = _pins.firstWhere(
+            (p) => p['image_url'] == imageUrl,
+            orElse: () => <String, dynamic>{},
+          );
+          final pinId = matchingPin['id'] as String?;
+          if (pinId != null) {
+            try {
+              final token = await AuthService.getToken();
+              if (token != null) {
+                final api = ApiService(token);
+                await api.setActiveWallpaper(pinId);
+                print('BoardScreen: Reported pin $pinId as active wallpaper to backend');
+              }
+            } catch (e) {
+              print('BoardScreen: Failed to report active wallpaper (non-fatal): $e');
+            }
+          }
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Wallpaper updated on $targetLabel!', style: const TextStyle(color: Colors.white)),

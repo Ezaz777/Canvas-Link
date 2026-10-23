@@ -138,6 +138,32 @@ class ApiService {
     }
   }
 
+  /// Report to the backend which pin was actually applied as wallpaper.
+  /// This flags the pin as 'seen' and sets it as the active wallpaper.
+  Future<void> setActiveWallpaper(String pinId, {String deviceType = 'mobile'}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/set-active-wallpaper'),
+        headers: _headers,
+        body: jsonEncode({'pin_id': pinId, 'device_type': deviceType}),
+      );
+
+      if (response.statusCode == 401) {
+        throw UnauthorizedException('Session expired. Please log in again.');
+      }
+
+      if (response.statusCode != 200) {
+        final body = jsonDecode(response.body);
+        print('ApiService: setActiveWallpaper failed: ${body['error']}');
+      }
+    } catch (e) {
+      // Non-critical: don't crash the app if flagging fails,
+      // but log it so we can debug
+      if (e is UnauthorizedException) rethrow;
+      print('ApiService: setActiveWallpaper error (non-fatal): $e');
+    }
+  }
+
   /// Get all pins from the user's selected board.
   Future<List<Map<String, dynamic>>> getBoardPins() async {
     final response = await http.get(
