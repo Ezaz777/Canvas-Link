@@ -70,11 +70,24 @@ class WallpaperWorker {
       await cancelAll();
     }
 
+    Duration? initialDelay;
+    if (hours == 24) {
+      final dailyTime = await Settings.getDailySyncTime();
+      final now = DateTime.now();
+      var scheduled = DateTime(now.year, now.month, now.day, dailyTime.hour, dailyTime.minute);
+      if (scheduled.isBefore(now)) {
+        scheduled = scheduled.add(const Duration(days: 1));
+      }
+      initialDelay = scheduled.difference(now);
+      print('WallpaperSync: Daily sync scheduled for ${dailyTime.hour}:${dailyTime.minute.toString().padLeft(2, '0')} (initial delay: ${initialDelay.inMinutes}m).');
+    }
+
     // Register periodic sync without restrictive battery gates that prevent Android background execution
     await Workmanager().registerPeriodicTask(
       wallpaperSyncTaskTag,
       wallpaperSyncTaskName,
       frequency: Duration(hours: hours),
+      initialDelay: initialDelay,
       constraints: Constraints(
         networkType: NetworkType.connected,
         requiresBatteryNotLow: false,

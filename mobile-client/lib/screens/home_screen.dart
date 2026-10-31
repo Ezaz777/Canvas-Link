@@ -39,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen>
   String? _errorCode;
   int? _totalPins;
   int _syncFrequency = 24;
+  TimeOfDay _dailySyncTime = const TimeOfDay(hour: 8, minute: 0);
   String _screenTarget = 'both';
   List<Map<String, dynamic>> _pins = [];
   int _currentIndex = 0;
@@ -99,10 +100,12 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _loadSettings() async {
     final freq = await Settings.getSyncFrequency();
     final target = await Settings.getScreenTarget();
+    final dailyTime = await Settings.getDailySyncTime();
     if (mounted) {
       setState(() {
         _syncFrequency = freq;
         _screenTarget = target;
+        _dailySyncTime = dailyTime;
       });
     }
   }
@@ -1748,7 +1751,7 @@ class _HomeScreenState extends State<HomeScreen>
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: _buildStat(
                       'Timer',
-                      Settings.getFrequencyShortString(_syncFrequency),
+                      Settings.getFrequencyShortString(_syncFrequency, dailyTime: _dailySyncTime),
                       Icons.schedule_rounded,
                     ),
                   ),
@@ -1997,7 +2000,9 @@ class _HomeScreenState extends State<HomeScreen>
                             color: isSelected ? PinterestTheme.primary : PinterestTheme.getMute(context),
                           ),
                           title: Text(
-                            Settings.getFrequencyDisplayString(freq),
+                            freq == 24
+                                ? Settings.getFrequencyDisplayString(freq, dailyTime: _dailySyncTime)
+                                : Settings.getFrequencyDisplayString(freq),
                             style: GoogleFonts.inter(
                               color: PinterestTheme.getInk(context),
                               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
@@ -2015,18 +2020,150 @@ class _HomeScreenState extends State<HomeScreen>
                               });
                             }
                             setModalState(() {});
-                            Navigator.pop(context);
-                            _loadCurrentWallpaper();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Wallpaper change set to: ${Settings.getFrequencyDisplayString(freq)}'),
-                                behavior: SnackBarBehavior.floating,
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
+                            if (freq != 24) {
+                              Navigator.pop(context);
+                              _loadCurrentWallpaper();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Wallpaper change set to: ${Settings.getFrequencyDisplayString(freq)}'),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
                           },
                         );
                       }).toList(),
+                      if (_syncFrequency == 24) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: PinterestTheme.primary.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
+                            border: Border.all(
+                              color: PinterestTheme.primary.withOpacity(0.25),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: PinterestTheme.primary.withOpacity(0.12),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.access_time_filled_rounded,
+                                  color: PinterestTheme.primary,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Daily Change Time',
+                                      style: GoogleFonts.inter(
+                                        color: PinterestTheme.getMute(context),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      Settings.formatTimeOfDayDisplay(_dailySyncTime.hour, _dailySyncTime.minute),
+                                      style: GoogleFonts.inter(
+                                        color: PinterestTheme.getInk(context),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: () async {
+                                  final picked = await showTimePicker(
+                                    context: context,
+                                    initialTime: _dailySyncTime,
+                                    builder: (context, child) {
+                                      return Theme(
+                                        data: Theme.of(context).copyWith(
+                                          colorScheme: Theme.of(context).colorScheme.copyWith(
+                                            primary: PinterestTheme.primary,
+                                          ),
+                                        ),
+                                        child: child!,
+                                      );
+                                    },
+                                  );
+                                  if (picked != null) {
+                                    await Settings.setDailySyncTime(picked.hour, picked.minute);
+                                    await WallpaperWorker.registerPeriodicSync(forceUpdate: true);
+                                    if (mounted) {
+                                      setState(() {
+                                        _dailySyncTime = picked;
+                                      });
+                                    }
+                                    setModalState(() {});
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Daily wallpaper time set to ${Settings.formatTimeOfDayDisplay(picked.hour, picked.minute)}'),
+                                        behavior: SnackBarBehavior.floating,
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.edit_rounded, size: 14),
+                                label: const Text('Change'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: PinterestTheme.primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  textStyle: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(PinterestTheme.radiusSm),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _loadCurrentWallpaper();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: PinterestTheme.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
+                              ),
+                            ),
+                            child: Text(
+                              'Save & Close',
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                     ],
                   ),
@@ -2207,7 +2344,9 @@ class _HomeScreenState extends State<HomeScreen>
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text(
-                            Settings.getFrequencyDisplayString(freq),
+                            freq == 24
+                                ? Settings.getFrequencyDisplayString(freq, dailyTime: _dailySyncTime)
+                                : Settings.getFrequencyDisplayString(freq),
                             style: GoogleFonts.inter(
                               color: PinterestTheme.getInk(context),
                               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
@@ -2225,11 +2364,117 @@ class _HomeScreenState extends State<HomeScreen>
                               });
                             }
                             setModalState(() {});
-                            Navigator.pop(context);
-                            _loadCurrentWallpaper();
+                            if (freq != 24) {
+                              Navigator.pop(context);
+                              _loadCurrentWallpaper();
+                            }
                           },
                         );
                       }).toList(),
+                      if (_syncFrequency == 24) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: PinterestTheme.primary.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
+                            border: Border.all(
+                              color: PinterestTheme.primary.withOpacity(0.25),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: PinterestTheme.primary.withOpacity(0.12),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.access_time_filled_rounded,
+                                  color: PinterestTheme.primary,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Daily Change Time',
+                                      style: GoogleFonts.inter(
+                                        color: PinterestTheme.getMute(context),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      Settings.formatTimeOfDayDisplay(_dailySyncTime.hour, _dailySyncTime.minute),
+                                      style: GoogleFonts.inter(
+                                        color: PinterestTheme.getInk(context),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: () async {
+                                  final picked = await showTimePicker(
+                                    context: context,
+                                    initialTime: _dailySyncTime,
+                                    builder: (context, child) {
+                                      return Theme(
+                                        data: Theme.of(context).copyWith(
+                                          colorScheme: Theme.of(context).colorScheme.copyWith(
+                                            primary: PinterestTheme.primary,
+                                          ),
+                                        ),
+                                        child: child!,
+                                      );
+                                    },
+                                  );
+                                  if (picked != null) {
+                                    await Settings.setDailySyncTime(picked.hour, picked.minute);
+                                    await WallpaperWorker.registerPeriodicSync(forceUpdate: true);
+                                    if (mounted) {
+                                      setState(() {
+                                        _dailySyncTime = picked;
+                                      });
+                                    }
+                                    setModalState(() {});
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Daily wallpaper time set to ${Settings.formatTimeOfDayDisplay(picked.hour, picked.minute)}'),
+                                        behavior: SnackBarBehavior.floating,
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.edit_rounded, size: 14),
+                                label: const Text('Change'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: PinterestTheme.primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  textStyle: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(PinterestTheme.radiusSm),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                     ],
                   ),
