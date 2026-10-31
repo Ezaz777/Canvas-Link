@@ -288,28 +288,11 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 // Canvas Link Logo
                 GestureDetector(
                   onLongPress: _showManualTokenDialog,
-                  child: Container(
-                    width: 84,
-                    height: 84,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(PinterestTheme.radiusLg),
-                      boxShadow: [
-                        BoxShadow(
-                          color: PinterestTheme.primary.withOpacity(0.25),
-                          blurRadius: 20,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(PinterestTheme.radiusLg),
-                      child: Image.asset(
-                        'assets/logo.png',
-                        width: 84,
-                        height: 84,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
+                  child: Image.asset(
+                    'assets/logo.png',
+                    width: 88,
+                    height: 88,
+                    fit: BoxFit.contain,
                   ),
                 ),
                 const SizedBox(height: 24),

@@ -618,14 +618,11 @@ class _HomeScreenState extends State<HomeScreen>
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 child: Row(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(PinterestTheme.radiusSm),
-                      child: Image.asset(
-                        'assets/logo.png',
-                        width: 38,
-                        height: 38,
-                        fit: BoxFit.contain,
-                      ),
+                    Image.asset(
+                      'assets/logo.png',
+                      width: 38,
+                      height: 38,
+                      fit: BoxFit.contain,
                     ),
                     const SizedBox(width: 12),
                     Column(
