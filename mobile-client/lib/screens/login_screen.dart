@@ -124,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       await AuthService.saveToken(token);
 
       // Register background periodic wallpaper sync immediately upon login
-      await WallpaperWorker.registerPeriodicSync();
+      await WallpaperWorker.registerPeriodicSync(forceUpdate: true);
 
       // Pre-cache screen resolution for background isolate
       await ImageUtils.getScreenResolution();

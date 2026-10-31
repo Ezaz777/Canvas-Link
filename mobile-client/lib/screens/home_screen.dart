@@ -81,30 +81,8 @@ class _HomeScreenState extends State<HomeScreen>
       // 1. Pre-cache physical screen dimensions for background isolates
       await ImageUtils.getScreenResolution();
 
-      // 2. Register periodic background WorkManager task
+      // 2. Register periodic background WorkManager task (uses ExistingWorkPolicy.keep)
       await WallpaperWorker.registerPeriodicSync();
-
-      // 3. Check if current interval's wallpaper needs automatic change
-      final freq = await Settings.getSyncFrequency();
-      if (freq > 0) {
-        final now = DateTime.now();
-        final currentIntervalKey = Settings.getIntervalKey(now, freq);
-        final lastInterval = await Settings.getLastSyncIntervalKey();
-
-        if (lastInterval != currentIntervalKey) {
-          print('HomeScreen: New interval detected ($lastInterval -> $currentIntervalKey). Auto-applying wallpaper...');
-          WallpaperService.syncWallpaper(frequency: freq, hour: now.hour).then((success) {
-            // Only apply if user hasn't manually changed wallpaper in the meantime
-            if (success && mounted && !_autoSyncCancelled) {
-              _loadCurrentWallpaper();
-            } else if (_autoSyncCancelled) {
-              print('HomeScreen: Auto-sync result discarded (user manually changed wallpaper)');
-            }
-          }).catchError((e) {
-            print('HomeScreen: Auto-change on launch notice: $e');
-          });
-        }
-      }
     } catch (e) {
       print('HomeScreen: Error initializing background worker: $e');
     }
@@ -264,25 +242,30 @@ class _HomeScreenState extends State<HomeScreen>
           _currentPinId = pinId;
         });
 
+        // Update the local interval key so auto-sync won't overwrite
+        final freq = await Settings.getSyncFrequency();
+        final now = DateTime.now();
+        final intervalKey = Settings.getIntervalKey(now, freq);
+        await Settings.setLastSyncIntervalKey(intervalKey);
+
         // Report the applied pin to backend so it gets flagged as 'seen'
         if (pinId != null && pinId != 'current') {
           try {
             final token = await AuthService.getToken();
             if (token != null) {
               final api = ApiService(token);
-              await api.setActiveWallpaper(pinId);
-              print('HomeScreen: Reported pin $pinId as active wallpaper to backend');
+              await api.setActiveWallpaper(
+                pinId,
+                frequency: freq,
+                hour: now.hour,
+                intervalKey: intervalKey,
+              );
+              print('HomeScreen: Reported pin $pinId as active wallpaper to backend (interval: $intervalKey)');
             }
           } catch (e) {
             print('HomeScreen: Failed to report active wallpaper (non-fatal): $e');
           }
         }
-
-        // Update the local interval key so auto-sync won't overwrite
-        final freq = await Settings.getSyncFrequency();
-        final now = DateTime.now();
-        final intervalKey = Settings.getIntervalKey(now, freq);
-        await Settings.setLastSyncIntervalKey(intervalKey);
 
         HapticFeedback.heavyImpact();
         _burstAnimController.forward(from: 0.0);
@@ -497,18 +480,12 @@ class _HomeScreenState extends State<HomeScreen>
         );
       }
 
-      // Tell backend to increment skip_offset AND report the applied pin
+      // Tell backend to increment skip_offset
       try {
         final token = await AuthService.getToken();
         if (token != null) {
           final api = ApiService(token);
           await api.skipWallpaper();
-          // Also report which pin was actually applied
-          final pinId = nextPin['id'] as String?;
-          if (pinId != null) {
-            await api.setActiveWallpaper(pinId);
-            print('HomeScreen: Skip - reported pin $pinId as active to backend');
-          }
         }
       } catch (_) {}
     } catch (e) {
@@ -1986,7 +1963,7 @@ class _HomeScreenState extends State<HomeScreen>
                               : null,
                           onTap: () async {
                             await Settings.setSyncFrequency(freq);
-                            await WallpaperWorker.registerPeriodicSync();
+                            await WallpaperWorker.registerPeriodicSync(forceUpdate: true);
                             if (mounted) {
                               setState(() {
                                 _syncFrequency = freq;
@@ -2196,7 +2173,7 @@ class _HomeScreenState extends State<HomeScreen>
                               : null,
                           onTap: () async {
                             await Settings.setSyncFrequency(freq);
-                            await WallpaperWorker.registerPeriodicSync();
+                            await WallpaperWorker.registerPeriodicSync(forceUpdate: true);
                             if (mounted) {
                               setState(() {
                                 _syncFrequency = freq;

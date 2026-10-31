@@ -19,7 +19,22 @@ void callbackDispatcher() {
 
     try {
       final hours = await Settings.getSyncFrequency();
-      final success = await WallpaperService.syncWallpaper(frequency: hours);
+      if (hours == 0) {
+        print('WallpaperSync Worker: Sync frequency is Off. Skipping.');
+        return true;
+      }
+
+      // Check if current interval has already been applied (e.g. by manual selection or recent sync)
+      final now = DateTime.now();
+      final currentIntervalKey = Settings.getIntervalKey(now, hours);
+      final lastInterval = await Settings.getLastSyncIntervalKey();
+
+      if (lastInterval == currentIntervalKey) {
+        print('WallpaperSync Worker: Interval $currentIntervalKey already synced. Skipping to preserve wallpaper.');
+        return true;
+      }
+
+      final success = await WallpaperService.syncWallpaper(frequency: hours, hour: now.hour);
       print('WallpaperSync Worker: Task completed. Success: $success');
       return success;
     } catch (e) {
@@ -40,8 +55,9 @@ class WallpaperWorker {
   }
 
   /// Register a periodic background task based on the user's saved settings.
-  /// Requires network connectivity.
-  static Future<void> registerPeriodicSync() async {
+  /// Uses ExistingWorkPolicy.keep to prevent immediate execution on every app launch.
+  /// Set forceUpdate = true when user explicitly modifies settings.
+  static Future<void> registerPeriodicSync({bool forceUpdate = false}) async {
     final hours = await Settings.getSyncFrequency();
     
     if (hours == 0) {
@@ -50,8 +66,9 @@ class WallpaperWorker {
       return;
     }
 
-    // Cancel old tasks to replace them cleanly.
-    await cancelAll();
+    if (forceUpdate) {
+      await cancelAll();
+    }
 
     // Register periodic sync without restrictive battery gates that prevent Android background execution
     await Workmanager().registerPeriodicTask(
@@ -65,11 +82,11 @@ class WallpaperWorker {
         requiresDeviceIdle: false,
         requiresStorageNotLow: false,
       ),
-      existingWorkPolicy: ExistingWorkPolicy.replace,
+      existingWorkPolicy: forceUpdate ? ExistingWorkPolicy.replace : ExistingWorkPolicy.keep,
       backoffPolicy: BackoffPolicy.exponential,
       backoffPolicyDelay: const Duration(minutes: 15),
     );
-    print('WallpaperSync: Periodic sync task registered (every ${hours}h).');
+    print('WallpaperSync: Periodic sync task registered (every ${hours}h, forceUpdate: $forceUpdate).');
   }
 
   /// Run the sync task once immediately.

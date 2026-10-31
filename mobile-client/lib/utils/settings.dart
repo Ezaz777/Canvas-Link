@@ -125,18 +125,12 @@ class Settings {
     }
   }
 
-  /// Generate a deterministic interval key based on date and frequency
+  /// Generate a deterministic interval key based on date and frequency (matches backend formula)
   static String getIntervalKey(DateTime now, int frequency) {
     final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    if (frequency <= 1) {
-      return '${dateStr}_h${now.hour}';
-    } else if (frequency == 6) {
-      return '${dateStr}_b${now.hour ~/ 6}';
-    } else if (frequency == 12) {
-      return '${dateStr}_b${now.hour ~/ 12}';
-    } else {
-      return dateStr;
-    }
+    final freq = (frequency > 0 && frequency <= 24) ? frequency : 24;
+    final intervalIndex = now.hour ~/ freq;
+    return '${dateStr}_int$intervalIndex';
   }
 
   /// Convert frequency hours to a display string.

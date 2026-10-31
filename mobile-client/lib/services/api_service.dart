@@ -3,6 +3,7 @@
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../utils/settings.dart';
 
 class ApiService {
   // TODO: Replace with your deployed Cloudflare Worker URL
@@ -140,12 +141,29 @@ class ApiService {
 
   /// Report to the backend which pin was actually applied as wallpaper.
   /// This flags the pin as 'seen' and sets it as the active wallpaper.
-  Future<void> setActiveWallpaper(String pinId, {String deviceType = 'mobile'}) async {
+  Future<void> setActiveWallpaper(
+    String pinId, {
+    String deviceType = 'mobile',
+    int? frequency,
+    int? hour,
+    String? intervalKey,
+  }) async {
     try {
+      final freq = frequency ?? await Settings.getSyncFrequency();
+      final now = DateTime.now();
+      final currentHour = hour ?? now.hour;
+      final key = intervalKey ?? Settings.getIntervalKey(now, freq);
+
       final response = await http.post(
         Uri.parse('$baseUrl/api/set-active-wallpaper'),
         headers: _headers,
-        body: jsonEncode({'pin_id': pinId, 'device_type': deviceType}),
+        body: jsonEncode({
+          'pin_id': pinId,
+          'device_type': deviceType,
+          'frequency': freq,
+          'hour': currentHour,
+          'interval_key': key,
+        }),
       );
 
       if (response.statusCode == 401) {

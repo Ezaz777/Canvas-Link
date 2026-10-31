@@ -197,7 +197,10 @@ export function registerWallpaperRoutes(router: any) {
       const today = getTodayDateString();
       const freq = (frequencyParam > 0 && frequencyParam <= 24) ? frequencyParam : 24;
       const intervalIndex = Math.floor(currentHour / freq);
-      const intervalKey = `${today}_int${intervalIndex}_skip${user.skip_offset || 0}`;
+      // intervalKey is purely time-based. skip_offset only affects the selection
+      // algorithm seed, NOT the interval identity — otherwise manual selections
+      // via set-active-wallpaper get ignored after a skip.
+      const intervalKey = `${today}_int${intervalIndex}`;
 
       const state = await env.DB.prepare(
         'SELECT user_id, board_id, flagged_pins, active_pin_id, active_interval_key FROM board_wallpaper_state WHERE user_id = ? AND board_id = ?'
@@ -277,6 +280,7 @@ export function registerWallpaperRoutes(router: any) {
         pin_id: selectedPin.id,
         title: selectedPin.title || null,
         date: today,
+        interval_key: intervalKey,
         total_pins: pins.length,
         flagged_count: flaggedCount,
         unflagged_count: unflaggedCount,
@@ -393,7 +397,13 @@ export function registerWallpaperRoutes(router: any) {
       return Response.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    const body = await (request as unknown as Request).json() as { pin_id?: string; device_type?: string };
+    const body = await (request as unknown as Request).json() as {
+      pin_id?: string;
+      device_type?: string;
+      frequency?: number | string;
+      hour?: number | string;
+      interval_key?: string;
+    };
     const pinId = body.pin_id ? String(body.pin_id) : null;
     if (!pinId) {
       return Response.json({ error: 'pin_id is required' }, { status: 400 });
@@ -421,6 +431,15 @@ export function registerWallpaperRoutes(router: any) {
       return Response.json({ success: true, message: 'No board configured' });
     }
 
+    // Compute the current interval key so we can persist the manual override
+    const frequencyParam = parseInt(body.frequency != null ? String(body.frequency) : '24', 10);
+    const hourParam = parseInt(body.hour != null ? String(body.hour) : '-1', 10);
+    const currentHour = (hourParam >= 0 && hourParam <= 23) ? hourParam : new Date().getUTCHours();
+    const freq = (frequencyParam > 0 && frequencyParam <= 24) ? frequencyParam : 24;
+    const intervalIndex = Math.floor(currentHour / freq);
+    const today = getTodayDateString();
+    const intervalKey = body.interval_key || `${today}_int${intervalIndex}`;
+
     try {
 
       const state = await env.DB.prepare(
@@ -441,13 +460,14 @@ export function registerWallpaperRoutes(router: any) {
       }
 
       await env.DB.prepare(`
-        INSERT INTO board_wallpaper_state (user_id, board_id, flagged_pins, active_pin_id, updated_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
+        INSERT INTO board_wallpaper_state (user_id, board_id, flagged_pins, active_pin_id, active_interval_key, updated_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
         ON CONFLICT (user_id, board_id) DO UPDATE SET
           flagged_pins = excluded.flagged_pins,
           active_pin_id = excluded.active_pin_id,
+          active_interval_key = excluded.active_interval_key,
           updated_at = datetime('now')
-      `).bind(userId, targetBoardId, JSON.stringify(currentFlagged), pinId).run();
+      `).bind(userId, targetBoardId, JSON.stringify(currentFlagged), pinId, intervalKey).run();
 
       return Response.json({
         success: true,

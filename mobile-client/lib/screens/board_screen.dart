@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/wallpaper_service.dart';
 import '../utils/pinterest_theme.dart';
+import '../utils/settings.dart';
 import 'dashboard_screen.dart';
 
 class BoardScreen extends StatefulWidget {
@@ -633,17 +634,37 @@ class _BoardScreenState extends State<BoardScreen> {
             orElse: () => <String, dynamic>{},
           );
           final pinId = matchingPin['id'] as String?;
+
+          // Record interval key so background auto-sync won't overwrite this manual choice
+          final freq = await Settings.getSyncFrequency();
+          final now = DateTime.now();
+          final intervalKey = Settings.getIntervalKey(now, freq);
+          await Settings.setLastSyncIntervalKey(intervalKey);
+
           if (pinId != null) {
             try {
               final token = await AuthService.getToken();
               if (token != null) {
                 final api = ApiService(token);
-                await api.setActiveWallpaper(pinId);
+                await api.setActiveWallpaper(
+                  pinId,
+                  frequency: freq,
+                  hour: now.hour,
+                  intervalKey: intervalKey,
+                );
                 print('BoardScreen: Reported pin $pinId as active wallpaper to backend');
               }
             } catch (e) {
               print('BoardScreen: Failed to report active wallpaper (non-fatal): $e');
             }
+          }
+
+          if (mounted) {
+            setState(() {
+              if (matchingPin.isNotEmpty) {
+                matchingPin['is_flagged'] = true;
+              }
+            });
           }
 
           ScaffoldMessenger.of(context).showSnackBar(
