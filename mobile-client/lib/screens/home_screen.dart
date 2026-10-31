@@ -618,22 +618,13 @@ class _HomeScreenState extends State<HomeScreen>
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 child: Row(
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: const BoxDecoration(
-                        color: PinterestTheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          'P',
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(PinterestTheme.radiusSm),
+                      child: Image.asset(
+                        'assets/logo.png',
+                        width: 38,
+                        height: 38,
+                        fit: BoxFit.cover,
                       ),
                     ),
                     const SizedBox(width: 12),

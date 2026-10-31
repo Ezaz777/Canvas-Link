@@ -587,7 +587,7 @@ function App() {
         <div className="container nav-inner">
           <div className="nav-left">
             <Link to="/" className="brand-wordmark">
-              <div className="brand-badge-p">P</div>
+              <img src="/favicon-96x96.png" alt="Canvas Link" style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'cover' }} />
               <span>Canvas Link</span>
             </Link>
 
@@ -739,7 +739,7 @@ function App() {
 
           <div className="footer-bottom-row">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div className="brand-badge-p" style={{ width: '24px', height: '24px', fontSize: '13px' }}>P</div>
+              <img src="/favicon-96x96.png" alt="Canvas Link" style={{ width: '22px', height: '22px', borderRadius: '6px', objectFit: 'cover' }} />
               <span style={{ fontWeight: 700, color: 'var(--color-ink)', fontSize: '14px' }}>Canvas Link</span>
             </div>
             <p className="caption-sm">
@@ -770,9 +770,7 @@ function App() {
               </button>
 
               <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <div className="brand-badge-p" style={{ width: '48px', height: '48px', fontSize: '24px', margin: '0 auto 16px auto' }}>
-                  P
-                </div>
+                <img src="/logo.png" alt="Canvas Link" style={{ width: '48px', height: '48px', borderRadius: '12px', margin: '0 auto 16px auto', display: 'block', objectFit: 'cover' }} />
                 <h3 className="heading-lg">Get Canvas Link</h3>
                 <p className="body-sm" style={{ marginTop: '6px' }}>
                   Choose your platform to start daily wallpaper synchronization.

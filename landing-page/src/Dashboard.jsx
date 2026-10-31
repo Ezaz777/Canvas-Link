@@ -87,9 +87,7 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="brand-badge-p" style={{ width: '48px', height: '48px', fontSize: '24px', margin: '0 auto 16px auto' }}>
-            P
-          </div>
+          <img src="/logo.png" alt="Canvas Link" style={{ width: '48px', height: '48px', borderRadius: '12px', margin: '0 auto 16px auto', display: 'block', objectFit: 'cover' }} />
           <h1 className="heading-xl" style={{ marginBottom: '8px' }}>Sync Dashboard</h1>
           <p className="body-sm" style={{ color: 'var(--color-mute)', marginBottom: '24px' }}>
             Enter your Canvas Link session token to view and manage device board associations.

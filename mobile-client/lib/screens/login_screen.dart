@@ -285,31 +285,29 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Canvas Link Logo / Pinterest Badge
+                // Canvas Link Logo
                 GestureDetector(
                   onLongPress: _showManualTokenDialog,
                   child: Container(
-                    width: 80,
-                    height: 80,
+                    width: 84,
+                    height: 84,
                     decoration: BoxDecoration(
-                      color: PinterestTheme.primary,
-                      borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
+                      borderRadius: BorderRadius.circular(PinterestTheme.radiusLg),
                       boxShadow: [
                         BoxShadow(
-                          color: PinterestTheme.primary.withOpacity(0.2),
+                          color: PinterestTheme.primary.withOpacity(0.25),
                           blurRadius: 20,
                           offset: const Offset(0, 6),
                         ),
                       ],
                     ),
-                    child: Center(
-                      child: Text(
-                        'P',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 44,
-                          fontWeight: FontWeight.w900,
-                        ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(PinterestTheme.radiusLg),
+                      child: Image.asset(
+                        'assets/logo.png',
+                        width: 84,
+                        height: 84,
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),
