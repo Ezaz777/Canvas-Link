@@ -600,8 +600,8 @@ export function registerWallpaperRoutes(router: any) {
         const images = pin.media?.images || {};
         const primaryUrl = (
           images['1200x']?.url ||
-          images['736x']?.url ||
           images.orig?.url ||
+          images['736x']?.url ||
           images['600x']?.url ||
           images['400x300']?.url ||
           (Object.values(images)[0] as any)?.url

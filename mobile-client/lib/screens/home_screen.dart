@@ -31,7 +31,6 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isSyncing = false;
   bool _isApplyingPin = false;
   bool _isLoadingPreview = true;
-  bool _autoSyncCancelled = false; // Prevents background auto-sync from overwriting manual changes
   String? _currentImageUrl;
   String? _currentPinId;
   String? _currentDate;
@@ -158,9 +157,14 @@ class _HomeScreenState extends State<HomeScreen>
       String? effectiveImageUrl = currentImg;
 
       if (lastInterval == currentInterval && localActivePinId != null) {
-        effectivePinId = localActivePinId;
-        if (localActiveImageUrl != null) {
-          effectiveImageUrl = localActiveImageUrl;
+        // Ensure the locally cached active pin actually exists on the currently loaded board
+        final existsOnBoard = loadedPins.any(
+            (p) => p['id'] == localActivePinId || p['image_url'] == localActiveImageUrl);
+        if (existsOnBoard) {
+          effectivePinId = localActivePinId;
+          if (localActiveImageUrl != null) {
+            effectiveImageUrl = localActiveImageUrl;
+          }
         }
       }
 
@@ -238,8 +242,6 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     setState(() => _isApplyingPin = true);
-    // Cancel any pending auto-sync so it doesn't overwrite this manual change
-    _autoSyncCancelled = true;
     HapticFeedback.mediumImpact();
 
     try {
@@ -972,12 +974,12 @@ class _HomeScreenState extends State<HomeScreen>
       width: double.infinity,
       height: 440,
       decoration: BoxDecoration(
-        color: PinterestTheme.surfaceCard,
+        color: PinterestTheme.getSurfaceCard(context),
         borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
         border: Border.all(
           color: isActive
               ? PinterestTheme.primary
-              : PinterestTheme.hairlineSoft,
+              : PinterestTheme.getHairlineSoft(context),
           width: isActive ? 2.0 : 1.0,
         ),
       ),
@@ -1166,7 +1168,7 @@ class _HomeScreenState extends State<HomeScreen>
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.92),
                           shape: BoxShape.circle,
-                          border: Border.all(color: PinterestTheme.hairlineSoft),
+                          border: Border.all(color: PinterestTheme.getHairlineSoft(context)),
                           boxShadow: PinterestTheme.overlayShadow,
                         ),
                         child: const Icon(Icons.chevron_left_rounded,
@@ -1194,7 +1196,7 @@ class _HomeScreenState extends State<HomeScreen>
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.92),
                           shape: BoxShape.circle,
-                          border: Border.all(color: PinterestTheme.hairlineSoft),
+                          border: Border.all(color: PinterestTheme.getHairlineSoft(context)),
                           boxShadow: PinterestTheme.overlayShadow,
                         ),
                         child: const Icon(Icons.chevron_right_rounded,
@@ -1318,9 +1320,9 @@ class _HomeScreenState extends State<HomeScreen>
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
                         decoration: BoxDecoration(
-                          color: PinterestTheme.canvas,
+                          color: PinterestTheme.getCanvas(context),
                           borderRadius: BorderRadius.circular(PinterestTheme.radiusLg),
-                          border: Border.all(color: PinterestTheme.hairline, width: 1.5),
+                          border: Border.all(color: PinterestTheme.getHairline(context), width: 1.5),
                           boxShadow: PinterestTheme.overlayShadow,
                         ),
                         child: Column(
@@ -1339,7 +1341,7 @@ class _HomeScreenState extends State<HomeScreen>
                             Text(
                               'Wallpaper Set!',
                               style: GoogleFonts.inter(
-                                color: PinterestTheme.ink,
+                                color: PinterestTheme.getInk(context),
                                 fontWeight: FontWeight.w800,
                                 fontSize: 18,
                               ),
@@ -1348,7 +1350,7 @@ class _HomeScreenState extends State<HomeScreen>
                             Text(
                               Settings.getScreenTargetDisplayString(_screenTarget),
                               style: GoogleFonts.inter(
-                                color: PinterestTheme.mute,
+                                color: PinterestTheme.getMute(context),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
