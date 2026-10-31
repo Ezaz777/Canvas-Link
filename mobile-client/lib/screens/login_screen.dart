@@ -307,7 +307,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                         'assets/logo.png',
                         width: 84,
                         height: 84,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),

@@ -624,7 +624,7 @@ class _HomeScreenState extends State<HomeScreen>
                         'assets/logo.png',
                         width: 38,
                         height: 38,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain,
                       ),
                     ),
                     const SizedBox(width: 12),
