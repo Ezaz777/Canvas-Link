@@ -143,16 +143,38 @@ class _HomeScreenState extends State<HomeScreen>
         ];
       }
 
+      // Check if we have a locally saved active pin for the current interval
+      final now = DateTime.now();
+      final currentInterval = Settings.getIntervalKey(now, freq);
+      final lastInterval = await Settings.getLastSyncIntervalKey();
+      final localActivePinId = await Settings.getActivePinId();
+      final localActiveImageUrl = await Settings.getActiveImageUrl();
+
+      // If user recently set a wallpaper for this interval, prioritize local active pin
+      String? effectivePinId = currentPin;
+      String? effectiveImageUrl = currentImg;
+
+      if (lastInterval == currentInterval && localActivePinId != null) {
+        effectivePinId = localActivePinId;
+        if (localActiveImageUrl != null) {
+          effectiveImageUrl = localActiveImageUrl;
+        }
+      }
+
       int activeIdx = 0;
-      if (currentPin != null && loadedPins.isNotEmpty) {
+      if (effectivePinId != null && loadedPins.isNotEmpty) {
+        final found = loadedPins.indexWhere(
+            (p) => p['id'] == effectivePinId || p['image_url'] == effectiveImageUrl);
+        if (found != -1) activeIdx = found;
+      } else if (currentPin != null && loadedPins.isNotEmpty) {
         final found = loadedPins.indexWhere(
             (p) => p['id'] == currentPin || p['image_url'] == currentImg);
         if (found != -1) activeIdx = found;
       }
 
       setState(() {
-        _currentImageUrl = currentImg;
-        _currentPinId = currentPin;
+        _currentImageUrl = effectiveImageUrl ?? currentImg;
+        _currentPinId = effectivePinId ?? currentPin;
         _currentDate = data['date'];
         _totalPins = data['total_pins'] ?? loadedPins.length;
         _flaggedCount = data['flagged_count'] as int?;
@@ -236,11 +258,33 @@ class _HomeScreenState extends State<HomeScreen>
 
       if (success) {
         final pinId = pin['id'] as String?;
+        final imageUrl = pin['image_url'] as String?;
+
+        // Find the exact index of this pin in _pins to avoid animation index race
+        final pinIdx = _pins.indexWhere((p) =>
+            (pinId != null && p['id'] == pinId) ||
+            (imageUrl != null && p['image_url'] == imageUrl));
+        final effectiveIdx = pinIdx != -1 ? pinIdx : _currentIndex;
+
         setState(() {
-          _activeWallpaperIndex = _currentIndex;
-          _currentImageUrl = pin['image_url'];
+          _activeWallpaperIndex = effectiveIdx;
+          _currentIndex = effectiveIdx;
+          _currentImageUrl = imageUrl;
           _currentPinId = pinId;
         });
+
+        // Ensure carousel controller matches the active pin page
+        if (_pageController.hasClients && _pageController.page?.round() != effectiveIdx) {
+          _pageController.jumpToPage(effectiveIdx);
+        }
+
+        // Save active pin and image URL locally on device
+        if (pinId != null) {
+          await Settings.setActivePinId(pinId);
+        }
+        if (imageUrl != null) {
+          await Settings.setActiveImageUrl(imageUrl);
+        }
 
         // Update the local interval key so auto-sync won't overwrite
         final freq = await Settings.getSyncFrequency();
@@ -441,20 +485,21 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       // Advance to the next unique pin in the carousel - GUARANTEED NOT THE SAME
       final nextIdx = (_currentIndex + 1) % _pins.length;
+      final nextPin = _pins[nextIdx];
+
+      // Immediately sync current index so UI and animations align
+      setState(() => _currentIndex = nextIdx);
 
       // Animate smoothly with satisfying cubic curve
       if (_pageController.hasClients) {
-        await _pageController.animateToPage(
+        _pageController.animateToPage(
           nextIdx,
           duration: const Duration(milliseconds: 400),
           curve: Curves.easeInOutCubic,
         );
-      } else {
-        setState(() => _currentIndex = nextIdx);
       }
 
       // Apply this next pin immediately
-      final nextPin = _pins[nextIdx];
       await _applyPinAsWallpaper(nextPin, notify: false);
 
       if (mounted) {

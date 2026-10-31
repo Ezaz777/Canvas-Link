@@ -641,6 +641,12 @@ class _BoardScreenState extends State<BoardScreen> {
           final intervalKey = Settings.getIntervalKey(now, freq);
           await Settings.setLastSyncIntervalKey(intervalKey);
 
+          // Save active pin and image URL locally so HomeScreen immediately reflects it
+          if (pinId != null) {
+            await Settings.setActivePinId(pinId);
+          }
+          await Settings.setActiveImageUrl(imageUrl);
+
           if (pinId != null) {
             try {
               final token = await AuthService.getToken();

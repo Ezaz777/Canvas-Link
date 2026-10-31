@@ -61,6 +61,26 @@ class Settings {
     await _storage.write(key: 'last_sync_interval_key', value: key);
   }
 
+  /// Get the pin ID of the currently active wallpaper set on this device.
+  static Future<String?> getActivePinId() async {
+    return await _storage.read(key: 'active_wallpaper_pin_id');
+  }
+
+  /// Record the pin ID of the currently active wallpaper.
+  static Future<void> setActivePinId(String pinId) async {
+    await _storage.write(key: 'active_wallpaper_pin_id', value: pinId);
+  }
+
+  /// Get the image URL of the currently active wallpaper set on this device.
+  static Future<String?> getActiveImageUrl() async {
+    return await _storage.read(key: 'active_wallpaper_image_url');
+  }
+
+  /// Record the image URL of the currently active wallpaper.
+  static Future<void> setActiveImageUrl(String url) async {
+    await _storage.write(key: 'active_wallpaper_image_url', value: url);
+  }
+
   /// Get the configured sync frequency in hours. Defaults to 24.
   static Future<int> getSyncFrequency() async {
     final value = await _storage.read(key: _syncFrequencyKey);

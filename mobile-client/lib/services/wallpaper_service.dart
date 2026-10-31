@@ -73,12 +73,18 @@ class WallpaperService {
           500);
     }
 
-    // Record last sync date and interval key
+    // Record last sync date, interval key, and active pin
     if (data['date'] != null) {
       await Settings.setLastSyncDate(data['date'] as String);
     }
     final intervalKey = Settings.getIntervalKey(now, freq);
     await Settings.setLastSyncIntervalKey(intervalKey);
+
+    final pinId = data['pin_id'] as String?;
+    if (pinId != null) {
+      await Settings.setActivePinId(pinId);
+    }
+    await Settings.setActiveImageUrl(imageUrl);
 
     print('WallpaperSync: Wallpaper applied successfully for interval $intervalKey!');
     return true;
