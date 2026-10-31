@@ -70,7 +70,7 @@ class WallpaperWorker {
       await cancelAll();
     }
 
-    Duration? initialDelay;
+    Duration initialDelay = Duration.zero;
     if (hours == 24) {
       final dailyTime = await Settings.getDailySyncTime();
       final now = DateTime.now();
