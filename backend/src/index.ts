@@ -5,8 +5,6 @@
 
 import { AutoRouter, cors, error, IRequest } from 'itty-router';
 import { registerAuthRoutes } from './routes/auth';
-import { registerCheckoutRoutes } from './routes/checkout';
-import { registerWebhookRoutes } from './routes/webhook';
 import { registerWallpaperRoutes } from './routes/wallpaper';
 
 /**
@@ -21,11 +19,8 @@ export interface Env {
   PINTEREST_APP_SECRET: string;
   PINTEREST_REDIRECT_URI: string;
 
-  // Razorpay
-  RAZORPAY_KEY_ID: string;
-  RAZORPAY_KEY_SECRET: string;
-  RAZORPAY_WEBHOOK_SECRET: string;
-  RAZORPAY_PLAN_ID: string;
+  // Google Play
+  GOOGLE_PLAY_PACKAGE_NAME: string;
 
   // App
   JWT_SECRET: string;
@@ -48,8 +43,6 @@ const router = AutoRouter({
 
 // Register route modules
 registerAuthRoutes(router);
-registerCheckoutRoutes(router);
-registerWebhookRoutes(router);
 registerWallpaperRoutes(router);
 
 // Health check
@@ -61,10 +54,9 @@ router.get('/', () => {
     endpoints: {
       auth: 'GET /auth/pinterest',
       callback: 'GET /auth/callback',
-      checkout: 'POST /api/checkout',
-      webhook: 'POST /webhook/razorpay',
       wallpaper: 'GET /api/get-wallpaper',
       setBoard: 'POST /api/set-board',
+      verifyPurchase: 'POST /api/verify-purchase',
     },
   });
 });

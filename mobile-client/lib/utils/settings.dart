@@ -15,6 +15,7 @@ class Settings {
   static const String _screenHeightKey = 'device_screen_height';
   static const String _lastSyncDateKey = 'last_sync_date';
   static const String _dailySyncTimeKey = 'daily_sync_time';
+  static const String _isProKey = 'is_canvas_link_pro';
 
   // Frequencies in hours. 0 means Off.
   static const List<int> availableFrequencies = [0, 1, 6, 12, 24];
@@ -289,5 +290,32 @@ class Settings {
       default:
         return 'Home & Lock Screens';
     }
+  }
+
+  /// Check whether user has unlocked Canvas Link Pro
+  static Future<bool> isPro() async {
+    try {
+      final val = await _storage.read(key: _isProKey);
+      return val == 'true';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Update local Pro status
+  static Future<void> setPro(bool isPro) async {
+    try {
+      await _storage.write(key: _isProKey, value: isPro.toString());
+    } catch (_) {}
+  }
+
+  /// Whether a specific sync frequency requires Pro
+  static bool isFrequencyProOnly(int hours) {
+    return hours == 1 || hours == 6;
+  }
+
+  /// Whether a specific screen target requires Pro
+  static bool isScreenTargetProOnly(String target) {
+    return target == 'both' || target == 'lock';
   }
 }

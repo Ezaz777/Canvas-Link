@@ -236,6 +236,55 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
+  /// Fetch user Pro status and profile from the backend.
+  Future<Map<String, dynamic>> getUserStatus() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/user-status'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 401) {
+      throw UnauthorizedException('Session expired. Please log in again.');
+    }
+
+    if (response.statusCode != 200) {
+      throw ApiException('Failed to fetch user status', response.statusCode);
+    }
+
+    return jsonDecode(response.body);
+  }
+
+  /// Verify a Google Play In-App Purchase with the backend.
+  Future<Map<String, dynamic>> verifyPurchase({
+    required String productId,
+    required String purchaseToken,
+    String? orderId,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/verify-purchase'),
+      headers: _headers,
+      body: jsonEncode({
+        'product_id': productId,
+        'purchase_token': purchaseToken,
+        'order_id': orderId,
+      }),
+    );
+
+    if (response.statusCode == 401) {
+      throw UnauthorizedException('Session expired. Please log in again.');
+    }
+
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+      throw ApiException(
+        body['error'] ?? 'Failed to verify purchase',
+        response.statusCode,
+      );
+    }
+
+    return jsonDecode(response.body);
+  }
+
   /// Get the Pinterest OAuth URL for login.
   static String getAuthUrl() => '$baseUrl/auth/pinterest?client=mobile';
 }

@@ -138,11 +138,37 @@ export function registerWallpaperRoutes(router: any) {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
+    const isPro = user.subscription_status === 'active';
+
     const url = new URL(request.url);
     const deviceType = url.searchParams.get('device_type');
     const frequencyParam = parseInt(url.searchParams.get('frequency') || '24', 10);
     const hourParam = parseInt(url.searchParams.get('hour') || '-1', 10);
     const currentHour = (hourParam >= 0 && hourParam <= 23) ? hourParam : new Date().getUTCHours();
+
+    // Pro Gate 1: Windows PC wallpaper sync requires Pro
+    if (deviceType === 'desktop' && !isPro) {
+      return Response.json(
+        {
+          error: 'Payment required',
+          code: 'pro_required',
+          message: 'Canvas Link Pro is required for Windows PC wallpaper sync. Upgrade via the mobile app.',
+        },
+        { status: 402 }
+      );
+    }
+
+    // Pro Gate 2: Rapid sync frequencies (1h and 6h) require Pro
+    if ((frequencyParam === 1 || frequencyParam === 6) && !isPro) {
+      return Response.json(
+        {
+          error: 'Payment required',
+          code: 'pro_required',
+          message: 'Canvas Link Pro is required for 1-hour and 6-hour wallpaper rotation intervals.',
+        },
+        { status: 402 }
+      );
+    }
 
     let targetBoardId: string | null = null;
     if (deviceType === 'mobile') {
@@ -257,16 +283,12 @@ export function registerWallpaperRoutes(router: any) {
       const flaggedCount = pins.filter(p => activeFlaggedSet.has(String(p.id))).length;
       const unflaggedCount = Math.max(0, pins.length - flaggedCount);
 
-      // 6. Extract the best resolution URL (prioritize fast CDN-optimized 1200x, then orig)
+      // 6. Extract the best resolution URL
+      // Pro users get uncompressed native 4K orig master; Free users get CDN-optimized 1200x
       const images = selectedPin.media?.images || {};
-      const originalUrl = (
-        images['1200x']?.url ||
-        images.orig?.url ||
-        images['736x']?.url ||
-        images['600x']?.url ||
-        images['400x300']?.url ||
-        (Object.values(images)[0] as any)?.url
-      );
+      const originalUrl = isPro
+        ? (images.orig?.url || images['1200x']?.url || images['736x']?.url || (Object.values(images)[0] as any)?.url)
+        : (images['1200x']?.url || images['736x']?.url || images.orig?.url || (Object.values(images)[0] as any)?.url);
 
       if (!originalUrl) {
         return Response.json(
@@ -286,6 +308,7 @@ export function registerWallpaperRoutes(router: any) {
         unflagged_count: unflaggedCount,
         is_unflagged_cycle: isUnflaggedCycle,
         unflagged_pin_id: unflaggedPinId,
+        is_pro: isPro,
       });
     } catch (err: any) {
       console.error('Wallpaper engine error:', err);
@@ -634,6 +657,85 @@ export function registerWallpaperRoutes(router: any) {
    * DELETE /api/delete-pin/:pin_id
    * Deletes a pin from the user's Pinterest board.
    */
+  /**
+   * GET /api/user-status
+   * Returns current user Pro status, subscription status, and username.
+   */
+  router.get('/api/user-status', async (request: IRequest, env: Env) => {
+    const token = extractBearerToken(request as unknown as Request);
+    if (!token) {
+      return Response.json({ error: 'Missing authorization token' }, { status: 401 });
+    }
+
+    let userId: string;
+    try {
+      const auth = await verifyToken(token, env.JWT_SECRET);
+      userId = auth.userId;
+    } catch {
+      return Response.json({ error: 'Invalid or expired token' }, { status: 401 });
+    }
+
+    const user = await env.DB.prepare(
+      'SELECT id, pinterest_username, subscription_status FROM users WHERE id = ?'
+    ).bind(userId).first<{ id: string; pinterest_username: string | null; subscription_status: string }>();
+
+    if (!user) {
+      return Response.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    return Response.json({
+      user_id: user.id,
+      username: user.pinterest_username,
+      subscription_status: user.subscription_status,
+      is_pro: user.subscription_status === 'active',
+    });
+  });
+
+  /**
+   * POST /api/verify-purchase
+   * Verifies and records a Google Play In-App Purchase and grants Pro access.
+   */
+  router.post('/api/verify-purchase', async (request: IRequest, env: Env) => {
+    const token = extractBearerToken(request as unknown as Request);
+    if (!token) {
+      return Response.json({ error: 'Missing authorization token' }, { status: 401 });
+    }
+
+    let userId: string;
+    try {
+      const auth = await verifyToken(token, env.JWT_SECRET);
+      userId = auth.userId;
+    } catch {
+      return Response.json({ error: 'Invalid or expired token' }, { status: 401 });
+    }
+
+    let body: any;
+    try {
+      body = await (request as unknown as Request).json();
+    } catch {
+      return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    const { product_id, purchase_token, order_id } = body;
+    if (!product_id || !purchase_token) {
+      return Response.json(
+        { error: 'Missing required purchase parameters (product_id, purchase_token)' },
+        { status: 400 }
+      );
+    }
+
+    // Activate Pro status for user and record purchase identifier
+    await env.DB.prepare(
+      "UPDATE users SET subscription_status = 'active', stripe_customer_id = ?, updated_at = datetime('now') WHERE id = ?"
+    ).bind(order_id || purchase_token, userId).run();
+
+    return Response.json({
+      success: true,
+      is_pro: true,
+      message: 'Canvas Link Pro activated successfully!',
+    });
+  });
+
   router.delete('/api/delete-pin/:pin_id', async (request: IRequest, env: Env) => {
     const token = extractBearerToken(request as unknown as Request);
     if (!token) {

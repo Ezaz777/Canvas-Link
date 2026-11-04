@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'services/auth_service.dart';
+import 'services/api_service.dart';
+import 'services/purchase_service.dart';
 import 'workers/wallpaper_worker.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
@@ -31,6 +33,13 @@ void main() async {
 
   // Check if user is logged in
   final isLoggedIn = await AuthService.isLoggedIn();
+
+  // Initialize In-App Purchases & sync Pro status
+  try {
+    final token = await AuthService.getToken();
+    final apiService = token != null ? ApiService(token) : null;
+    await PurchaseService.instance.initialize(apiService);
+  } catch (_) {}
 
   // Register periodic sync if logged in
   if (isLoggedIn) {

@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/purchase_service.dart';
+import '../widgets/pro_upgrade_sheet.dart';
 import '../utils/pinterest_theme.dart';
 import 'login_screen.dart';
 
@@ -358,14 +360,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () => _setBoard(isDesktop ? null : boardId, 'desktop'),
+                          onPressed: () {
+                            if (!PurchaseService.instance.isProNotifier.value) {
+                              ProUpgradeSheet.show(context);
+                              return;
+                            }
+                            _setBoard(isDesktop ? null : boardId, 'desktop');
+                          },
                           icon: Icon(
                             isDesktop ? Icons.check_circle_rounded : Icons.monitor_rounded,
                             size: 16,
                           ),
-                          label: Text(
-                            isDesktop ? 'PC Active' : 'Set for PC',
-                            style: const TextStyle(fontSize: 13),
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                isDesktop ? 'PC Active' : 'Set for PC',
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                              if (!PurchaseService.instance.isProNotifier.value) ...[
+                                const SizedBox(width: 4),
+                                const Icon(Icons.workspace_premium_rounded, size: 13, color: Color(0xFFD97706)),
+                              ],
+                            ],
                           ),
                           style: isDesktop
                               ? PinterestTheme.primaryButtonStyle(context: context, height: 38)

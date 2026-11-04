@@ -12,6 +12,8 @@ import 'package:async_wallpaper/async_wallpaper.dart';
 import 'board_screen.dart';
 import 'dashboard_screen.dart';
 import 'login_screen.dart';
+import '../widgets/pro_upgrade_sheet.dart';
+import '../services/purchase_service.dart';
 import '../utils/pinterest_theme.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -1892,8 +1894,37 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           trailing: isSelected
                               ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
-                              : null,
+                              : (Settings.isScreenTargetProOnly(target) && !PurchaseService.instance.isProNotifier.value)
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFD700).withOpacity(0.18),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFFFA500), width: 0.8),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.workspace_premium_rounded, size: 12, color: Color(0xFFD97706)),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'PRO',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              color: const Color(0xFFD97706),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : null,
                           onTap: () async {
+                            if (Settings.isScreenTargetProOnly(target) && !PurchaseService.instance.isProNotifier.value) {
+                              Navigator.pop(context);
+                              ProUpgradeSheet.show(context);
+                              return;
+                            }
                             await Settings.setScreenTarget(target);
                             if (mounted) {
                               setState(() {
@@ -2000,8 +2031,37 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           trailing: isSelected
                               ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
-                              : null,
+                              : (Settings.isFrequencyProOnly(freq) && !PurchaseService.instance.isProNotifier.value)
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFD700).withOpacity(0.18),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFFFA500), width: 0.8),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.workspace_premium_rounded, size: 12, color: Color(0xFFD97706)),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'PRO',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              color: const Color(0xFFD97706),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : null,
                           onTap: () async {
+                            if (Settings.isFrequencyProOnly(freq) && !PurchaseService.instance.isProNotifier.value) {
+                              Navigator.pop(context);
+                              ProUpgradeSheet.show(context);
+                              return;
+                            }
                             await Settings.setSyncFrequency(freq);
                             await WallpaperWorker.registerPeriodicSync(forceUpdate: true);
                             if (mounted) {
@@ -2199,6 +2259,104 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                       const SizedBox(height: 16),
 
+                      // Canvas Link Pro Card
+                      ValueListenableBuilder<bool>(
+                        valueListenable: PurchaseService.instance.isProNotifier,
+                        builder: (ctx, isPro, _) {
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 24),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              gradient: isPro
+                                  ? const LinearGradient(
+                                      colors: [Color(0xFF1F1C2C), Color(0xFF928DAB)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    )
+                                  : const LinearGradient(
+                                      colors: [Color(0xFFE60023), Color(0xFFFF5252)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (isPro ? Colors.black : const Color(0xFFE60023)).withOpacity(0.25),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    isPro ? Icons.verified_rounded : Icons.workspace_premium_rounded,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        isPro ? 'Canvas Link Pro Active' : 'Upgrade to Pro',
+                                        style: GoogleFonts.inter(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        isPro
+                                            ? 'Full 4K original quality & PC sync enabled'
+                                            : 'Unlock 1h/6h sync, Lock screen & Windows PC sync',
+                                        style: GoogleFonts.inter(
+                                          color: Colors.white.withOpacity(0.88),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (!isPro)
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      ProUpgradeSheet.show(context);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: const Color(0xFFE60023),
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Unlock',
+                                      style: GoogleFonts.inter(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+
                       // Theme / Appearance Section
                       Text(
                         'Appearance / Theme',
@@ -2299,8 +2457,37 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           trailing: isSelected
                               ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
-                              : null,
+                              : (Settings.isScreenTargetProOnly(target) && !PurchaseService.instance.isProNotifier.value)
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFD700).withOpacity(0.18),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFFFA500), width: 0.8),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.workspace_premium_rounded, size: 12, color: Color(0xFFD97706)),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'PRO',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              color: const Color(0xFFD97706),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : null,
                           onTap: () async {
+                            if (Settings.isScreenTargetProOnly(target) && !PurchaseService.instance.isProNotifier.value) {
+                              Navigator.pop(context);
+                              ProUpgradeSheet.show(context);
+                              return;
+                            }
                             await Settings.setScreenTarget(target);
                             if (mounted) {
                               setState(() {
@@ -2344,8 +2531,37 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           trailing: isSelected
                               ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
-                              : null,
+                              : (Settings.isFrequencyProOnly(freq) && !PurchaseService.instance.isProNotifier.value)
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFD700).withOpacity(0.18),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFFFA500), width: 0.8),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.workspace_premium_rounded, size: 12, color: Color(0xFFD97706)),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'PRO',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              color: const Color(0xFFD97706),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : null,
                           onTap: () async {
+                            if (Settings.isFrequencyProOnly(freq) && !PurchaseService.instance.isProNotifier.value) {
+                              Navigator.pop(context);
+                              ProUpgradeSheet.show(context);
+                              return;
+                            }
                             await Settings.setSyncFrequency(freq);
                             await WallpaperWorker.registerPeriodicSync(forceUpdate: true);
                             if (mounted) {
