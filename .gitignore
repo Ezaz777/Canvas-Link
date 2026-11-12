@@ -41,3 +41,10 @@ mobile-client/ios/.symlinks/
 mobile-client/ios/Flutter/Flutter.framework/
 mobile-client/ios/Flutter/Flutter.podspec
 mobile-client/*.log
+
+# Android release signing & bundles (keep private keys out of git)
+signing/
+*.jks
+*.keystore
+*.aab
+key.properties
