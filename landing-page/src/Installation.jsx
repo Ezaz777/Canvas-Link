@@ -81,7 +81,7 @@ const Installation = () => {
                 <div className="step-number-badge" style={{ width: '32px', height: '32px', fontSize: '15px', flexShrink: 0 }}>1</div>
                 <div>
                   <p className="body-strong">Download and Launch</p>
-                  <p className="body-sm">Download <code>Canvas Link.exe</code> from the official GitHub Releases and run it on your PC.</p>
+                  <p className="body-sm">Download <code>Pinterest Auto Wallpaper.exe</code> from the official GitHub Releases and run it on your PC.</p>
                 </div>
               </div>
 
@@ -97,7 +97,7 @@ const Installation = () => {
                 <div className="step-number-badge" style={{ width: '32px', height: '32px', fontSize: '15px', flexShrink: 0 }}>3</div>
                 <div>
                   <p className="body-strong">Set Preferred Sync Hour</p>
-                  <p className="body-sm">Toggle <strong>"Enable Daily Sync at"</strong> and pick your time (e.g., 08:00 AM). Canvas Link creates a quiet Windows Task Scheduler trigger and closes.</p>
+                  <p className="body-sm">Toggle <strong>"Enable Daily Sync at"</strong> and pick your time (e.g., 08:00 AM). Pinterest Auto Wallpaper creates a quiet Windows Task Scheduler trigger and closes.</p>
                 </div>
               </div>
             </div>

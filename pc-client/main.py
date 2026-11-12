@@ -44,7 +44,7 @@ def main():
     logger = logging.getLogger("WallpaperSync")
 
     parser = argparse.ArgumentParser(
-        description="WallpaperSync — Daily Pinterest wallpaper sync for Windows"
+        description="Pinterest Auto Wallpaper — Daily Pinterest wallpaper sync for Windows"
     )
     parser.add_argument("--sync", action="store_true", help="Run a silent wallpaper sync")
     parser.add_argument("--login", action="store_true", help="Force re-login")

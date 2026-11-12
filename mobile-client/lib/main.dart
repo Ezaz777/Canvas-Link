@@ -60,7 +60,7 @@ class WallpaperSyncApp extends StatelessWidget {
       valueListenable: PinterestTheme.themeModeNotifier,
       builder: (context, themeMode, _) {
         return MaterialApp(
-          title: 'Canvas Link',
+          title: 'Pinterest Auto Wallpaper',
           debugShowCheckedModeBanner: false,
           theme: PinterestTheme.lightTheme,
           darkTheme: PinterestTheme.darkTheme,

@@ -1,9 +1,13 @@
-name: Build Android APK
+name: Build Android APK & AAB
 
 on:
   push:
     branches: [ "main", "master" ]
   workflow_dispatch:
+
+env:
+  # Must match GOOGLE_PLAY_PACKAGE_NAME in backend/wrangler.toml and your Play Console app ID
+  ANDROID_PACKAGE_NAME: com.wallpapersync.app
 
 defaults:
   run:
@@ -31,34 +35,97 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Recreate Android Project
+      - name: Recreate & Configure Android Project
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           mkdir -p /tmp/backup
           cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml
           cp android/app/src/main/kotlin/com/wallpapersync/app/MainActivity.kt /tmp/backup/MainActivity.kt
           rm -rf android
           flutter create --org com.wallpapersync.app --project-name wallpaper_sync --platforms=android .
-          
+
           # Clean any com/example template code
           rm -rf android/app/src/main/kotlin/com/example
-          
-          # Add ProGuard rules for okhttp3 and conscrypt
+
+          # Add ProGuard rules for okhttp3, conscrypt, and Google Play Billing
           cat << 'EOF' > android/app/proguard-rules.pro
           -keepattributes *Annotation*
           -dontwarn org.conscrypt.**
           -dontwarn okhttp3.**
+          -keep class com.android.vending.billing.** { *; }
           EOF
-          
-          # Link proguard rules in build.gradle
-          sed -i 's|// TODO: Add your own proguard rules lines if you need.|proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"|g' android/app/build.gradle
-          
-          sed -i "s/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g" android/app/build.gradle
-          sed -i "s/minSdkVersion 16/minSdkVersion 21/g" android/app/build.gradle
-          sed -i "s/minSdkVersion 19/minSdkVersion 21/g" android/app/build.gradle
-          sed -i "s/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 35/g" android/app/build.gradle
-          sed -i "s/compileSdk = flutter.compileSdkVersion/compileSdk = 35/g" android/app/build.gradle
-          sed -i "s/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 35/g" android/app/build.gradle
-          sed -i "s/targetSdk = flutter.targetSdkVersion/targetSdk = 35/g" android/app/build.gradle
+
+          # Configure release keystore if GitHub Secrets are present
+          HAS_SIGNING="false"
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > android/app/upload-keystore.jks
+            cat << EOF > android/key.properties
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+            HAS_SIGNING="true"
+            echo "Release signing configured with upload-keystore.jks"
+          else
+            echo "::warning::Release keystore secrets (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD) not set. Building debug-signed artifacts (Play Console requires release signing)."
+          fi
+          export HAS_SIGNING
+
+          python3 - << 'PYEOF'
+          import os, re
+          from pathlib import Path
+
+          pkg = os.environ["ANDROID_PACKAGE_NAME"]
+          has_signing = os.environ.get("HAS_SIGNING") == "true"
+          gradle_path = Path("android/app/build.gradle")
+          content = gradle_path.read_text()
+
+          content = re.sub(r'namespace\s*=?\s*"[^"]+"', f'namespace = "{pkg}"', content)
+          content = re.sub(r'applicationId\s*=?\s*"[^"]+"', f'applicationId = "{pkg}"', content)
+          content = re.sub(r'minSdk(?:Version)?\s*=?\s*flutter\.minSdkVersion', 'minSdk = 21', content)
+          content = re.sub(r'minSdk(?:Version)?\s*=?\s*(?:16|19)', 'minSdk = 21', content)
+          content = re.sub(r'compileSdk(?:Version)?\s*=?\s*flutter\.compileSdkVersion', 'compileSdk = 35', content)
+          content = re.sub(r'targetSdk(?:Version)?\s*=?\s*flutter\.targetSdkVersion', 'targetSdk = 35', content)
+
+          proguard_line = 'proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"'
+          if proguard_line not in content:
+              content = re.sub(
+                  r'(release\s*\{)',
+                  rf'\1\n            {proguard_line}',
+                  content,
+                  count=1
+              )
+
+          if has_signing:
+              key_props_loader = '''def keystoreProperties = new Properties()
+          def keystorePropertiesFile = rootProject.file("key.properties")
+          if (keystorePropertiesFile.exists()) {
+              keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+          }
+
+          '''
+              content = content.replace("android {", key_props_loader + "android {", 1)
+              signing_block = '''
+              signingConfigs {
+                  release {
+                      keyAlias keystoreProperties["keyAlias"]
+                      keyPassword keystoreProperties["keyPassword"]
+                      storeFile keystoreProperties["storeFile"] ? file(keystoreProperties["storeFile"]) : null
+                      storePassword keystoreProperties["storePassword"]
+                  }
+              }
+              buildTypes {'''
+              content = content.replace("buildTypes {", signing_block, 1)
+              content = re.sub(r'signingConfig\s*=?\s*signingConfigs\.debug', 'signingConfig = signingConfigs.release', content)
+
+          gradle_path.write_text(content)
+          print("Patched android/app/build.gradle successfully")
+          PYEOF
 
           cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           mkdir -p android/app/src/main/kotlin/com/wallpapersync/app
@@ -94,15 +161,23 @@ jobs:
           EOF
           dart run patch_namespace.dart
 
-      - name: Build APK
+      - name: Build Release App Bundle (AAB) & APK
         run: |
+          flutter build appbundle --release
+          cp build/app/outputs/bundle/release/app-release.aab build/app/outputs/bundle/release/PinterestAutoWallpaper.aab
           flutter build apk --release
-          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/CanvasLink.apk
+          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/PinterestAutoWallpaper.apk
 
-      - name: Upload APK
+      - name: Upload AAB (Google Play Store)
         uses: actions/upload-artifact@v4
         with:
-          name: CanvasLink-APK
-          path: mobile-client/build/app/outputs/flutter-apk/CanvasLink.apk
+          name: PinterestAutoWallpaper-AAB
+          path: mobile-client/build/app/outputs/bundle/release/PinterestAutoWallpaper.aab
           compression-level: 0
 
+      - name: Upload APK (Direct Install)
+        uses: actions/upload-artifact@v4
+        with:
+          name: PinterestAutoWallpaper-APK
+          path: mobile-client/build/app/outputs/flutter-apk/PinterestAutoWallpaper.apk
+          compression-level: 0

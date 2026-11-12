@@ -47,7 +47,7 @@ const Features = ({ onOpenDownloadModal }) => {
               onClick={() => onOpenDownloadModal && onOpenDownloadModal('all')}
             >
               <Download size={16} />
-              <span>Get Canvas Link</span>
+              <span>Get Pinterest Auto Wallpaper</span>
             </button>
             <Link to="/installation" className="btn-secondary">
               <span>Setup Guide</span>
@@ -70,7 +70,7 @@ const Features = ({ onOpenDownloadModal }) => {
             </div>
             
             <p className="body-md" style={{ color: 'var(--color-body)', marginBottom: '20px', lineHeight: '1.6' }}>
-              Instead of picking wallpapers at random (which frequently serves duplicate images), Canvas Link implements a deterministic cyclical permutation based on the exact pin count of your chosen board and calendar day.
+              Instead of picking wallpapers at random (which frequently serves duplicate images), Pinterest Auto Wallpaper implements a deterministic cyclical permutation based on the exact pin count of your chosen board and calendar day.
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>

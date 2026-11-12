@@ -21,6 +21,7 @@ export interface Env {
 
   // Google Play
   GOOGLE_PLAY_PACKAGE_NAME: string;
+  GOOGLE_PLAY_SERVICE_ACCOUNT_JSON?: string;
 
   // App
   JWT_SECRET: string;

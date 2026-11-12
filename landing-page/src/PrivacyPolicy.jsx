@@ -32,7 +32,7 @@ function PrivacyPolicy() {
             <section>
               <h2 className="heading-md" style={{ marginBottom: '8px' }}>1. Introduction</h2>
               <p className="body-md" style={{ color: 'var(--color-mute)' }}>
-                Welcome to Canvas Link. We are committed to protecting your privacy and giving you complete control over your data. This policy explains what information is processed when using our synchronization tools.
+                Welcome to Pinterest Auto Wallpaper. We are committed to protecting your privacy and giving you complete control over your data. This policy explains what information is processed when using our synchronization tools.
               </p>
             </section>
 
@@ -65,14 +65,14 @@ function PrivacyPolicy() {
             <section>
               <h2 className="heading-md" style={{ marginBottom: '8px' }}>4. Third-Party Services</h2>
               <p className="body-md" style={{ color: 'var(--color-mute)' }}>
-                Canvas Link interacts with the official Pinterest Developer API to fetch pins from boards you explicitly grant access to. Please refer to Pinterest's Privacy Policy regarding their data handling.
+                Pinterest Auto Wallpaper interacts with the official Pinterest Developer API to fetch pins from boards you explicitly grant access to. Please refer to Pinterest's Privacy Policy regarding their data handling.
               </p>
             </section>
 
             <section>
               <h2 className="heading-md" style={{ marginBottom: '8px' }}>5. Security & Data Protection</h2>
               <p className="body-md" style={{ color: 'var(--color-mute)' }}>
-                Canvas Link adheres to industry-standard security practices. All authentication credentials are encrypted using platform security vaults (Windows Credential Locker and Android KeyStore), and we never sell, monetize, or track your personal usage data.
+                Pinterest Auto Wallpaper adheres to industry-standard security practices. All authentication credentials are encrypted using platform security vaults (Windows Credential Locker and Android KeyStore), and we never sell, monetize, or track your personal usage data.
               </p>
             </section>
           </div>

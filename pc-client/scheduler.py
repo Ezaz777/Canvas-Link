@@ -50,7 +50,7 @@ def get_executable_path() -> tuple[str, str]:
         return sys.executable, ""
     else:
         # Check if compiled exe exists
-        dist_exe = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist", "Canvas Link.exe")
+        dist_exe = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist", "Pinterest Auto Wallpaper.exe")
         if os.path.exists(dist_exe):
             return dist_exe, ""
         # Running as a Python script (development)

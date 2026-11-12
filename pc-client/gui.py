@@ -12,7 +12,7 @@ from scheduler import install_scheduled_task, is_task_installed, uninstall_sched
 class WallpaperSyncGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Canvas Link | Pinterest Wallpaper Sync")
+        self.root.title("Pinterest Auto Wallpaper | Pinterest Wallpaper Sync")
         self.root.geometry("400x380")
         self.root.resizable(False, False)
         
@@ -45,7 +45,7 @@ class WallpaperSyncGUI:
         title_col.pack(side=tk.LEFT)
 
         app_title = tk.Label(
-            title_col, text="Canvas Link", bg=self.bg_color, fg=self.ink_color,
+            title_col, text="Pinterest Auto Wallpaper", bg=self.bg_color, fg=self.ink_color,
             font=("Segoe UI", 14, "bold")
         )
         app_title.pack(anchor="w")

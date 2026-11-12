@@ -292,7 +292,7 @@ class Settings {
     }
   }
 
-  /// Check whether user has unlocked Canvas Link Pro
+  /// Check whether user has unlocked Pinterest Auto Wallpaper Pro
   static Future<bool> isPro() async {
     try {
       final val = await _storage.read(key: _isProKey);

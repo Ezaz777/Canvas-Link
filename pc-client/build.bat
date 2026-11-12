@@ -1,12 +1,12 @@
 @echo off
 REM ============================================================================
-REM WallpaperSync PC Client — Build Script
+REM Pinterest Auto Wallpaper PC Client - Build Script
 REM Compiles the Python app into a single, windowless .exe using PyInstaller.
 REM ============================================================================
 
 echo.
 echo ========================================
-echo   WallpaperSync Build Script
+echo   Pinterest Auto Wallpaper Build Script
 echo ========================================
 echo.
 
@@ -21,34 +21,34 @@ REM Clean previous build
 if exist "dist" rmdir /s /q dist
 if exist "build" rmdir /s /q build
 if exist "WallpaperSync.spec" del WallpaperSync.spec
+if exist "Pinterest Auto Wallpaper.spec" del "Pinterest Auto Wallpaper.spec"
 
-echo Building "Canvas Link.exe"...
+echo Building "Pinterest Auto Wallpaper.exe"...
 echo.
 
 pyinstaller ^
     --onefile ^
     --noconsole ^
     --icon=icon.ico ^
-    --name "Canvas Link" ^
+    --name "Pinterest Auto Wallpaper" ^
     --add-data "config.py;." ^
     main.py
 
 if errorlevel 1 (
     echo.
-    echo ❌ Build failed!
+    echo [ERROR] Build failed!
     exit /b 1
 )
 
 echo.
 echo ========================================
-echo ✅ Build successful!
-echo    Output: dist\Canvas Link.exe
+echo [OK] Build successful!
+echo      Output: dist\Pinterest Auto Wallpaper.exe
 echo ========================================
 echo.
 echo To run:
-echo   dist\Canvas Link.exe              Interactive setup
-echo   dist\Canvas Link.exe --sync       Silent wallpaper sync
-echo   dist\Canvas Link.exe --install    Install daily task
-echo   dist\Canvas Link.exe --uninstall  Remove daily task
+echo   dist\Pinterest Auto Wallpaper.exe              Interactive setup
+echo   dist\Pinterest Auto Wallpaper.exe --sync       Silent wallpaper sync
+echo   dist\Pinterest Auto Wallpaper.exe --install    Install daily task
+echo   dist\Pinterest Auto Wallpaper.exe --uninstall  Remove daily task
 echo.
-

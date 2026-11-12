@@ -1,4 +1,4 @@
-/// Canvas Link — Login Screen
+/// Pinterest Auto Wallpaper — Login Screen
 /// Clean, single-tap "Connect with Pinterest" authorization flow.
 /// Automatically detects deep-link token or clipboard fallback with no manual copy/pasting.
 
@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/purchase_service.dart';
 import '../workers/wallpaper_worker.dart';
 import '../utils/image_utils.dart';
 import '../utils/pinterest_theme.dart';
@@ -122,6 +123,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
     try {
       await AuthService.saveToken(token);
+      await PurchaseService.instance.updateApiService(ApiService(token));
 
       // Register background periodic wallpaper sync immediately upon login
       await WallpaperWorker.registerPeriodicSync(forceUpdate: true);
@@ -285,7 +287,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Canvas Link Logo
+                // Pinterest Auto Wallpaper Logo
                 GestureDetector(
                   onLongPress: _showManualTokenDialog,
                   child: Image.asset(
@@ -299,12 +301,12 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
                 // App Title
                 Text(
-                  'Canvas Link',
+                  'Pinterest Auto Wallpaper',
                   style: GoogleFonts.inter(
-                    fontSize: 32,
+                    fontSize: 28,
                     fontWeight: FontWeight.w700,
                     color: inkColor,
-                    letterSpacing: -1.0,
+                    letterSpacing: -0.8,
                   ),
                   textAlign: TextAlign.center,
                 ),

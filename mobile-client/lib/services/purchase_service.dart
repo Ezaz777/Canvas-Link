@@ -29,6 +29,8 @@ class PurchaseService {
   ApiService? _apiService;
 
   final ValueNotifier<bool> isProNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> isProcessingNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<String?> purchaseErrorNotifier = ValueNotifier<String?>(null);
 
   /// Initialize In-App Purchase service, load local status, and listen to purchase updates.
   Future<void> initialize(ApiService? apiService) async {
@@ -44,20 +46,44 @@ class PurchaseService {
       return;
     }
 
-    _subscription = _iap.purchaseStream.listen(
+    _subscription ??= _iap.purchaseStream.listen(
       _handlePurchaseUpdates,
-      onDone: () => _subscription?.cancel(),
+      onDone: () {
+        _subscription?.cancel();
+        _subscription = null;
+      },
       onError: (error) {
         debugPrint('[PurchaseService] purchaseStream error: $error');
+        isProcessingNotifier.value = false;
       },
     );
 
     await loadProducts();
   }
 
-  void updateApiService(ApiService? apiService) {
+  Future<void> updateApiService(ApiService? apiService) async {
     _apiService = apiService;
-    _syncStatusWithBackend();
+    if (apiService == null) {
+      await resetOnLogout();
+      return;
+    }
+    await _syncStatusWithBackend();
+  }
+
+  /// Clear cached Pro state on logout so switching accounts never leaks Pro status.
+  Future<void> resetOnLogout() async {
+    _apiService = null;
+    _errorMessage = null;
+    purchaseErrorNotifier.value = null;
+    isProcessingNotifier.value = false;
+    await Settings.setPro(false);
+    isProNotifier.value = false;
+  }
+
+  /// Update local and in-memory Pro status from a server response flag.
+  Future<void> syncProStatusFromFlag(bool isPro) async {
+    await Settings.setPro(isPro);
+    isProNotifier.value = isPro;
   }
 
   Future<void> _syncStatusWithBackend() async {
@@ -95,10 +121,14 @@ class PurchaseService {
     }
   }
 
-  /// Launch purchase flow for Canvas Link Pro Lifetime
+  /// Launch purchase flow for Pinterest Auto Wallpaper Pro Lifetime
   Future<bool> buyPro() async {
+    _errorMessage = null;
+    purchaseErrorNotifier.value = null;
+
     if (!_isAvailable) {
       _errorMessage = 'Google Play Store is not available on this device';
+      purchaseErrorNotifier.value = _errorMessage;
       return false;
     }
 
@@ -108,14 +138,22 @@ class PurchaseService {
 
     if (_proProduct == null) {
       _errorMessage = 'Product details not loaded from Google Play yet. Please try again.';
+      purchaseErrorNotifier.value = _errorMessage;
       return false;
     }
 
     final purchaseParam = PurchaseParam(productDetails: _proProduct!);
     try {
-      return await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      isProcessingNotifier.value = true;
+      final started = await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      if (!started) {
+        isProcessingNotifier.value = false;
+      }
+      return started;
     } catch (e) {
       _errorMessage = e.toString();
+      purchaseErrorNotifier.value = _errorMessage;
+      isProcessingNotifier.value = false;
       debugPrint('[PurchaseService] buyNonConsumable error: $e');
       return false;
     }
@@ -123,11 +161,23 @@ class PurchaseService {
 
   /// Restore past purchases
   Future<void> restorePurchases() async {
-    if (!_isAvailable) return;
+    _errorMessage = null;
+    purchaseErrorNotifier.value = null;
+
+    if (!_isAvailable) {
+      _errorMessage = 'Google Play Store is not available on this device';
+      purchaseErrorNotifier.value = _errorMessage;
+      return;
+    }
     try {
+      isProcessingNotifier.value = true;
       await _iap.restorePurchases();
     } catch (e) {
+      _errorMessage = e.toString();
+      purchaseErrorNotifier.value = _errorMessage;
       debugPrint('[PurchaseService] restorePurchases error: $e');
+    } finally {
+      isProcessingNotifier.value = false;
     }
   }
 
@@ -136,50 +186,71 @@ class PurchaseService {
     for (final purchaseDetails in purchaseDetailsList) {
       if (purchaseDetails.status == PurchaseStatus.pending) {
         debugPrint('[PurchaseService] Purchase is pending...');
+        isProcessingNotifier.value = true;
       } else {
-        if (purchaseDetails.status == PurchaseStatus.error) {
+        bool shouldComplete = true;
+
+        if (purchaseDetails.status == PurchaseStatus.canceled) {
+          debugPrint('[PurchaseService] Purchase canceled by user');
+          _errorMessage = null;
+        } else if (purchaseDetails.status == PurchaseStatus.error) {
           debugPrint('[PurchaseService] Purchase error: ${purchaseDetails.error}');
-          _errorMessage = purchaseDetails.error?.message;
+          _errorMessage = purchaseDetails.error?.message ?? 'Purchase failed.';
+          purchaseErrorNotifier.value = _errorMessage;
         } else if (purchaseDetails.status == PurchaseStatus.purchased ||
             purchaseDetails.status == PurchaseStatus.restored) {
-          // Verify with backend
-          await _verifyAndActivate(purchaseDetails);
+          // Verify with backend before activating locally or acknowledging
+          shouldComplete = await _verifyAndActivate(purchaseDetails);
         }
 
-        if (purchaseDetails.pendingCompletePurchase) {
+        isProcessingNotifier.value = false;
+
+        if (shouldComplete && purchaseDetails.pendingCompletePurchase) {
           await _iap.completePurchase(purchaseDetails);
         }
       }
     }
   }
 
-  Future<void> _verifyAndActivate(PurchaseDetails purchaseDetails) async {
+  Future<bool> _verifyAndActivate(PurchaseDetails purchaseDetails) async {
     final token = purchaseDetails.verificationData.serverVerificationData;
     final productId = purchaseDetails.productID;
     final orderId = purchaseDetails.purchaseID;
 
-    bool backendSuccess = false;
-    if (_apiService != null) {
-      try {
-        final res = await _apiService!.verifyPurchase(
-          productId: productId,
-          purchaseToken: token,
-          orderId: orderId,
-        );
-        backendSuccess = res['success'] == true;
-      } catch (e) {
-        debugPrint('[PurchaseService] Backend verifyPurchase failed: $e');
-      }
+    if (_apiService == null) {
+      _errorMessage = 'Please log in before activating Pinterest Auto Wallpaper Pro.';
+      purchaseErrorNotifier.value = _errorMessage;
+      return false;
     }
 
-    // Always grant locally if Google Play confirmed purchase
-    await Settings.setPro(true);
-    isProNotifier.value = true;
-    debugPrint('[PurchaseService] Canvas Link Pro successfully activated! (Backend confirmed: $backendSuccess)');
+    try {
+      final res = await _apiService!.verifyPurchase(
+        productId: productId,
+        purchaseToken: token,
+        orderId: orderId,
+      );
+      if (res['success'] == true) {
+        await Settings.setPro(true);
+        isProNotifier.value = true;
+        debugPrint('[PurchaseService] Pinterest Auto Wallpaper Pro verified and activated!');
+        return true;
+      }
+      _errorMessage = res['error']?.toString() ?? 'Could not verify purchase.';
+      purchaseErrorNotifier.value = _errorMessage;
+      return false;
+    } catch (e) {
+      debugPrint('[PurchaseService] Backend verifyPurchase failed: $e');
+      _errorMessage = e.toString();
+      purchaseErrorNotifier.value = _errorMessage;
+      return false;
+    }
   }
 
   void dispose() {
     _subscription?.cancel();
+    isProNotifier.dispose();
+    isProcessingNotifier.dispose();
+    purchaseErrorNotifier.dispose();
   }
 }
 

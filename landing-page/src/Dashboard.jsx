@@ -87,10 +87,10 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <img src="/logo.png" alt="Canvas Link" style={{ width: '48px', height: '48px', margin: '0 auto 16px auto', display: 'block', objectFit: 'contain' }} />
+          <img src="/logo.png" alt="Pinterest Auto Wallpaper" style={{ width: '48px', height: '48px', margin: '0 auto 16px auto', display: 'block', objectFit: 'contain' }} />
           <h1 className="heading-xl" style={{ marginBottom: '8px' }}>Sync Dashboard</h1>
           <p className="body-sm" style={{ color: 'var(--color-mute)', marginBottom: '24px' }}>
-            Enter your Canvas Link session token to view and manage device board associations.
+            Enter your Pinterest Auto Wallpaper session token to view and manage device board associations.
           </p>
 
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

@@ -1,8 +1,8 @@
-# Canvas-Link (WallpaperSync) 🖼️✨
+# Pinterest Auto Wallpaper 🖼️✨
 
 > A seamless, cross-platform wallpaper synchronization system that brings your favorite Pinterest boards right to your screens every single day.
 
-Canvas-Link ensures that your desktop and mobile devices are always kept fresh with your curated Pinterest inspiration. Simply link your account, pick a board, and let the system handle the rest quietly in the background!
+Pinterest Auto Wallpaper ensures that your desktop and mobile devices are always kept fresh with your curated Pinterest inspiration. Simply link your account, pick a board, and let the system handle the rest quietly in the background!
 
 ## 🌟 Features
 
@@ -64,5 +64,5 @@ The high-performance edge API built on **Cloudflare Workers**.
 4. Build Executable: Run `build.bat` to create a standalone `.exe`.
 
 ## 📄 License & Access
-Copyright © 2026 Canvas-Link. All rights reserved.
+Copyright © 2026 Pinterest Auto Wallpaper. All rights reserved.
 This software and associated documentation files are proprietary and confidential. Unauthorized copying, modification, distribution, or commercial use without prior written consent is strictly prohibited. For licensing inquiries and access options, contact the maintainers.

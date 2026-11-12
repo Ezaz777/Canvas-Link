@@ -129,6 +129,9 @@ class _HomeScreenState extends State<HomeScreen>
       final currentHour = DateTime.now().hour;
       final api = ApiService(token);
       final data = await api.getWallpaper(frequency: freq, hour: currentHour);
+      if (data.containsKey('is_pro')) {
+        await PurchaseService.instance.syncProStatusFromFlag(data['is_pro'] == true);
+      }
       final currentImg = data['image_url'] as String?;
       final currentPin = data['pin_id'] as String?;
 
@@ -559,6 +562,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _logout() async {
     await AuthService.clearAll();
+    await PurchaseService.instance.resetOnLogout();
     await WallpaperWorker.cancelAll();
     try {
       await Clipboard.setData(const ClipboardData(text: ''));
@@ -627,29 +631,35 @@ class _HomeScreenState extends State<HomeScreen>
                       fit: BoxFit.contain,
                     ),
                     const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Canvas Link',
-                          style: GoogleFonts.inter(
-                            color: inkColor,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.5,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Pinterest Auto Wallpaper',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              color: inkColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.4,
+                            ),
                           ),
-                        ),
-                        Text(
-                          'Daily Pinterest Wallpapers',
-                          style: GoogleFonts.inter(
-                            color: muteColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                          Text(
+                            'Daily Pinterest Wallpapers',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              color: muteColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 4),
                     ValueListenableBuilder<ThemeMode>(
                       valueListenable: PinterestTheme.themeModeNotifier,
                       builder: (context, themeMode, _) {
@@ -1475,7 +1485,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              'You haven\'t linked a Pinterest board to your Mobile yet. Choose a board so Canvas Link can automatically change daily wallpapers on your phone.',
+              'You haven\'t linked a Pinterest board to your Mobile yet. Choose a board so Pinterest Auto Wallpaper can automatically change daily wallpapers on your phone.',
               style: GoogleFonts.inter(
                 color: PinterestTheme.mute,
                 fontSize: 13,
@@ -1997,7 +2007,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Choose how often Canvas Link automatically changes your wallpaper',
+                        'Choose how often Pinterest Auto Wallpaper automatically changes your wallpaper',
                         style: GoogleFonts.inter(
                           color: PinterestTheme.getMute(context),
                           fontSize: 12,
@@ -2259,7 +2269,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                       const SizedBox(height: 16),
 
-                      // Canvas Link Pro Card
+                      // Pinterest Auto Wallpaper Pro Card
                       ValueListenableBuilder<bool>(
                         valueListenable: PurchaseService.instance.isProNotifier,
                         builder: (ctx, isPro, _) {
@@ -2307,7 +2317,7 @@ class _HomeScreenState extends State<HomeScreen>
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        isPro ? 'Canvas Link Pro Active' : 'Upgrade to Pro',
+                                        isPro ? 'Pinterest Auto Wallpaper Pro Active' : 'Upgrade to Pro',
                                         style: GoogleFonts.inter(
                                           color: Colors.white,
                                           fontSize: 16,
@@ -2509,7 +2519,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Choose how often Canvas Link automatically changes your wallpaper',
+                        'Choose how often Pinterest Auto Wallpaper automatically changes your wallpaper',
                         style: GoogleFonts.inter(
                           color: PinterestTheme.getMute(context),
                           fontSize: 12,

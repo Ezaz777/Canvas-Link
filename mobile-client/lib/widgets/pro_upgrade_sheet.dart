@@ -79,36 +79,41 @@ class _ProUpgradeSheetState extends State<ProUpgradeSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFFFA500).withOpacity(0.35),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
                     ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.workspace_premium_rounded, color: Colors.black, size: 18),
-                    const SizedBox(width: 6),
-                    Text(
-                      'CANVAS LINK PRO',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.1,
-                        color: Colors.black,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFFA500).withOpacity(0.35),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.workspace_premium_rounded, color: Colors.black, size: 18),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'PINTEREST AUTO WALLPAPER PRO',
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.7,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -297,43 +302,72 @@ class _ProUpgradeSheetState extends State<ProUpgradeSheet> {
     );
   }
 
+  @override
+  void dispose() {
+    final purchaseService = PurchaseService.instance;
+    purchaseService.isProNotifier.removeListener(_onProStatusChanged);
+    purchaseService.purchaseErrorNotifier.removeListener(_onPurchaseError);
+    purchaseService.isProcessingNotifier.removeListener(_onProcessingChanged);
+    super.dispose();
+  }
+
+  void _attachPurchaseListeners() {
+    final purchaseService = PurchaseService.instance;
+    purchaseService.isProNotifier.removeListener(_onProStatusChanged);
+    purchaseService.purchaseErrorNotifier.removeListener(_onPurchaseError);
+    purchaseService.isProcessingNotifier.removeListener(_onProcessingChanged);
+    purchaseService.isProNotifier.addListener(_onProStatusChanged);
+    purchaseService.purchaseErrorNotifier.addListener(_onPurchaseError);
+    purchaseService.isProcessingNotifier.addListener(_onProcessingChanged);
+  }
+
+  void _detachPurchaseListeners() {
+    final purchaseService = PurchaseService.instance;
+    purchaseService.isProNotifier.removeListener(_onProStatusChanged);
+    purchaseService.purchaseErrorNotifier.removeListener(_onPurchaseError);
+    purchaseService.isProcessingNotifier.removeListener(_onProcessingChanged);
+  }
+
   Future<void> _handlePurchase() async {
     setState(() => _isPurchasing = true);
     final purchaseService = PurchaseService.instance;
+    _attachPurchaseListeners();
 
     final started = await purchaseService.buyPro();
     if (!mounted) return;
 
-    if (!started && purchaseService.errorMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(purchaseService.errorMessage!),
-          backgroundColor: const Color(0xFFE60023),
-        ),
-      );
+    if (!started) {
+      _detachPurchaseListeners();
       setState(() => _isPurchasing = false);
-    } else {
-      // Listen for activation
-      purchaseService.isProNotifier.addListener(_onProStatusChanged);
-      // Timeout fallback
-      Future.delayed(const Duration(seconds: 45), () {
-        if (mounted && _isPurchasing) {
-          setState(() => _isPurchasing = false);
-          purchaseService.isProNotifier.removeListener(_onProStatusChanged);
-        }
-      });
+      if (purchaseService.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(purchaseService.errorMessage!),
+            backgroundColor: const Color(0xFFE60023),
+          ),
+        );
+      }
+      return;
     }
+
+    // Timeout fallback if Play Billing stream never responds
+    Future.delayed(const Duration(seconds: 45), () {
+      if (mounted && _isPurchasing) {
+        _detachPurchaseListeners();
+        setState(() => _isPurchasing = false);
+      }
+    });
   }
 
   void _onProStatusChanged() {
     if (PurchaseService.instance.isProNotifier.value) {
-      PurchaseService.instance.isProNotifier.removeListener(_onProStatusChanged);
+      _detachPurchaseListeners();
       if (mounted) {
         setState(() => _isPurchasing = false);
         Navigator.of(context).pop(true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('🎉 Canvas Link Pro unlocked successfully! Enjoy full 4K sync.'),
+            content: Text('🎉 Pinterest Auto Wallpaper Pro unlocked successfully! Enjoy full 4K sync.'),
             backgroundColor: Color(0xFF00875A),
           ),
         );
@@ -341,13 +375,39 @@ class _ProUpgradeSheetState extends State<ProUpgradeSheet> {
     }
   }
 
+  void _onPurchaseError() {
+    final err = PurchaseService.instance.purchaseErrorNotifier.value;
+    if (err != null && mounted) {
+      _detachPurchaseListeners();
+      setState(() => _isPurchasing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(err),
+          backgroundColor: const Color(0xFFE60023),
+        ),
+      );
+    }
+  }
+
+  void _onProcessingChanged() {
+    if (!PurchaseService.instance.isProcessingNotifier.value &&
+        !PurchaseService.instance.isProNotifier.value &&
+        mounted &&
+        _isPurchasing) {
+      _detachPurchaseListeners();
+      setState(() => _isPurchasing = false);
+    }
+  }
+
   Future<void> _handleRestore() async {
     setState(() => _isPurchasing = true);
+    _attachPurchaseListeners();
     await PurchaseService.instance.restorePurchases();
     if (!mounted) return;
 
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
+    _detachPurchaseListeners();
     setState(() => _isPurchasing = false);
 
     if (PurchaseService.instance.isProNotifier.value) {
@@ -358,10 +418,10 @@ class _ProUpgradeSheetState extends State<ProUpgradeSheet> {
           backgroundColor: Color(0xFF00875A),
         ),
       );
-    } else {
+    } else if (PurchaseService.instance.errorMessage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No previous Canvas Link Pro purchases found on this Google account.'),
+          content: Text('No previous Pinterest Auto Wallpaper Pro purchases found on this Google account.'),
         ),
       );
     }

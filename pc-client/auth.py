@@ -37,7 +37,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
             self.end_headers()
             response = """<!DOCTYPE html>
 <html>
-<head><title>WallpaperSync</title>
+<head><title>Pinterest Auto Wallpaper</title>
 <style>
     body {
         font-family: 'Segoe UI', sans-serif;

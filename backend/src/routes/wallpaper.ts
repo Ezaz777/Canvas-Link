@@ -11,6 +11,7 @@ import { extractBearerToken, verifyToken } from '../middleware/auth';
 import { decrypt, encrypt } from '../utils/crypto';
 import { getSeededIndex, getTodayDateString, selectNextPin } from '../utils/sync';
 import { refreshAccessToken, getBoardPins, deletePin } from '../services/pinterest';
+import { verifyGooglePlayProductPurchase } from '../services/googlePlay';
 import { Env } from '../index';
 
 interface UserRow {
@@ -152,7 +153,7 @@ export function registerWallpaperRoutes(router: any) {
         {
           error: 'Payment required',
           code: 'pro_required',
-          message: 'Canvas Link Pro is required for Windows PC wallpaper sync. Upgrade via the mobile app.',
+          message: 'Pinterest Auto Wallpaper Pro is required for Windows PC wallpaper sync. Upgrade via the mobile app.',
         },
         { status: 402 }
       );
@@ -164,7 +165,7 @@ export function registerWallpaperRoutes(router: any) {
         {
           error: 'Payment required',
           code: 'pro_required',
-          message: 'Canvas Link Pro is required for 1-hour and 6-hour wallpaper rotation intervals.',
+          message: 'Pinterest Auto Wallpaper Pro is required for 1-hour and 6-hour wallpaper rotation intervals.',
         },
         { status: 402 }
       );
@@ -185,7 +186,7 @@ export function registerWallpaperRoutes(router: any) {
           error: 'No board selected',
           code: 'no_board_selected',
           message: deviceType === 'desktop'
-            ? 'No Pinterest board is selected for PC. Please select a board in the Canvas Link settings.'
+            ? 'No Pinterest board is selected for PC. Please select a board in the Pinterest Auto Wallpaper settings.'
             : 'No Pinterest board is selected for Mobile. Please open Your Boards in the app to pick a board.',
         },
         { status: 400 }
@@ -724,15 +725,67 @@ export function registerWallpaperRoutes(router: any) {
       );
     }
 
-    // Activate Pro status for user and record purchase identifier
+    if (product_id !== 'canvas_link_pro_lifetime') {
+      return Response.json(
+        { error: 'Unsupported product_id' },
+        { status: 400 }
+      );
+    }
+
+    if (!env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON) {
+      return Response.json(
+        { error: 'Google Play receipt verification is not configured on the server yet.' },
+        { status: 503 }
+      );
+    }
+
+    let verification;
+    try {
+      verification = await verifyGooglePlayProductPurchase({
+        serviceAccountJson: env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON,
+        packageName: env.GOOGLE_PLAY_PACKAGE_NAME,
+        productId: product_id,
+        purchaseToken: purchase_token,
+      });
+    } catch (err: any) {
+      console.error('Google Play verification error:', err);
+      return Response.json(
+        { error: 'Failed to contact Google Play verification service.' },
+        { status: 502 }
+      );
+    }
+
+    if (!verification.valid) {
+      return Response.json(
+        { error: verification.reason || 'Purchase verification failed' },
+        { status: verification.statusCode || 400 }
+      );
+    }
+
+    const receiptId = verification.orderId || order_id || purchase_token;
+
+    // Prevent reusing the same Google Play receipt across multiple accounts
+    const existingOwner = await env.DB.prepare(
+      'SELECT id FROM users WHERE stripe_customer_id = ?'
+    ).bind(receiptId).first<{ id: string }>();
+
+    if (existingOwner && existingOwner.id !== userId) {
+      return Response.json(
+        { error: 'This Google Play purchase is already linked to another account.' },
+        { status: 409 }
+      );
+    }
+
+    // Activate Pro status for user and record verified purchase identifier
     await env.DB.prepare(
       "UPDATE users SET subscription_status = 'active', stripe_customer_id = ?, updated_at = datetime('now') WHERE id = ?"
-    ).bind(order_id || purchase_token, userId).run();
+    ).bind(receiptId, userId).run();
 
     return Response.json({
       success: true,
       is_pro: true,
-      message: 'Canvas Link Pro activated successfully!',
+      order_id: receiptId,
+      message: 'Pinterest Auto Wallpaper Pro activated successfully!',
     });
   });
 

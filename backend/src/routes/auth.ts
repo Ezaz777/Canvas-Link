@@ -138,7 +138,7 @@ function renderCallbackPage(success: boolean, data: string, isMobile = false): s
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   ${success && isMobile ? `<meta http-equiv="refresh" content="0;url=${deepLink}">` : ''}
-  <title>Canvas Link — ${success ? 'Connected' : 'Error'}</title>
+  <title>Pinterest Auto Wallpaper — ${success ? 'Connected' : 'Error'}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -199,8 +199,8 @@ function renderCallbackPage(success: boolean, data: string, isMobile = false): s
     ${
       success
         ? (isMobile
-            ? `<p>Returning to Canvas Link app...</p>
-               <a href="${deepLink}" id="openBtn" class="btn">🚀 Open Canvas Link App</a>
+            ? `<p>Returning to Pinterest Auto Wallpaper app...</p>
+               <a href="${deepLink}" id="openBtn" class="btn">🚀 Open Pinterest Auto Wallpaper App</a>
                <p style="font-size: 12px; color: #64748b; margin-top: 14px;">Tap the button above if the app does not open automatically.</p>`
             : `<p>Your Pinterest account is now connected.</p>
                <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('${data}');alert('Token copied!');">Copy Token Manually</button>`)

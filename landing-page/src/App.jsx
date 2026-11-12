@@ -346,7 +346,7 @@ function Home({ onOpenDownloadModal }) {
                 Wake up to brand new Pinterest art every morning.
               </h2>
               <p className="body-md" style={{ color: 'var(--color-mute)', marginBottom: '24px' }}>
-                Never waste time searching for wallpapers again. Canvas Link connects directly to your boards, picks the highest resolution pins, and silently applies them to both your PC and smartphone at your chosen daily hour.
+                Never waste time searching for wallpapers again. Pinterest Auto Wallpaper connects directly to your boards, picks the highest resolution pins, and silently applies them to both your PC and smartphone at your chosen daily hour.
               </p>
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                 <button className="btn-primary" onClick={() => onOpenDownloadModal('windows')}>
@@ -476,7 +476,7 @@ function Home({ onOpenDownloadModal }) {
       <section className="section-block" style={{ backgroundColor: 'var(--color-surface-soft)' }}>
         <div className="container">
           <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto 40px auto' }}>
-            <h2 className="heading-xl">How Canvas Link works in 3 simple steps</h2>
+            <h2 className="heading-xl">How Pinterest Auto Wallpaper works in 3 simple steps</h2>
             <p className="body-md" style={{ color: 'var(--color-mute)', marginTop: '8px' }}>
               Set up once in 60 seconds and enjoy synchronized backgrounds forever.
             </p>
@@ -521,7 +521,7 @@ function Home({ onOpenDownloadModal }) {
             <div className="faq-card">
               <h3 className="heading-md" style={{ marginBottom: '8px' }}>Does this drain my PC or phone battery?</h3>
               <p className="body-md" style={{ color: 'var(--color-mute)' }}>
-                Not at all. Canvas Link does not run an idle resident loop. On Android, it leverages native WorkManager with network constraints; on Windows, it registers an optimized Task Scheduler event that exits immediately after applying the wallpaper.
+                Not at all. Pinterest Auto Wallpaper does not run an idle resident loop. On Android, it leverages native WorkManager with network constraints; on Windows, it registers an optimized Task Scheduler event that exits immediately after applying the wallpaper.
               </p>
             </div>
 
@@ -535,7 +535,7 @@ function Home({ onOpenDownloadModal }) {
             <div className="faq-card">
               <h3 className="heading-md" style={{ marginBottom: '8px' }}>How does licensing and access work?</h3>
               <p className="body-md" style={{ color: 'var(--color-mute)' }}>
-                Canvas Link offers premium cross-platform sync. Once set up, you enjoy automated daily wallpaper rotation from your selected Pinterest boards with full control over sync timing and zero advertisements.
+                Pinterest Auto Wallpaper offers premium cross-platform sync. Once set up, you enjoy automated daily wallpaper rotation from your selected Pinterest boards with full control over sync timing and zero advertisements.
               </p>
             </div>
           </div>
@@ -587,8 +587,8 @@ function App() {
         <div className="container nav-inner">
           <div className="nav-left">
             <Link to="/" className="brand-wordmark">
-              <img src="/logo.png" alt="Canvas Link" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
-              <span>Canvas Link</span>
+              <img src="/logo.png" alt="Pinterest Auto Wallpaper" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+              <span>Pinterest Auto Wallpaper</span>
             </Link>
 
             <nav className="desktop-nav-cluster" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -739,11 +739,11 @@ function App() {
 
           <div className="footer-bottom-row">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <img src="/logo.png" alt="Canvas Link" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
-              <span style={{ fontWeight: 700, color: 'var(--color-ink)', fontSize: '14px' }}>Canvas Link</span>
+              <img src="/logo.png" alt="Pinterest Auto Wallpaper" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+              <span style={{ fontWeight: 700, color: 'var(--color-ink)', fontSize: '14px' }}>Pinterest Auto Wallpaper</span>
             </div>
             <p className="caption-sm">
-              © {new Date().getFullYear()} Canvas Link. All rights reserved. Inspired by Pinterest design system.
+              © {new Date().getFullYear()} Pinterest Auto Wallpaper. All rights reserved. Inspired by Pinterest design system.
             </p>
           </div>
         </div>
@@ -770,8 +770,8 @@ function App() {
               </button>
 
               <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <img src="/logo.png" alt="Canvas Link" style={{ width: '48px', height: '48px', margin: '0 auto 16px auto', display: 'block', objectFit: 'contain' }} />
-                <h3 className="heading-lg">Get Canvas Link</h3>
+                <img src="/logo.png" alt="Pinterest Auto Wallpaper" style={{ width: '48px', height: '48px', margin: '0 auto 16px auto', display: 'block', objectFit: 'contain' }} />
+                <h3 className="heading-lg">Get Pinterest Auto Wallpaper</h3>
                 <p className="body-sm" style={{ marginTop: '6px' }}>
                   Choose your platform to start daily wallpaper synchronization.
                 </p>
