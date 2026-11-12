@@ -50,12 +50,11 @@ class WallpaperWorker {
   static Future<void> initialize() async {
     await Workmanager().initialize(
       callbackDispatcher,
-      isInDebugMode: false,
     );
   }
 
   /// Register a periodic background task based on the user's saved settings.
-  /// Uses ExistingWorkPolicy.keep to prevent immediate execution on every app launch.
+  /// Uses ExistingPeriodicWorkPolicy.keep to prevent immediate execution on every app launch.
   /// Set forceUpdate = true when user explicitly modifies settings.
   static Future<void> registerPeriodicSync({bool forceUpdate = false}) async {
     final hours = await Settings.getSyncFrequency();
@@ -95,7 +94,9 @@ class WallpaperWorker {
         requiresDeviceIdle: false,
         requiresStorageNotLow: false,
       ),
-      existingWorkPolicy: forceUpdate ? ExistingWorkPolicy.replace : ExistingWorkPolicy.keep,
+      existingWorkPolicy: forceUpdate
+          ? ExistingPeriodicWorkPolicy.update
+          : ExistingPeriodicWorkPolicy.keep,
       backoffPolicy: BackoffPolicy.exponential,
       backoffPolicyDelay: const Duration(minutes: 15),
     );

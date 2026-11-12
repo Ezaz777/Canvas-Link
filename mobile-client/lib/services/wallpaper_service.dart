@@ -14,14 +14,9 @@ class WallpaperService {
   static const MethodChannel _nativeChannel = MethodChannel('com.wallpapersync.app/wallpaper');
 
   /// Resolves the screen target string ('both', 'home', 'lock').
-  static Future<String> _resolveTarget({String? target, int? location}) async {
+  static Future<String> _resolveTarget({String? target}) async {
     if (target != null && (target == 'home' || target == 'lock' || target == 'both')) {
       return target;
-    }
-    if (location != null) {
-      if (location == AsyncWallpaper.HOME_SCREEN) return 'home';
-      if (location == AsyncWallpaper.LOCK_SCREEN) return 'lock';
-      return 'both';
     }
     return await Settings.getScreenTarget();
   }
@@ -33,7 +28,7 @@ class WallpaperService {
   /// 4. Set as wallpaper via native WallpaperManager (Home, Lock, or Both based on settings)
   ///
   /// Returns true on success, throws on failure.
-  static Future<bool> syncWallpaper({String? target, int? location, int? frequency, int? hour}) async {
+  static Future<bool> syncWallpaper({String? target, int? frequency, int? hour}) async {
     // 1. Get auth token
     final token = await AuthService.getToken();
     if (token == null) {
@@ -64,7 +59,7 @@ class WallpaperService {
     }
 
     // 4. Set as wallpaper (Home, Lock, or Both)
-    final resolvedTarget = await _resolveTarget(target: target, location: location);
+    final resolvedTarget = await _resolveTarget(target: target);
     final bool result = await _applyToDevice(imagePath, resolvedTarget);
     
     if (!result) {
@@ -92,14 +87,14 @@ class WallpaperService {
 
   /// Instantly downloads and applies a specific image as the wallpaper.
   /// Bypasses the daily backend sync logic.
-  static Future<bool> setWallpaperFromUrl(String url, {String? target, int? location}) async {
+  static Future<bool> setWallpaperFromUrl(String url, {String? target}) async {
     print('WallpaperSync: Setting manual wallpaper...');
     final imagePath = await _downloadImage(url);
     if (imagePath == null) {
       throw ApiException('Failed to download image from Pinterest.', 500);
     }
 
-    final resolvedTarget = await _resolveTarget(target: target, location: location);
+    final resolvedTarget = await _resolveTarget(target: target);
     final bool result = await _applyToDevice(imagePath, resolvedTarget);
     
     if (!result) {
@@ -124,41 +119,41 @@ class WallpaperService {
       print('WallpaperSync: Native channel invocation exception: $e. Trying fallback...');
     }
 
-    // 2. Fallback to async_wallpaper plugin
+    // 2. Fallback to async_wallpaper plugin (used in headless background WorkManager isolates)
     try {
-      int loc;
+      final WallpaperTarget wpTarget;
       if (target == 'home') {
-        loc = AsyncWallpaper.HOME_SCREEN;
+        wpTarget = WallpaperTarget.home;
       } else if (target == 'lock') {
-        loc = AsyncWallpaper.LOCK_SCREEN;
+        wpTarget = WallpaperTarget.lock;
       } else {
-        loc = AsyncWallpaper.BOTH_SCREENS;
+        wpTarget = WallpaperTarget.both;
       }
 
-      if (loc == AsyncWallpaper.BOTH_SCREENS) {
-        final home = await AsyncWallpaper.setWallpaperFromFile(
-          filePath: filePath,
-          wallpaperLocation: AsyncWallpaper.HOME_SCREEN,
-          goToHome: false,
-        ) ?? false;
+      final result = await AsyncWallpaper.applyWallpaper(
+        StaticWallpaperRequest(
+          source: WallpaperSource.filePath(filePath),
+          target: wpTarget,
+          strategy: WallpaperApplyStrategy.direct,
+        ),
+      );
 
-        await Future.delayed(const Duration(milliseconds: 200));
-
-        final lock = await AsyncWallpaper.setWallpaperFromFile(
-          filePath: filePath,
-          wallpaperLocation: AsyncWallpaper.LOCK_SCREEN,
-          goToHome: false,
-        ) ?? false;
-
-        return home || lock;
-      } else {
-        return await AsyncWallpaper.setWallpaperFromFile(
-          filePath: filePath,
-          wallpaperLocation: loc,
-          goToHome: false,
-        ) ?? false;
+      if (result.status == WallpaperOperationStatus.applied ||
+          result.status == WallpaperOperationStatus.previewOpened) {
+        return true;
       }
+      if (target == 'both' &&
+          (result.home?.status == WallpaperTargetStatus.applied ||
+              result.lock?.status == WallpaperTargetStatus.applied)) {
+        return true;
+      }
+
+      throw ApiException(
+        result.errorMessage ?? 'Failed to apply wallpaper (${result.status.name}).',
+        500,
+      );
     } catch (err) {
+      if (err is ApiException) rethrow;
       print('WallpaperSync: Fallback plugin also failed: $err');
       throw ApiException('Error applying wallpaper: $err', 500);
     }

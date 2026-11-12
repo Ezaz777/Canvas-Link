@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:async_wallpaper/async_wallpaper.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/wallpaper_service.dart';
@@ -512,7 +511,7 @@ class _BoardScreenState extends State<BoardScreen> {
                   icon: Icons.devices_rounded,
                   title: 'Home & Lock Screens',
                   subtitle: 'Set on both your home screen and lock screen',
-                  location: AsyncWallpaper.BOTH_SCREENS,
+                  target: 'both',
                   imageUrl: imageUrl,
                   targetLabel: 'Home & Lock Screens',
                 ),
@@ -521,7 +520,7 @@ class _BoardScreenState extends State<BoardScreen> {
                   icon: Icons.home_rounded,
                   title: 'Home Screen Only',
                   subtitle: 'Set only on your main home screen',
-                  location: AsyncWallpaper.HOME_SCREEN,
+                  target: 'home',
                   imageUrl: imageUrl,
                   targetLabel: 'Home Screen Only',
                 ),
@@ -530,7 +529,7 @@ class _BoardScreenState extends State<BoardScreen> {
                   icon: Icons.lock_outline_rounded,
                   title: 'Lock Screen Only',
                   subtitle: 'Set only on your device lock screen',
-                  location: AsyncWallpaper.LOCK_SCREEN,
+                  target: 'lock',
                   imageUrl: imageUrl,
                   targetLabel: 'Lock Screen Only',
                 ),
@@ -547,7 +546,7 @@ class _BoardScreenState extends State<BoardScreen> {
     required IconData icon,
     required String title,
     required String subtitle,
-    required int location,
+    required String target,
     required String imageUrl,
     required String targetLabel,
   }) {
@@ -586,13 +585,13 @@ class _BoardScreenState extends State<BoardScreen> {
         ),
         onTap: () {
           Navigator.pop(context);
-          _applyWallpaper(imageUrl, location, targetLabel);
+          _applyWallpaper(imageUrl, target, targetLabel);
         },
       ),
     );
   }
 
-  Future<void> _applyWallpaper(String imageUrl, int location, String targetLabel) async {
+  Future<void> _applyWallpaper(String imageUrl, String target, String targetLabel) async {
     final snackBarBg = PinterestTheme.isDark(context)
         ? const Color(0xFF262622)
         : PinterestTheme.charcoal;
@@ -617,13 +616,9 @@ class _BoardScreenState extends State<BoardScreen> {
     );
 
     try {
-      String target = 'both';
-      if (location == AsyncWallpaper.HOME_SCREEN) target = 'home';
-      if (location == AsyncWallpaper.LOCK_SCREEN) target = 'lock';
       final success = await WallpaperService.setWallpaperFromUrl(
         imageUrl,
         target: target,
-        location: location,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();

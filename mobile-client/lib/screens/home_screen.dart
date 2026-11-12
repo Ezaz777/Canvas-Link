@@ -8,7 +8,6 @@ import '../services/wallpaper_service.dart';
 import '../workers/wallpaper_worker.dart';
 import '../utils/settings.dart';
 import '../utils/image_utils.dart';
-import 'package:async_wallpaper/async_wallpaper.dart';
 import 'board_screen.dart';
 import 'dashboard_screen.dart';
 import 'login_screen.dart';
@@ -250,19 +249,9 @@ class _HomeScreenState extends State<HomeScreen>
     HapticFeedback.mediumImpact();
 
     try {
-      int? location;
-      if (effectiveTarget == 'home') {
-        location = AsyncWallpaper.HOME_SCREEN;
-      } else if (effectiveTarget == 'lock') {
-        location = AsyncWallpaper.LOCK_SCREEN;
-      } else {
-        location = AsyncWallpaper.BOTH_SCREENS;
-      }
-
       final success = await WallpaperService.setWallpaperFromUrl(
         pin['image_url'],
         target: effectiveTarget,
-        location: location,
       );
       if (!mounted) return;
 
