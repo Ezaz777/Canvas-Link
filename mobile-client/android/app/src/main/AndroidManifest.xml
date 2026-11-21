@@ -8,13 +8,6 @@
     <!-- Wallpaper setting permission -->
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
 
-    <!-- Storage for caching wallpaper images -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="29" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-
     <!-- Background execution -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -24,8 +17,7 @@
     <application
         android:label="Pinterest Auto Wallpaper"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
-        android:requestLegacyExternalStorage="true">
+        android:icon="@mipmap/ic_launcher">
 
         <!-- Google AdMob Application ID (Google test App ID for Android) -->
         <meta-data

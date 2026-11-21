@@ -1,7 +1,7 @@
 name: wallpaper_sync
 description: Pinterest Auto Wallpaper - Daily Pinterest wallpaper sync for Android
 publish_to: 'none'
-version: 1.0.0+7
+version: 1.0.0+8
 
 environment:
   sdk: '>=3.10.0 <4.0.0'
@@ -18,7 +18,6 @@ dependencies:
   image: ^4.2.0
   path_provider: ^2.1.4
   url_launcher: ^6.3.1
-  permission_handler: ^12.0.1
   google_fonts: ^6.2.1
   google_mobile_ads: ^9.2.0
 
