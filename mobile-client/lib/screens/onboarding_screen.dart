@@ -7,9 +7,9 @@ import 'home_screen.dart';
 import 'login_screen.dart';
 
 /// Interactive sliding onboarding walkthrough for Pinterest Auto Wallpaper.
-/// Showcases authentic in-app screenshots in a large, immersive phone mockup
-/// that highlights saving pins on Pinterest, board selection, gallery browsing,
-/// and automated / instant wallpaper setting.
+/// Uses large, prominent hero phone mockups that fill the screen naturally
+/// and eliminate awkward dead space, showcasing Pinterest pin saving,
+/// board selection, gallery browsing, and wallpaper auto-rotation.
 class OnboardingScreen extends StatefulWidget {
   /// When true, user opened this from inside the app (Settings / Help) to review instructions.
   final bool isReviewMode;
@@ -131,7 +131,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
 
-            // Sliding Pages
+            // Sliding Pages (Takes all remaining screen height)
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -203,7 +203,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
             // Bottom Navigation & Page Indicators
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 6, 24, 16),
+              padding: const EdgeInsets.fromLTRB(24, 10, 24, 18),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -215,7 +215,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeOut,
                         margin: const EdgeInsets.only(right: 6),
-                        width: isActive ? 24 : 8,
+                        width: isActive ? 26 : 8,
                         height: 8,
                         decoration: BoxDecoration(
                           color: isActive
@@ -235,7 +235,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
+                        horizontal: 26,
                         vertical: 14,
                       ),
                       shape: RoundedRectangleBorder(
@@ -273,7 +273,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  /// Standardized, immersive slide layout with a large, prominent phone frame mockup.
+  /// Standardized slide layout that dynamically scales the hero phone mockup
+  /// to fill the viewport naturally, eliminating empty dead space.
   Widget _buildSlide({
     required BoxConstraints constraints,
     required String imagePath,
@@ -285,80 +286,107 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     required Color inkColor,
     required Color muteColor,
   }) {
-    // Dynamically calculate mockup height and width to dominate 52-56% of available height
     final double availHeight = constraints.maxHeight;
-    final double mockupHeight = (availHeight * 0.54).clamp(320.0, 450.0);
-    final double mockupWidth = mockupHeight * 0.53; // ~170dp to 240dp wide (ideal 9:17 aspect ratio)
+    final double availWidth = constraints.maxWidth;
+
+    // Allocate ~60-64% of available height directly to the hero mockup
+    // This makes the screenshot large, bold, and fills the screen properly
+    const double textSectionAllowance = 160.0;
+    final double targetHeight = (availHeight - textSectionAllowance).clamp(340.0, 560.0);
+    final double targetWidth = (availWidth - 44.0).clamp(220.0, 310.0);
+
+    // Maintain phone aspect ratio (approx 0.52 to 0.54)
+    double mockupHeight = targetHeight;
+    double mockupWidth = mockupHeight * 0.53;
+
+    if (mockupWidth > targetWidth) {
+      mockupWidth = targetWidth;
+      mockupHeight = mockupWidth / 0.53;
+    }
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Large Hero Phone Mockup with Original High-Res App Screenshot
-          _buildDeviceMockup(
-            imagePath: imagePath,
-            width: mockupWidth,
-            height: mockupHeight,
-            badgeColor: badgeColor,
-            isDark: isDark,
-          ),
-          const SizedBox(height: 16),
-
-          // Feature Step Badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-            decoration: BoxDecoration(
-              color: badgeColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: badgeColor.withOpacity(0.28),
-                width: 1,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: availHeight),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // 1. Large Hero Phone Mockup (occupies primary screen area)
+              _buildDeviceMockup(
+                imagePath: imagePath,
+                width: mockupWidth,
+                height: mockupHeight,
+                badgeColor: badgeColor,
+                isDark: isDark,
               ),
-            ),
-            child: Text(
-              badgeText,
-              style: GoogleFonts.inter(
-                color: badgeColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
 
-          // Headline Title
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              color: inkColor,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              height: 1.2,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 6),
+              const SizedBox(height: 12),
 
-          // Explanatory Subtitle
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 320),
-            child: Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
-                color: muteColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-                height: 1.4,
+              // 2. Feature Information Section (Badge, Title, Subtitle)
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Feature Step Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: badgeColor.withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: badgeColor.withOpacity(0.32),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: GoogleFonts.inter(
+                        color: badgeColor,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Headline Title
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      color: inkColor,
+                      fontSize: 23,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Explanatory Subtitle
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 340),
+                    child: Text(
+                      subtitle,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        color: muteColor,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w400,
+                        height: 1.45,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
+
+              const SizedBox(height: 4),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -372,8 +400,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     required Color badgeColor,
     required bool isDark,
   }) {
-    const double borderRadius = 32.0;
-    const double borderWidth = 3.5;
+    const double borderRadius = 34.0;
+    const double borderWidth = 4.0;
 
     return Container(
       width: width,
@@ -382,29 +410,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         color: isDark ? const Color(0xFF1E1E22) : const Color(0xFF1A1A1E),
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.22) : Colors.black87,
+          color: isDark ? Colors.white.withOpacity(0.24) : Colors.black87,
           width: borderWidth,
         ),
         boxShadow: [
-          // Ambient theme glow
+          // Ambient theme glow in slide's accent color
           BoxShadow(
-            color: badgeColor.withOpacity(isDark ? 0.30 : 0.16),
-            blurRadius: 36,
-            offset: const Offset(0, 12),
-            spreadRadius: 2,
+            color: badgeColor.withOpacity(isDark ? 0.35 : 0.22),
+            blurRadius: 40,
+            offset: const Offset(0, 14),
+            spreadRadius: 3,
           ),
           // Deep drop shadow
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.60 : 0.22),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(isDark ? 0.65 : 0.24),
+            blurRadius: 28,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Stack(
         alignment: Alignment.topCenter,
         children: [
-          // High-Resolution In-App Screenshot
+          // High-Resolution In-App Screenshot filling entire frame
           ClipRRect(
             borderRadius: BorderRadius.circular(borderRadius - borderWidth),
             child: SizedBox(
@@ -420,15 +448,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
           // Top Camera / Speaker Notch Pill (Dynamic Island)
           Positioned(
-            top: 6,
+            top: 7,
             child: Container(
-              width: 42,
-              height: 5,
+              width: 44,
+              height: 5.5,
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(3),
+                color: Colors.black.withOpacity(0.85),
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withOpacity(0.18),
                   width: 0.5,
                 ),
               ),
