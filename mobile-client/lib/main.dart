@@ -5,6 +5,7 @@ import 'services/ad_service.dart';
 import 'workers/wallpaper_worker.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'utils/pinterest_theme.dart';
 import 'utils/settings.dart';
 
@@ -32,7 +33,8 @@ void main() async {
   // Initialize AdMob Mobile Ads
   await AdService.instance.initialize();
 
-  // Check if user is logged in
+  // Check onboarding and login status
+  final hasSeenOnboarding = await Settings.hasSeenOnboarding();
   final isLoggedIn = await AuthService.isLoggedIn();
 
   // Register periodic sync if logged in
@@ -40,13 +42,21 @@ void main() async {
     await WallpaperWorker.registerPeriodicSync();
   }
 
-  runApp(WallpaperSyncApp(isLoggedIn: isLoggedIn));
+  runApp(WallpaperSyncApp(
+    isLoggedIn: isLoggedIn,
+    hasSeenOnboarding: hasSeenOnboarding,
+  ));
 }
 
 class WallpaperSyncApp extends StatelessWidget {
   final bool isLoggedIn;
+  final bool hasSeenOnboarding;
 
-  const WallpaperSyncApp({super.key, required this.isLoggedIn});
+  const WallpaperSyncApp({
+    super.key,
+    required this.isLoggedIn,
+    required this.hasSeenOnboarding,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +69,9 @@ class WallpaperSyncApp extends StatelessWidget {
           theme: PinterestTheme.lightTheme,
           darkTheme: PinterestTheme.darkTheme,
           themeMode: themeMode,
-          home: isLoggedIn ? const HomeScreen() : const LoginScreen(),
+          home: !hasSeenOnboarding
+              ? const OnboardingScreen()
+              : (isLoggedIn ? const HomeScreen() : const LoginScreen()),
         );
       },
     );

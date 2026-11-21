@@ -11,6 +11,7 @@ import '../utils/image_utils.dart';
 import 'board_screen.dart';
 import 'dashboard_screen.dart';
 import 'login_screen.dart';
+import 'onboarding_screen.dart';
 import '../services/ad_service.dart';
 import '../widgets/ad_banner_widget.dart';
 import '../utils/pinterest_theme.dart';
@@ -674,6 +675,20 @@ class _HomeScreenState extends State<HomeScreen>
                           tooltip: themeTooltip,
                         );
                       },
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const OnboardingScreen(isReviewMode: true),
+                          ),
+                        );
+                      },
+                      icon: Icon(
+                        Icons.help_outline_rounded,
+                        color: inkColor,
+                      ),
+                      tooltip: 'How It Works Guide',
                     ),
                     IconButton(
                       onPressed: _showSettingsModal,
@@ -2244,6 +2259,37 @@ class _HomeScreenState extends State<HomeScreen>
                             const SizedBox(height: 12),
                             const Center(child: AdBannerWidget()),
                           ],
+                        ),
+                      ),
+
+                      // App Guide & Instructions Tile
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 20),
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const OnboardingScreen(isReviewMode: true),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.menu_book_rounded, color: PinterestTheme.primary, size: 18),
+                          label: Text(
+                            'How It Works Guide (Step-by-Step)',
+                            style: GoogleFonts.inter(
+                              color: inkColor,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            side: BorderSide(color: PinterestTheme.getHairline(context)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(PinterestTheme.radiusMd),
+                            ),
+                          ),
                         ),
                       ),
 

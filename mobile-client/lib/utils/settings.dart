@@ -15,6 +15,7 @@ class Settings {
   static const String _screenHeightKey = 'device_screen_height';
   static const String _lastSyncDateKey = 'last_sync_date';
   static const String _dailySyncTimeKey = 'daily_sync_time';
+  static const String _hasSeenOnboardingKey = 'has_seen_onboarding_guide_v1';
 
   // Frequencies in hours. 0 means Off.
   static const List<int> availableFrequencies = [0, 1, 6, 12, 24];
@@ -307,5 +308,22 @@ class Settings {
   /// No screen targets are locked. All are 100% free.
   static bool isScreenTargetProOnly(String target) {
     return false;
+  }
+
+  /// Check whether the user has seen the initial onboarding walkthrough guide.
+  static Future<bool> hasSeenOnboarding() async {
+    try {
+      final value = await _storage.read(key: _hasSeenOnboardingKey);
+      return value == 'true';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Mark the onboarding walkthrough guide as seen.
+  static Future<void> setHasSeenOnboarding(bool seen) async {
+    try {
+      await _storage.write(key: _hasSeenOnboardingKey, value: seen.toString());
+    } catch (_) {}
   }
 }
