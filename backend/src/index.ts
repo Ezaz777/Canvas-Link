@@ -6,6 +6,7 @@
 import { AutoRouter, cors, error, IRequest } from 'itty-router';
 import { registerAuthRoutes } from './routes/auth';
 import { registerWallpaperRoutes } from './routes/wallpaper';
+import { registerLegalRoutes } from './routes/legal';
 
 /**
  * Environment bindings type definition.
@@ -45,6 +46,7 @@ const router = AutoRouter({
 // Register route modules
 registerAuthRoutes(router);
 registerWallpaperRoutes(router);
+registerLegalRoutes(router);
 
 // Health check
 router.get('/', () => {
