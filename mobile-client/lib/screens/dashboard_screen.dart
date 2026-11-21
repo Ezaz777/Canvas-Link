@@ -39,57 +39,93 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
 
       final api = ApiService(token);
-      final res = await api.getBoards();
+      final data = await api.getBoards();
 
       setState(() {
-        _boards = res['boards'] ?? [];
-        _selectedBoards = res['selected_boards'] ?? {};
+        _boards = data['items'] ?? [];
+        _selectedBoards = data['selected_boards'] ?? {};
         _isLoading = false;
       });
+    } on UnauthorizedException {
+      _logout();
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _errorMessage = e.toString();
         _isLoading = false;
       });
     }
   }
 
-  Future<void> _setBoard(String? boardId, String target) async {
+  Future<void> _setBoard(String? boardId, String deviceType) async {
     try {
       final token = await AuthService.getToken();
       if (token == null) return;
 
       final api = ApiService(token);
-      await api.setSelectedBoard(boardId: boardId, target: target);
+      await api.setBoard(boardId, deviceType);
 
-      // Refresh state
-      await _loadBoards();
+      setState(() {
+        _selectedBoards[deviceType] = boardId;
+        if (boardId == null) {
+          _selectedBoards['fallback'] = null;
+        }
+      });
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            boardId == null
-                ? 'Unset board for ${target.toUpperCase()}'
-                : 'Assigned board to ${target.toUpperCase()}',
+      if (mounted) {
+        final deviceName = deviceType == 'mobile' ? 'Mobile' : 'PC';
+        final isDeactivated = boardId == null;
+        final snackBarBg = PinterestTheme.isDark(context)
+            ? const Color(0xFF262622)
+            : PinterestTheme.charcoal;
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  isDeactivated
+                      ? Icons.remove_circle_outline_rounded
+                      : Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    isDeactivated
+                        ? 'Board removed from $deviceName.'
+                        : 'Board activated for $deviceName!',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: snackBarBg,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
           ),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+        );
+      }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed: ${e.toString().replaceAll('Exception: ', '')}'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update board: $e', style: const TextStyle(color: Colors.white)),
+            backgroundColor: PinterestTheme.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PinterestTheme.radiusMd)),
+          ),
+        );
+      }
     }
   }
 
   void _logout() async {
-    await AuthService.clearToken();
+    await AuthService.clearAll();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -100,17 +136,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: PinterestTheme.getSurfaceSoft(context),
       appBar: AppBar(
         title: Text(
-          'Target Boards',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: _loadBoards,
+          'Your Boards',
+          style: GoogleFonts.inter(
+            color: PinterestTheme.getInk(context),
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
           ),
-        ],
+        ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_rounded, color: PinterestTheme.getInk(context)),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        backgroundColor: PinterestTheme.getSurfaceSoft(context),
+        elevation: 0,
       ),
       body: _buildBody(),
     );
@@ -119,27 +160,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildBody() {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: PinterestTheme.primary),
+        child: CircularProgressIndicator(
+          color: PinterestTheme.primary,
+          strokeWidth: 2.5,
+        ),
       );
     }
 
     if (_errorMessage != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(32),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
+              const Icon(Icons.error_outline_rounded,
+                  color: PinterestTheme.error, size: 44),
               const SizedBox(height: 16),
               Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(fontSize: 14),
+                'Failed to load boards',
+                style: GoogleFonts.inter(
+                  color: PinterestTheme.getInk(context),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage!,
+                style: GoogleFonts.inter(
+                  color: PinterestTheme.getMute(context),
+                  fontSize: 13,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _loadBoards,
+                style: PinterestTheme.secondaryButtonStyle(context: context, height: 40),
                 child: const Text('Retry'),
               ),
             ],
@@ -150,22 +208,69 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (_boards.isEmpty) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.dashboard_customize_outlined, size: 64, color: Colors.grey),
-              const SizedBox(height: 16),
-              Text(
-                'No boards found',
-                style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: PinterestTheme.getSurfaceCard(context),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: PinterestTheme.getHairline(context)),
+                ),
+                child: const Icon(
+                  Icons.collections_bookmark_rounded,
+                  color: PinterestTheme.primary,
+                  size: 32,
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 20),
               Text(
-                'Create a board on Pinterest to sync wallpapers to your phone and PC.',
+                'No Pinterest Boards Found',
+                style: GoogleFonts.inter(
+                  color: PinterestTheme.getInk(context),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(color: Colors.grey),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'You don\'t have any boards in your Pinterest account yet. Create a board on Pinterest, save some wallpapers into it, and come back here to link it!',
+                style: GoogleFonts.inter(
+                  color: PinterestTheme.getMute(context),
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: () => launchUrl(
+                    Uri.parse('https://www.pinterest.com'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: const Text('Open Pinterest'),
+                  style: PinterestTheme.primaryButtonStyle(context: context, height: 44),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: _loadBoards,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Refresh Boards'),
+                  style: PinterestTheme.secondaryButtonStyle(context: context, height: 44),
+                ),
               ),
             ],
           ),
@@ -173,122 +278,110 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      itemCount: _boards.length,
-      itemBuilder: (context, index) {
-        final board = _boards[index];
-        final boardId = board['id'] as String;
-        final name = board['name'] as String? ?? 'Untitled';
-        final pinCount = board['pin_count'] as int? ?? 0;
-        final media = board['media'] as Map<String, dynamic>?;
-        final imageCover = media?['image_cover_url'] as String?;
+    return RefreshIndicator(
+      onRefresh: _loadBoards,
+      color: PinterestTheme.primary,
+      backgroundColor: PinterestTheme.getCanvas(context),
+      child: ListView.builder(
+        padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(context).padding.bottom + 48),
+        itemCount: _boards.length,
+        itemBuilder: (context, index) {
+          final board = _boards[index];
+          final boardId = board['id'] as String;
+          final boardName = board['name'] as String;
+          final pinCount = board['pin_count'] as int?;
 
-        final isMobile = _selectedBoards['mobile_board_id'] == boardId;
-        final isDesktop = _selectedBoards['desktop_board_id'] == boardId;
+          final isMobile = _selectedBoards['mobile'] == boardId ||
+              (_selectedBoards['mobile'] == null && _selectedBoards['fallback'] == boardId);
+          final isDesktop = _selectedBoards['desktop'] == boardId ||
+              (_selectedBoards['desktop'] == null && _selectedBoards['fallback'] == boardId);
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: imageCover != null
-                          ? Image.network(
-                              imageCover,
-                              width: 56,
-                              height: 56,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 56,
-                                height: 56,
-                                color: Colors.grey.shade200,
-                                child: const Icon(Icons.image_not_supported_rounded),
-                              ),
-                            )
-                          : Container(
-                              width: 56,
-                              height: 56,
-                              color: Colors.grey.shade200,
-                              child: const Icon(Icons.photo_library_rounded, color: Colors.grey),
-                            ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: PinterestTheme.cardDecoration(context: context, soft: false),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          boardName,
+                          style: GoogleFonts.inter(
+                            color: PinterestTheme.getInk(context),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
+                        ),
+                      ),
+                      if (pinCount != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: PinterestTheme.getSurfaceCard(context),
+                            borderRadius: BorderRadius.circular(PinterestTheme.radiusFull),
+                            border: Border.all(color: PinterestTheme.getHairline(context)),
+                          ),
+                          child: Text(
                             '$pinCount pins',
                             style: GoogleFonts.inter(
                               color: PinterestTheme.getMute(context),
-                              fontSize: 13,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ],
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _setBoard(isMobile ? null : boardId, 'mobile'),
+                          icon: Icon(
+                            isMobile ? Icons.check_circle_rounded : Icons.smartphone_rounded,
+                            size: 16,
+                          ),
+                          label: Text(
+                            isMobile ? 'Mobile Active' : 'Set for Mobile',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          style: isMobile
+                              ? PinterestTheme.primaryButtonStyle(context: context, height: 38)
+                              : PinterestTheme.secondaryButtonStyle(context: context, height: 38),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _setBoard(isMobile ? null : boardId, 'mobile'),
-                        icon: Icon(
-                          isMobile ? Icons.check_circle_rounded : Icons.phone_android_rounded,
-                          size: 16,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _setBoard(isDesktop ? null : boardId, 'desktop'),
+                          icon: Icon(
+                            isDesktop ? Icons.check_circle_rounded : Icons.monitor_rounded,
+                            size: 16,
+                          ),
+                          label: Text(
+                            isDesktop ? 'PC Active' : 'Set for PC',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          style: isDesktop
+                              ? PinterestTheme.primaryButtonStyle(context: context, height: 38)
+                              : PinterestTheme.secondaryButtonStyle(context: context, height: 38),
                         ),
-                        label: Text(
-                          isMobile ? 'Mobile Active' : 'Set for Mobile',
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                        style: isMobile
-                            ? PinterestTheme.primaryButtonStyle(context: context, height: 38)
-                            : PinterestTheme.secondaryButtonStyle(context: context, height: 38),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _setBoard(isDesktop ? null : boardId, 'desktop'),
-                        icon: Icon(
-                          isDesktop ? Icons.check_circle_rounded : Icons.monitor_rounded,
-                          size: 16,
-                        ),
-                        label: Text(
-                          isDesktop ? 'PC Active' : 'Set for PC',
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                        style: isDesktop
-                            ? PinterestTheme.primaryButtonStyle(context: context, height: 38)
-                            : PinterestTheme.secondaryButtonStyle(context: context, height: 38),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
+
+
