@@ -2278,7 +2278,7 @@ class _HomeScreenState extends State<HomeScreen>
                           label: Text(
                             'How It Works Guide (Step-by-Step)',
                             style: GoogleFonts.inter(
-                              color: inkColor,
+                              color: PinterestTheme.getInk(context),
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
