@@ -7,8 +7,8 @@ import 'home_screen.dart';
 import 'login_screen.dart';
 
 /// Interactive sliding onboarding walkthrough for Pinterest Auto Wallpaper.
-/// Uses authentic in-app screenshots in aligned device frames to visually
-/// walk the user through saving on Pinterest, board selection, gallery browsing,
+/// Showcases authentic in-app screenshots in a large, immersive phone mockup
+/// that highlights saving pins on Pinterest, board selection, gallery browsing,
 /// and automated / instant wallpaper setting.
 class OnboardingScreen extends StatefulWidget {
   /// When true, user opened this from inside the app (Settings / Help) to review instructions.
@@ -80,7 +80,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           children: [
             // Top Navigation Bar
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -133,69 +133,77 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
             // Sliding Pages
             Expanded(
-              child: PageView(
-                controller: _pageController,
-                onPageChanged: _onPageChanged,
-                physics: const BouncingScrollPhysics(),
-                children: [
-                  // Slide 1: Save on Pinterest
-                  _buildSlide(
-                    imagePath: 'assets/onboarding/onboarding_pinterest.jpg',
-                    badgeText: '📌 Step 1: Browse & Save',
-                    badgeColor: PinterestTheme.primary,
-                    title: 'Find Pins You Love\n& Tap "Save"',
-                    subtitle:
-                        'Browse Pinterest normally! Whenever you see an aesthetic picture or wallpaper you like, simply tap "Save" to add it to your board.',
-                    isDark: isDark,
-                    inkColor: inkColor,
-                    muteColor: muteColor,
-                  ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return PageView(
+                    controller: _pageController,
+                    onPageChanged: _onPageChanged,
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      // Slide 1: Save on Pinterest
+                      _buildSlide(
+                        constraints: constraints,
+                        imagePath: 'assets/onboarding/onboarding_pinterest.jpg',
+                        badgeText: '📌 Step 1: Browse & Save',
+                        badgeColor: PinterestTheme.primary,
+                        title: 'Find Pins You Love\n& Tap "Save"',
+                        subtitle:
+                            'Browse Pinterest normally! Whenever you see an aesthetic picture or wallpaper you like, simply tap "Save" to add it to your board.',
+                        isDark: isDark,
+                        inkColor: inkColor,
+                        muteColor: muteColor,
+                      ),
 
-                  // Slide 2: Board Feature
-                  _buildSlide(
-                    imagePath: 'assets/onboarding/onboarding_boards.jpg',
-                    badgeText: '📋 Step 2: Board Feature',
-                    badgeColor: const Color(0xFF6366F1),
-                    title: 'Select Your\nWallpaper Board',
-                    subtitle:
-                        'Pick which Pinterest board to sync with your phone. The app connects directly to your board and syncs all your saved pins automatically.',
-                    isDark: isDark,
-                    inkColor: inkColor,
-                    muteColor: muteColor,
-                  ),
+                      // Slide 2: Board Feature
+                      _buildSlide(
+                        constraints: constraints,
+                        imagePath: 'assets/onboarding/onboarding_boards.jpg',
+                        badgeText: '📋 Step 2: Board Feature',
+                        badgeColor: const Color(0xFF6366F1),
+                        title: 'Select Your\nWallpaper Board',
+                        subtitle:
+                            'Pick which Pinterest board to sync with your phone. The app connects directly to your board and syncs all your saved pins automatically.',
+                        isDark: isDark,
+                        inkColor: inkColor,
+                        muteColor: muteColor,
+                      ),
 
-                  // Slide 3: Gallery Feature
-                  _buildSlide(
-                    imagePath: 'assets/onboarding/onboarding_gallery.jpg',
-                    badgeText: '🖼️ Step 3: Gallery Feature',
-                    badgeColor: const Color(0xFFF59E0B),
-                    title: 'Explore Your\nVisual Gallery',
-                    subtitle:
-                        'Browse all your saved wallpapers in a rich, high-resolution masonry grid. Tap any image to preview in full screen before applying.',
-                    isDark: isDark,
-                    inkColor: inkColor,
-                    muteColor: muteColor,
-                  ),
+                      // Slide 3: Gallery Feature
+                      _buildSlide(
+                        constraints: constraints,
+                        imagePath: 'assets/onboarding/onboarding_gallery.jpg',
+                        badgeText: '🖼️ Step 3: Gallery Feature',
+                        badgeColor: const Color(0xFFF59E0B),
+                        title: 'Explore Your\nVisual Gallery',
+                        subtitle:
+                            'Browse all your saved wallpapers in a rich, high-resolution masonry grid. Tap any image to preview in full screen before applying.',
+                        isDark: isDark,
+                        inkColor: inkColor,
+                        muteColor: muteColor,
+                      ),
 
-                  // Slide 4: How It Works & Auto Rotation
-                  _buildSlide(
-                    imagePath: 'assets/onboarding/onboarding_active.jpg',
-                    badgeText: '⚡ Step 4: How It Works',
-                    badgeColor: const Color(0xFF10B981),
-                    title: 'One-Tap Set\nor Auto-Rotate',
-                    subtitle:
-                        'Tap "Set as Wallpaper" to apply immediately to Home, Lock, or Both screens. Or set an auto-rotation schedule for fresh wallpapers hands-free!',
-                    isDark: isDark,
-                    inkColor: inkColor,
-                    muteColor: muteColor,
-                  ),
-                ],
+                      // Slide 4: How It Works & Auto Rotation
+                      _buildSlide(
+                        constraints: constraints,
+                        imagePath: 'assets/onboarding/onboarding_active.jpg',
+                        badgeText: '⚡ Step 4: How It Works',
+                        badgeColor: const Color(0xFF10B981),
+                        title: 'One-Tap Set\nor Auto-Rotate',
+                        subtitle:
+                            'Tap "Set as Wallpaper" to apply immediately to Home, Lock, or Both screens. Or set an auto-rotation schedule for fresh wallpapers hands-free!',
+                        isDark: isDark,
+                        inkColor: inkColor,
+                        muteColor: muteColor,
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
 
             // Bottom Navigation & Page Indicators
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+              padding: const EdgeInsets.fromLTRB(24, 6, 24, 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -265,9 +273,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  /// Standardized, perfectly aligned slide layout across all pages.
-  /// Uses a real app screenshot centered inside a sleek phone bezel mockup.
+  /// Standardized, immersive slide layout with a large, prominent phone frame mockup.
   Widget _buildSlide({
+    required BoxConstraints constraints,
     required String imagePath,
     required String badgeText,
     required Color badgeColor,
@@ -277,19 +285,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     required Color inkColor,
     required Color muteColor,
   }) {
+    // Dynamically calculate mockup height and width to dominate 52-56% of available height
+    final double availHeight = constraints.maxHeight;
+    final double mockupHeight = (availHeight * 0.54).clamp(320.0, 450.0);
+    final double mockupWidth = mockupHeight * 0.53; // ~170dp to 240dp wide (ideal 9:17 aspect ratio)
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Centered Phone Mockup with Original App Screenshot
+          // Large Hero Phone Mockup with Original High-Res App Screenshot
           _buildDeviceMockup(
             imagePath: imagePath,
+            width: mockupWidth,
+            height: mockupHeight,
+            badgeColor: badgeColor,
             isDark: isDark,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           // Feature Step Badge
           Container(
@@ -298,7 +314,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               color: badgeColor.withOpacity(0.12),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: badgeColor.withOpacity(0.25),
+                color: badgeColor.withOpacity(0.28),
                 width: 1,
               ),
             ),
@@ -308,11 +324,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 color: badgeColor,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
+                letterSpacing: 0.3,
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // Headline Title
           Text(
@@ -322,11 +338,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               color: inkColor,
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              height: 1.25,
+              height: 1.2,
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
 
           // Explanatory Subtitle
           ConstrainedBox(
@@ -338,7 +354,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 color: muteColor,
                 fontSize: 13,
                 fontWeight: FontWeight.w400,
-                height: 1.45,
+                height: 1.4,
               ),
             ),
           ),
@@ -347,45 +363,50 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  /// Device mockup container: consistent dimensions and alignment across all slides.
+  /// Sleek, aesthetic smartphone mockup frame with modern rounded corners,
+  /// dark chassis bezel, camera notch, and ambient color glow shadow.
   Widget _buildDeviceMockup({
     required String imagePath,
+    required double width,
+    required double height,
+    required Color badgeColor,
     required bool isDark,
   }) {
-    // Proportional dimensions for phone preview
-    const double frameWidth = 190.0;
-    const double frameHeight = 310.0;
-    const double borderRadius = 26.0;
+    const double borderRadius = 32.0;
+    const double borderWidth = 3.5;
 
     return Container(
-      width: frameWidth,
-      height: frameHeight,
+      width: width,
+      height: height,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E20) : const Color(0xFF1A1A1E),
+        color: isDark ? const Color(0xFF1E1E22) : const Color(0xFF1A1A1E),
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: isDark ? Colors.white24 : Colors.black87,
-          width: 3.5,
+          color: isDark ? Colors.white.withOpacity(0.22) : Colors.black87,
+          width: borderWidth,
         ),
         boxShadow: [
+          // Ambient theme glow
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.45 : 0.16),
-            blurRadius: 22,
-            offset: const Offset(0, 8),
+            color: badgeColor.withOpacity(isDark ? 0.30 : 0.16),
+            blurRadius: 36,
+            offset: const Offset(0, 12),
+            spreadRadius: 2,
           ),
+          // Deep drop shadow
           BoxShadow(
-            color: PinterestTheme.primary.withOpacity(0.08),
-            blurRadius: 30,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(isDark ? 0.60 : 0.22),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Stack(
         alignment: Alignment.topCenter,
         children: [
-          // The Real In-App Screenshot
+          // High-Resolution In-App Screenshot
           ClipRRect(
-            borderRadius: BorderRadius.circular(borderRadius - 3.5),
+            borderRadius: BorderRadius.circular(borderRadius - borderWidth),
             child: SizedBox(
               width: double.infinity,
               height: double.infinity,
@@ -397,14 +418,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
 
-          // Subtle Top Camera / Speaker Notch Pill
+          // Top Camera / Speaker Notch Pill (Dynamic Island)
           Positioned(
             top: 6,
             child: Container(
-              width: 38,
-              height: 4.5,
+              width: 42,
+              height: 5,
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.75),
+                color: Colors.black.withOpacity(0.8),
                 borderRadius: BorderRadius.circular(3),
                 border: Border.all(
                   color: Colors.white.withOpacity(0.15),

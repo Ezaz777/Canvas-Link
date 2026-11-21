@@ -12,12 +12,6 @@ import 'utils/settings.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load saved theme mode
-  try {
-    final savedMode = await Settings.getThemeMode();
-    PinterestTheme.themeModeNotifier.value = PinterestTheme.stringToThemeMode(savedMode);
-  } catch (_) {}
-
   // Set transparent system navigation bar and status bar for edge-to-edge support
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -27,25 +21,41 @@ void main() async {
     ),
   );
 
-  // Initialize WorkManager for background tasks
-  await WallpaperWorker.initialize();
+  // Fast parallel read of essential local storage values only
+  final results = await Future.wait([
+    Settings.getThemeMode(),
+    Settings.hasSeenOnboarding(),
+    AuthService.isLoggedIn(),
+  ]);
 
-  // Initialize AdMob Mobile Ads
-  await AdService.instance.initialize();
+  final savedMode = results[0] as String;
+  final hasSeenOnboarding = results[1] as bool;
+  final isLoggedIn = results[2] as bool;
 
-  // Check onboarding and login status
-  final hasSeenOnboarding = await Settings.hasSeenOnboarding();
-  final isLoggedIn = await AuthService.isLoggedIn();
+  try {
+    PinterestTheme.themeModeNotifier.value = PinterestTheme.stringToThemeMode(savedMode);
+  } catch (_) {}
 
-  // Register periodic sync if logged in
-  if (isLoggedIn) {
-    await WallpaperWorker.registerPeriodicSync();
-  }
-
+  // Launch UI immediately — zero startup lag!
   runApp(WallpaperSyncApp(
     isLoggedIn: isLoggedIn,
     hasSeenOnboarding: hasSeenOnboarding,
   ));
+
+  // Initialize heavy services (AdMob SDK & WorkManager) in the background
+  // without blocking the user interface or app cold launch.
+  Future.microtask(() async {
+    try {
+      await AdService.instance.initialize();
+    } catch (_) {}
+
+    try {
+      await WallpaperWorker.initialize();
+      if (isLoggedIn) {
+        await WallpaperWorker.registerPeriodicSync();
+      }
+    } catch (_) {}
+  });
 }
 
 class WallpaperSyncApp extends StatelessWidget {
