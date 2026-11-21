@@ -11,8 +11,8 @@ import '../utils/image_utils.dart';
 import 'board_screen.dart';
 import 'dashboard_screen.dart';
 import 'login_screen.dart';
-import '../widgets/pro_upgrade_sheet.dart';
-import '../services/purchase_service.dart';
+import '../services/ad_service.dart';
+import '../widgets/ad_banner_widget.dart';
 import '../utils/pinterest_theme.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -128,9 +128,6 @@ class _HomeScreenState extends State<HomeScreen>
       final currentHour = DateTime.now().hour;
       final api = ApiService(token);
       final data = await api.getWallpaper(frequency: freq, hour: currentHour);
-      if (data.containsKey('is_pro')) {
-        await PurchaseService.instance.syncProStatusFromFlag(data['is_pro'] == true);
-      }
       final currentImg = data['image_url'] as String?;
       final currentPin = data['pin_id'] as String?;
 
@@ -379,6 +376,7 @@ class _HomeScreenState extends State<HomeScreen>
       );
 
       await _loadCurrentWallpaper();
+      AdService.instance.showInterstitialAd();
     } on ApiException catch (e) {
       if (!mounted) return;
       final isNoPins = e.code == 'no_pins_found';
@@ -437,6 +435,7 @@ class _HomeScreenState extends State<HomeScreen>
       );
 
       await _loadCurrentWallpaper();
+      AdService.instance.showInterstitialAd();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -449,6 +448,7 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       );
       await _loadCurrentWallpaper();
+      AdService.instance.showInterstitialAd();
     } finally {
       if (mounted) {
         setState(() => _isSyncing = false);
@@ -551,7 +551,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _logout() async {
     await AuthService.clearAll();
-    await PurchaseService.instance.resetOnLogout();
     await WallpaperWorker.cancelAll();
     try {
       await Clipboard.setData(const ClipboardData(text: ''));
@@ -1893,37 +1892,8 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           trailing: isSelected
                               ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
-                              : (Settings.isScreenTargetProOnly(target) && !PurchaseService.instance.isProNotifier.value)
-                                  ? Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFFFD700).withOpacity(0.18),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: const Color(0xFFFFA500), width: 0.8),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.workspace_premium_rounded, size: 12, color: Color(0xFFD97706)),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'PRO',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w800,
-                                              color: const Color(0xFFD97706),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : null,
+                              : null,
                           onTap: () async {
-                            if (Settings.isScreenTargetProOnly(target) && !PurchaseService.instance.isProNotifier.value) {
-                              Navigator.pop(context);
-                              ProUpgradeSheet.show(context);
-                              return;
-                            }
                             await Settings.setScreenTarget(target);
                             if (mounted) {
                               setState(() {
@@ -2030,37 +2000,8 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           trailing: isSelected
                               ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
-                              : (Settings.isFrequencyProOnly(freq) && !PurchaseService.instance.isProNotifier.value)
-                                  ? Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFFFD700).withOpacity(0.18),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: const Color(0xFFFFA500), width: 0.8),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.workspace_premium_rounded, size: 12, color: Color(0xFFD97706)),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'PRO',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w800,
-                                              color: const Color(0xFFD97706),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : null,
+                              : null,
                           onTap: () async {
-                            if (Settings.isFrequencyProOnly(freq) && !PurchaseService.instance.isProNotifier.value) {
-                              Navigator.pop(context);
-                              ProUpgradeSheet.show(context);
-                              return;
-                            }
                             await Settings.setSyncFrequency(freq);
                             await WallpaperWorker.registerPeriodicSync(forceUpdate: true);
                             if (mounted) {
@@ -2258,102 +2199,52 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                       const SizedBox(height: 16),
 
-                      // Pinterest Auto Wallpaper Pro Card
-                      ValueListenableBuilder<bool>(
-                        valueListenable: PurchaseService.instance.isProNotifier,
-                        builder: (ctx, isPro, _) {
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 24),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              gradient: isPro
-                                  ? const LinearGradient(
-                                      colors: [Color(0xFF1F1C2C), Color(0xFF928DAB)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    )
-                                  : const LinearGradient(
-                                      colors: [Color(0xFFE60023), Color(0xFFFF5252)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: (isPro ? Colors.black : const Color(0xFFE60023)).withOpacity(0.25),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
+                      // Ad Banner / 100% Free App Info
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 24),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: PinterestTheme.isDark(context) ? const Color(0xFF262626) : const Color(0xFFF3F3F3),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: PinterestTheme.isDark(context) ? Colors.white12 : Colors.black.withOpacity(0.06),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    isPro ? Icons.verified_rounded : Icons.workspace_premium_rounded,
-                                    color: Colors.white,
-                                    size: 24,
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
+                                const Icon(Icons.favorite_rounded, color: Color(0xFFE60023), size: 22),
+                                const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        isPro ? 'Pinterest Auto Wallpaper Pro Active' : 'Upgrade to Pro',
+                                        '100% Free Forever',
                                         style: GoogleFonts.inter(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w800,
+                                          color: PinterestTheme.getInk(context),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
                                         ),
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        isPro
-                                            ? 'Full 4K original quality & PC sync enabled'
-                                            : 'Unlock 1h/6h sync, Lock screen & Windows PC sync',
+                                        'All features unlocked: 1h/6h sync, Lock screen & 4K quality',
                                         style: GoogleFonts.inter(
-                                          color: Colors.white.withOpacity(0.88),
+                                          color: PinterestTheme.getMute(context),
                                           fontSize: 12,
-                                          fontWeight: FontWeight.w400,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                if (!isPro)
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      ProUpgradeSheet.show(context);
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: const Color(0xFFE60023),
-                                      elevation: 0,
-                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'Unlock',
-                                      style: GoogleFonts.inter(
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
                               ],
                             ),
-                          );
-                        },
+                            const SizedBox(height: 12),
+                            const Center(child: AdBannerWidget()),
+                          ],
+                        ),
                       ),
 
                       // Theme / Appearance Section
@@ -2456,37 +2347,8 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           trailing: isSelected
                               ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
-                              : (Settings.isScreenTargetProOnly(target) && !PurchaseService.instance.isProNotifier.value)
-                                  ? Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFFFD700).withOpacity(0.18),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: const Color(0xFFFFA500), width: 0.8),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.workspace_premium_rounded, size: 12, color: Color(0xFFD97706)),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'PRO',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w800,
-                                              color: const Color(0xFFD97706),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : null,
+                              : null,
                           onTap: () async {
-                            if (Settings.isScreenTargetProOnly(target) && !PurchaseService.instance.isProNotifier.value) {
-                              Navigator.pop(context);
-                              ProUpgradeSheet.show(context);
-                              return;
-                            }
                             await Settings.setScreenTarget(target);
                             if (mounted) {
                               setState(() {
@@ -2530,37 +2392,8 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           trailing: isSelected
                               ? const Icon(Icons.check_circle_rounded, color: PinterestTheme.primary)
-                              : (Settings.isFrequencyProOnly(freq) && !PurchaseService.instance.isProNotifier.value)
-                                  ? Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFFFD700).withOpacity(0.18),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: const Color(0xFFFFA500), width: 0.8),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.workspace_premium_rounded, size: 12, color: Color(0xFFD97706)),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'PRO',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w800,
-                                              color: const Color(0xFFD97706),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : null,
+                              : null,
                           onTap: () async {
-                            if (Settings.isFrequencyProOnly(freq) && !PurchaseService.instance.isProNotifier.value) {
-                              Navigator.pop(context);
-                              ProUpgradeSheet.show(context);
-                              return;
-                            }
                             await Settings.setSyncFrequency(freq);
                             await WallpaperWorker.registerPeriodicSync(forceUpdate: true);
                             if (mounted) {

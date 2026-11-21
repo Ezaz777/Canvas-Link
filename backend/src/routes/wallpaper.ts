@@ -139,37 +139,13 @@ export function registerWallpaperRoutes(router: any) {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const isPro = user.subscription_status === 'active';
+    const isPro = true; // 100% free for all users
 
     const url = new URL(request.url);
     const deviceType = url.searchParams.get('device_type');
     const frequencyParam = parseInt(url.searchParams.get('frequency') || '24', 10);
     const hourParam = parseInt(url.searchParams.get('hour') || '-1', 10);
     const currentHour = (hourParam >= 0 && hourParam <= 23) ? hourParam : new Date().getUTCHours();
-
-    // Pro Gate 1: Windows PC wallpaper sync requires Pro
-    if (deviceType === 'desktop' && !isPro) {
-      return Response.json(
-        {
-          error: 'Payment required',
-          code: 'pro_required',
-          message: 'Pinterest Auto Wallpaper Pro is required for Windows PC wallpaper sync. Upgrade via the mobile app.',
-        },
-        { status: 402 }
-      );
-    }
-
-    // Pro Gate 2: Rapid sync frequencies (1h and 6h) require Pro
-    if ((frequencyParam === 1 || frequencyParam === 6) && !isPro) {
-      return Response.json(
-        {
-          error: 'Payment required',
-          code: 'pro_required',
-          message: 'Pinterest Auto Wallpaper Pro is required for 1-hour and 6-hour wallpaper rotation intervals.',
-        },
-        { status: 402 }
-      );
-    }
 
     let targetBoardId: string | null = null;
     if (deviceType === 'mobile') {
@@ -285,11 +261,9 @@ export function registerWallpaperRoutes(router: any) {
       const unflaggedCount = Math.max(0, pins.length - flaggedCount);
 
       // 6. Extract the best resolution URL
-      // Pro users get uncompressed native 4K orig master; Free users get CDN-optimized 1200x
+      // Uncompressed native 4K orig master served to all users
       const images = selectedPin.media?.images || {};
-      const originalUrl = isPro
-        ? (images.orig?.url || images['1200x']?.url || images['736x']?.url || (Object.values(images)[0] as any)?.url)
-        : (images['1200x']?.url || images['736x']?.url || images.orig?.url || (Object.values(images)[0] as any)?.url);
+      const originalUrl = images.orig?.url || images['1200x']?.url || images['736x']?.url || (Object.values(images)[0] as any)?.url;
 
       if (!originalUrl) {
         return Response.json(
@@ -687,8 +661,8 @@ export function registerWallpaperRoutes(router: any) {
     return Response.json({
       user_id: user.id,
       username: user.pinterest_username,
-      subscription_status: user.subscription_status,
-      is_pro: user.subscription_status === 'active',
+      subscription_status: 'active',
+      is_pro: true,
     });
   });
 

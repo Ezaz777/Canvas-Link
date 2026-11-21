@@ -9,7 +9,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
-import '../services/purchase_service.dart';
 import '../workers/wallpaper_worker.dart';
 import '../utils/image_utils.dart';
 import '../utils/pinterest_theme.dart';
@@ -123,7 +122,6 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
     try {
       await AuthService.saveToken(token);
-      await PurchaseService.instance.updateApiService(ApiService(token));
 
       // Register background periodic wallpaper sync immediately upon login
       await WallpaperWorker.registerPeriodicSync(forceUpdate: true);

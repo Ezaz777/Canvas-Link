@@ -15,7 +15,6 @@ class Settings {
   static const String _screenHeightKey = 'device_screen_height';
   static const String _lastSyncDateKey = 'last_sync_date';
   static const String _dailySyncTimeKey = 'daily_sync_time';
-  static const String _isProKey = 'is_canvas_link_pro';
 
   // Frequencies in hours. 0 means Off.
   static const List<int> availableFrequencies = [0, 1, 6, 12, 24];
@@ -292,30 +291,21 @@ class Settings {
     }
   }
 
-  /// Check whether user has unlocked Pinterest Auto Wallpaper Pro
+  /// All features are 100% free for all users. Always returns true.
   static Future<bool> isPro() async {
-    try {
-      final val = await _storage.read(key: _isProKey);
-      return val == 'true';
-    } catch (_) {
-      return false;
-    }
+    return true;
   }
 
-  /// Update local Pro status
-  static Future<void> setPro(bool isPro) async {
-    try {
-      await _storage.write(key: _isProKey, value: isPro.toString());
-    } catch (_) {}
-  }
+  /// Compatibility stub
+  static Future<void> setPro(bool isPro) async {}
 
-  /// Whether a specific sync frequency requires Pro
+  /// No frequencies are locked. All are 100% free.
   static bool isFrequencyProOnly(int hours) {
-    return hours == 1 || hours == 6;
+    return false;
   }
 
-  /// Whether a specific screen target requires Pro
+  /// No screen targets are locked. All are 100% free.
   static bool isScreenTargetProOnly(String target) {
-    return target == 'both' || target == 'lock';
+    return false;
   }
 }
